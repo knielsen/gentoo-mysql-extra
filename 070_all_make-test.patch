@@ -1,0 +1,14 @@
+###MY_VER_RANGE [5.0.6_beta,5.0.6_beta] [5.1.0_alpha20050531,5.1.0_alpha20050531]
+--- mysql.Makefile.am/Makefile.am	2005-06-02 22:44:41.000000000 +0200
++++ mysql-5.0.6-beta/Makefile.am	2005-06-02 22:46:19.000000000 +0200
+@@ -104,8 +104,8 @@
+ 
+ test-force:
+ 	cd mysql-test; \
+-	mysql-test-run --force ;\
+-	mysql-test-run --ps-protocol --force
++	./mysql-test-run --force ;\
++	./mysql-test-run --ps-protocol --force
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%

@@ -1,0 +1,6170 @@
+###MY_VER_RANGE [5.0.6_beta,)
+###MY_USE_FLAG barkov-xml
+diff -Naur mysql.orig/include/my_xml.h mysql.xml/include/my_xml.h
+--- mysql.orig/include/my_xml.h	2005-05-15 06:16:51.000000000 +0200
++++ mysql.xml/include/my_xml.h	2005-05-20 15:19:29.000000000 +0200
+@@ -26,8 +26,31 @@
+ #define MY_XML_OK	0
+ #define MY_XML_ERROR	1
+ 
++/* 
++  A flag whether to use absolute tag names in call-back functions,
++  like "a", "a.b" and "a.b.c" (used in character set file parser),
++  or relative names like "a", "b" and "c".
++*/
++#define MY_XML_FLAG_RELATIVE_NAMES 1
++
++/*
++  A flag whether to skip normilization of text values before calling
++  call-back functions: i.e. skip leading/trailing spaces,
++  \r, \n, \t characters.
++*/
++#define MY_XML_FLAG_SKIP_TEXT_NORMALIZATION 2
++
++enum my_xml_node_type
++{
++  MY_XML_NODE_TAG,   /* can have TAG, ATTR and TEXT children */
++  MY_XML_NODE_ATTR,  /* can have TEXT children               */
++  MY_XML_NODE_TEXT   /* cannot have children                 */
++};
++
+ typedef struct xml_stack_st
+ {
++  int flags;
++  enum my_xml_node_type current_node_type;
+   char errstr[128];
+   char attr[128];
+   char *attrend;
+diff -Naur mysql.orig/mysql-test/r/xml.result mysql.xml/mysql-test/r/xml.result
+--- mysql.orig/mysql-test/r/xml.result	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/mysql-test/r/xml.result	2005-04-13 09:17:23.000000000 +0200
+@@ -0,0 +1,522 @@
++SET @xml='<a aa1="aa1" aa2="aa2">a1<b ba1="ba1">b1<c>c1</c>b2</b>a2</a>';
++SELECT extractValue(@xml,'/a');
++extractValue(@xml,'/a')
++a1 a2
++SELECT extractValue(@xml,'/a/b');
++extractValue(@xml,'/a/b')
++b1 b2
++SELECT extractValue(@xml,'/a/b/c');
++extractValue(@xml,'/a/b/c')
++c1
++SELECT extractValue(@xml,'/a/@aa1');
++extractValue(@xml,'/a/@aa1')
++aa1
++SELECT extractValue(@xml,'/a/@aa2');
++extractValue(@xml,'/a/@aa2')
++aa2
++SELECT extractValue(@xml,'/a/@*');
++extractValue(@xml,'/a/@*')
++aa1 aa2
++SELECT extractValue(@xml,'//@ba1');
++extractValue(@xml,'//@ba1')
++ba1
++SELECT extractValue(@xml,'//a');
++extractValue(@xml,'//a')
++a1 a2
++SELECT extractValue(@xml,'//b');
++extractValue(@xml,'//b')
++b1 b2
++SELECT extractValue(@xml,'//c');
++extractValue(@xml,'//c')
++c1
++SELECT extractValue(@xml,'/a//b');
++extractValue(@xml,'/a//b')
++b1 b2
++SELECT extractValue(@xml,'/a//c');
++extractValue(@xml,'/a//c')
++c1
++SELECT extractValue(@xml,'//*');
++extractValue(@xml,'//*')
++a1 b1 c1 b2 a2
++SELECT extractValue(@xml,'/a//*');
++extractValue(@xml,'/a//*')
++b1 c1 b2
++SELECT extractValue(@xml,'/./a');
++extractValue(@xml,'/./a')
++a1 a2
++SELECT extractValue(@xml,'/a/b/.');
++extractValue(@xml,'/a/b/.')
++b1 b2
++SELECT extractValue(@xml,'/a/b/..');
++extractValue(@xml,'/a/b/..')
++a1 a2
++SELECT extractValue(@xml,'/a/b/../@aa1');
++extractValue(@xml,'/a/b/../@aa1')
++aa1
++SELECT extractValue(@xml,'/*');
++extractValue(@xml,'/*')
++a1 a2
++SELECT extractValue(@xml,'/*/*');
++extractValue(@xml,'/*/*')
++b1 b2
++SELECT extractValue(@xml,'/*/*/*');
++extractValue(@xml,'/*/*/*')
++c1
++SELECT extractValue(@xml,'/a/child::*');
++extractValue(@xml,'/a/child::*')
++b1 b2
++SELECT extractValue(@xml,'/a/descendant::*');
++extractValue(@xml,'/a/descendant::*')
++b1 c1 b2
++SELECT extractValue(@xml,'/a/descendant-or-self::*');
++extractValue(@xml,'/a/descendant-or-self::*')
++a1 b1 c1 b2 a2
++SELECT extractValue(@xml,'/a/attribute::*');
++extractValue(@xml,'/a/attribute::*')
++aa1 aa2
++SELECT extractValue(@xml,'/a/b/c/parent::*');
++extractValue(@xml,'/a/b/c/parent::*')
++b1 b2
++SELECT extractValue(@xml,'/a/b/c/ancestor::*');
++extractValue(@xml,'/a/b/c/ancestor::*')
++a1 b1 b2 a2
++SELECT extractValue(@xml,'/a/b/c/ancestor-or-self::*');
++extractValue(@xml,'/a/b/c/ancestor-or-self::*')
++a1 b1 c1 b2 a2
++SELECT extractValue(@xml,'/descendant-or-self::*');
++extractValue(@xml,'/descendant-or-self::*')
++a1 b1 c1 b2 a2
++SET @xml='<a>a11<b ba="ba11" ba="ba12">b11</b><b ba="ba21" ba="ba22">b21<c>c1</c>b22</b>a12</a>';
++SELECT extractValue(@xml,'/a/b/c/ancestor-or-self::*');
++extractValue(@xml,'/a/b/c/ancestor-or-self::*')
++a11 b21 c1 b22 a12
++SELECT extractValue(@xml,'//@ba');
++extractValue(@xml,'//@ba')
++ba11 ba12 ba21 ba22
++SET @xml='<a><b>b</b><c>c</c></a>';
++SELECT extractValue(@xml,'/a/b');
++extractValue(@xml,'/a/b')
++b
++SELECT extractValue(@xml,'/a/c');
++extractValue(@xml,'/a/c')
++c
++SELECT extractValue(@xml,'/a/child::b');
++extractValue(@xml,'/a/child::b')
++b
++SELECT extractValue(@xml,'/a/child::c');
++extractValue(@xml,'/a/child::c')
++c
++SET @xml='<a><b>b1</b><c>c1</c><b>b2</b><c>c2</c></a>';
++SELECT extractValue(@xml,'/a/b[1]');
++extractValue(@xml,'/a/b[1]')
++b1
++SELECT extractValue(@xml,'/a/b[2]');
++extractValue(@xml,'/a/b[2]')
++b2
++SELECT extractValue(@xml,'/a/c[1]');
++extractValue(@xml,'/a/c[1]')
++c1
++SELECT extractValue(@xml,'/a/c[2]');
++extractValue(@xml,'/a/c[2]')
++c2
++SET @xml='<a><b x="xb1" x="xb2"/><c x="xc1" x="xc2"/></a>';
++SELECT extractValue(@xml,'/a//@x');
++extractValue(@xml,'/a//@x')
++xb1 xb2 xc1 xc2
++SELECT extractValue(@xml,'/a//@x[1]');
++extractValue(@xml,'/a//@x[1]')
++xb1 xc1
++SELECT extractValue(@xml,'/a//@x[2]');
++extractValue(@xml,'/a//@x[2]')
++xb2 xc2
++SET @xml='<a><b>b1</b><b>b2</b><c><b>c1b1</b><b>c1b2</b></c><c><b>c2b1</c></b>/a>';
++SELECT extractValue(@xml,'//b[1]');
++extractValue(@xml,'//b[1]')
++b1 c1b1 c2b1
++SELECT extractValue(@xml,'/descendant::b[1]');
++extractValue(@xml,'/descendant::b[1]')
++b1
++SET @xml='<a><b>b1</b><b>b2</b></a>';
++SELECT extractValue(@xml,'/a/b[1+0]');
++extractValue(@xml,'/a/b[1+0]')
++b1
++SELECT extractValue(@xml,'/a/b[1*1]');
++extractValue(@xml,'/a/b[1*1]')
++b1
++SELECT extractValue(@xml,'/a/b[--1]');
++extractValue(@xml,'/a/b[--1]')
++b1
++SELECT extractValue(@xml,'/a/b[2*1-1]');
++extractValue(@xml,'/a/b[2*1-1]')
++b1
++SELECT extractValue(@xml,'/a/b[1+1]');
++extractValue(@xml,'/a/b[1+1]')
++b2
++SELECT extractValue(@xml,'/a/b[1*2]');
++extractValue(@xml,'/a/b[1*2]')
++b2
++SELECT extractValue(@xml,'/a/b[--2]');
++extractValue(@xml,'/a/b[--2]')
++b2
++SELECT extractValue(@xml,'/a/b[1*(3-1)]');
++extractValue(@xml,'/a/b[1*(3-1)]')
++b2
++SELECT extractValue(@xml,'//*[1=1]');
++extractValue(@xml,'//*[1=1]')
++b1 b2
++SELECT extractValue(@xml,'//*[1!=1]');
++extractValue(@xml,'//*[1!=1]')
++
++SELECT extractValue(@xml,'//*[1>1]');
++extractValue(@xml,'//*[1>1]')
++
++SELECT extractValue(@xml,'//*[2>1]');
++extractValue(@xml,'//*[2>1]')
++b1 b2
++SELECT extractValue(@xml,'//*[1>2]');
++extractValue(@xml,'//*[1>2]')
++
++SELECT extractValue(@xml,'//*[1>=1]');
++extractValue(@xml,'//*[1>=1]')
++b1 b2
++SELECT extractValue(@xml,'//*[2>=1]');
++extractValue(@xml,'//*[2>=1]')
++b1 b2
++SELECT extractValue(@xml,'//*[1>=2]');
++extractValue(@xml,'//*[1>=2]')
++
++SELECT extractValue(@xml,'//*[1<1]');
++extractValue(@xml,'//*[1<1]')
++
++SELECT extractValue(@xml,'//*[2<1]');
++extractValue(@xml,'//*[2<1]')
++
++SELECT extractValue(@xml,'//*[1<2]');
++extractValue(@xml,'//*[1<2]')
++b1 b2
++SELECT extractValue(@xml,'//*[1<=1]');
++extractValue(@xml,'//*[1<=1]')
++b1 b2
++SELECT extractValue(@xml,'//*[2<=1]');
++extractValue(@xml,'//*[2<=1]')
++
++SELECT extractValue(@xml,'//*[1<=2]');
++extractValue(@xml,'//*[1<=2]')
++b1 b2
++SET @xml='<a><b>b11<c>c11</c></b><b>b21<c>c21</c></b></a>';
++SELECT extractValue(@xml,'/a/b[c="c11"]');
++extractValue(@xml,'/a/b[c="c11"]')
++b11
++SELECT extractValue(@xml,'/a/b[c="c21"]');
++extractValue(@xml,'/a/b[c="c21"]')
++b21
++SET @xml='<a><b c="c11">b11</b><b c="c21">b21</b></a>';
++SELECT extractValue(@xml,'/a/b[@c="c11"]');
++extractValue(@xml,'/a/b[@c="c11"]')
++b11
++SELECT extractValue(@xml,'/a/b[@c="c21"]');
++extractValue(@xml,'/a/b[@c="c21"]')
++b21
++SET @xml='<a>a1<b c="c11">b11<d>d11</d></b><b c="c21">b21<d>d21</d></b></a>';
++SELECT extractValue(@xml, '/a/b[@c="c11"]/d');
++extractValue(@xml, '/a/b[@c="c11"]/d')
++d11
++SELECT extractValue(@xml, '/a/b[@c="c21"]/d');
++extractValue(@xml, '/a/b[@c="c21"]/d')
++d21
++SELECT extractValue(@xml, '/a/b[d="d11"]/@c');
++extractValue(@xml, '/a/b[d="d11"]/@c')
++c11
++SELECT extractValue(@xml, '/a/b[d="d21"]/@c');
++extractValue(@xml, '/a/b[d="d21"]/@c')
++c21
++SELECT extractValue(@xml, '/a[b="b11"]');
++extractValue(@xml, '/a[b="b11"]')
++a1
++SELECT extractValue(@xml, '/a[b/@c="c11"]');
++extractValue(@xml, '/a[b/@c="c11"]')
++a1
++SELECT extractValue(@xml, '/a[b/d="d11"]');
++extractValue(@xml, '/a[b/d="d11"]')
++a1
++SELECT extractValue(@xml, '/a[/a/b="b11"]');
++extractValue(@xml, '/a[/a/b="b11"]')
++a1
++SELECT extractValue(@xml, '/a[/a/b/@c="c11"]');
++extractValue(@xml, '/a[/a/b/@c="c11"]')
++a1
++SELECT extractValue(@xml, '/a[/a/b/d="d11"]');
++extractValue(@xml, '/a[/a/b/d="d11"]')
++a1
++SELECT extractValue('<a>a</a>', '/a[false()]');
++extractValue('<a>a</a>', '/a[false()]')
++
++SELECT extractValue('<a>a</a>', '/a[true()]');
++extractValue('<a>a</a>', '/a[true()]')
++a
++SELECT extractValue('<a>a</a>', '/a[not(false())]');
++extractValue('<a>a</a>', '/a[not(false())]')
++a
++SELECT extractValue('<a>a</a>', '/a[not(true())]');
++extractValue('<a>a</a>', '/a[not(true())]')
++
++SELECT extractValue('<a>a</a>', '/a[true() and true()]');
++extractValue('<a>a</a>', '/a[true() and true()]')
++a
++SELECT extractValue('<a>a</a>', '/a[true() and false()]');
++extractValue('<a>a</a>', '/a[true() and false()]')
++
++SELECT extractValue('<a>a</a>', '/a[false()and false()]');
++extractValue('<a>a</a>', '/a[false()and false()]')
++
++SELECT extractValue('<a>a</a>', '/a[false()and true()]');
++extractValue('<a>a</a>', '/a[false()and true()]')
++
++SELECT extractValue('<a>a</a>', '/a[true() or true()]');
++extractValue('<a>a</a>', '/a[true() or true()]')
++a
++SELECT extractValue('<a>a</a>', '/a[true() or false()]');
++extractValue('<a>a</a>', '/a[true() or false()]')
++a
++SELECT extractValue('<a>a</a>', '/a[false()or false()]');
++extractValue('<a>a</a>', '/a[false()or false()]')
++
++SELECT extractValue('<a>a</a>', '/a[false()or true()]');
++extractValue('<a>a</a>', '/a[false()or true()]')
++a
++SET @xml='<a>ab<b c="c" c="e">b1</b><b c="d">b2</b><b c="f" c="e">b3</b></a>';
++select extractValue(@xml,'/a/b[@c="c"]');
++extractValue(@xml,'/a/b[@c="c"]')
++b1
++select extractValue(@xml,'/a/b[@c="d"]');
++extractValue(@xml,'/a/b[@c="d"]')
++b2
++select extractValue(@xml,'/a/b[@c="e"]');
++extractValue(@xml,'/a/b[@c="e"]')
++b1 b3
++select extractValue(@xml,'/a/b[not(@c="e")]');
++extractValue(@xml,'/a/b[not(@c="e")]')
++b2
++select extractValue(@xml,'/a/b[@c!="e"]');
++extractValue(@xml,'/a/b[@c!="e"]')
++b1 b2 b3
++select extractValue(@xml,'/a/b[@c="c" or @c="d"]');
++extractValue(@xml,'/a/b[@c="c" or @c="d"]')
++b1 b2
++select extractValue(@xml,'/a/b[@c="c" and @c="e"]');
++extractValue(@xml,'/a/b[@c="c" and @c="e"]')
++b1
++SET @xml='<a><b c="c" d="d">b1</b><b d="d" e="e">b2</b></a>';
++select extractValue(@xml,'/a/b[@c]');
++extractValue(@xml,'/a/b[@c]')
++b1
++select extractValue(@xml,'/a/b[@d]');
++extractValue(@xml,'/a/b[@d]')
++b1 b2
++select extractValue(@xml,'/a/b[@e]');
++extractValue(@xml,'/a/b[@e]')
++b2
++select extractValue(@xml,'/a/b[not(@c)]');
++extractValue(@xml,'/a/b[not(@c)]')
++b2
++select extractValue(@xml,'/a/b[not(@d)]');
++extractValue(@xml,'/a/b[not(@d)]')
++
++select extractValue(@xml,'/a/b[not(@e)]');
++extractValue(@xml,'/a/b[not(@e)]')
++b1
++select extractValue(@xml, '/a/b[boolean(@c) or boolean(@d)]');
++extractValue(@xml, '/a/b[boolean(@c) or boolean(@d)]')
++b1 b2
++select extractValue(@xml, '/a/b[boolean(@c) or boolean(@e)]');
++extractValue(@xml, '/a/b[boolean(@c) or boolean(@e)]')
++b1 b2
++select extractValue(@xml, '/a/b[boolean(@d) or boolean(@e)]');
++extractValue(@xml, '/a/b[boolean(@d) or boolean(@e)]')
++b1 b2
++select extractValue(@xml, '/a/b[boolean(@c) and boolean(@d)]');
++extractValue(@xml, '/a/b[boolean(@c) and boolean(@d)]')
++b1
++select extractValue(@xml, '/a/b[boolean(@c) and boolean(@e)]');
++extractValue(@xml, '/a/b[boolean(@c) and boolean(@e)]')
++
++select extractValue(@xml, '/a/b[boolean(@d) and boolean(@e)]');
++extractValue(@xml, '/a/b[boolean(@d) and boolean(@e)]')
++b2
++select extractValue(@xml, '/a/b[@c or @d]');
++extractValue(@xml, '/a/b[@c or @d]')
++b1 b2
++select extractValue(@xml, '/a/b[@c or @e]');
++extractValue(@xml, '/a/b[@c or @e]')
++b1 b2
++select extractValue(@xml, '/a/b[@d or @e]');
++extractValue(@xml, '/a/b[@d or @e]')
++b1 b2
++select extractValue(@xml, '/a/b[@c and @d]');
++extractValue(@xml, '/a/b[@c and @d]')
++b1
++select extractValue(@xml, '/a/b[@c and @e]');
++extractValue(@xml, '/a/b[@c and @e]')
++
++select extractValue(@xml, '/a/b[@d and @e]');
++extractValue(@xml, '/a/b[@d and @e]')
++b2
++SET @xml='<a><b c="c">b1</b><b>b2</b></a>';
++SELECT extractValue(@xml,'/a/b[@*]');
++extractValue(@xml,'/a/b[@*]')
++b1
++SELECT extractValue(@xml,'/a/b[not(@*)]');
++extractValue(@xml,'/a/b[not(@*)]')
++b2
++SELECT extractValue('<a>a</a>', '/a[ceiling(3.1)=4]');
++extractValue('<a>a</a>', '/a[ceiling(3.1)=4]')
++a
++SELECT extractValue('<a>a</a>', '/a[floor(3.1)=3]');
++extractValue('<a>a</a>', '/a[floor(3.1)=3]')
++a
++SELECT extractValue('<a>a</a>', '/a[round(3.1)=3]');
++extractValue('<a>a</a>', '/a[round(3.1)=3]')
++a
++SELECT extractValue('<a>a</a>', '/a[round(3.8)=4]');
++extractValue('<a>a</a>', '/a[round(3.8)=4]')
++a
++SELECT extractValue('<a><b>b</b><c>c</c></a>', '/a/b | /a/c');
++extractValue('<a><b>b</b><c>c</c></a>', '/a/b | /a/c')
++b c
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=1]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=1]')
++b1
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=2]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=2]')
++b2
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3]')
++b3
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[1=position()]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[1=position()]')
++b1
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2=position()]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2=position()]')
++b2
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[3=position()]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[3=position()]')
++b3
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2>=position()]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2>=position()]')
++b1 b2
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2<=position()]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2<=position()]')
++b2 b3
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3 or position()=2]');
++extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3 or position()=2]')
++b2 b3
++SELECT extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=0]');
++extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=0]')
++a2
++SELECT extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=1]');
++extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=1]')
++a1
++select extractValue('<a>a1<b ba="1" ba="2">b1</b><b>b2</b>4</a>','/a/b[sum(@ba)=3]');
++extractValue('<a>a1<b ba="1" ba="2">b1</b><b>b2</b>4</a>','/a/b[sum(@ba)=3]')
++b1
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[1]');
++extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[1]')
++b1
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[boolean(1)]');
++extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[boolean(1)]')
++b1 b2
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[true()]');
++extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[true()]')
++b1 b2
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[number(true())]');
++extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[number(true())]')
++b1
++select extractValue('<a>ab</a>','/a[contains("abc","b")]');
++extractValue('<a>ab</a>','/a[contains("abc","b")]')
++ab
++select extractValue('<a>ab</a>','/a[contains(.,"a")]');
++extractValue('<a>ab</a>','/a[contains(.,"a")]')
++ab
++select extractValue('<a>ab</a>','/a[contains(.,"b")]');
++extractValue('<a>ab</a>','/a[contains(.,"b")]')
++ab
++select extractValue('<a>ab</a>','/a[contains(.,"c")]');
++extractValue('<a>ab</a>','/a[contains(.,"c")]')
++
++select extractValue('<a b="1">ab</a>','/a[concat(@b,"2")="12"]');
++extractValue('<a b="1">ab</a>','/a[concat(@b,"2")="12"]')
++ab
++SET @xml='<a b="11" b="12" b="21" b="22">ab</a>';
++select extractValue(@xml, '/a/@b[substring(.,2)="1"]');
++extractValue(@xml, '/a/@b[substring(.,2)="1"]')
++11 21
++select extractValue(@xml, '/a/@b[substring(.,2)="2"]');
++extractValue(@xml, '/a/@b[substring(.,2)="2"]')
++12 22
++select extractValue(@xml, '/a/@b[substring(.,1,1)="1"]');
++extractValue(@xml, '/a/@b[substring(.,1,1)="1"]')
++11 12
++select extractValue(@xml, '/a/@b[substring(.,1,1)="2"]');
++extractValue(@xml, '/a/@b[substring(.,1,1)="2"]')
++21 22
++select extractValue(@xml, '/a/@b[substring(.,2,1)="1"]');
++extractValue(@xml, '/a/@b[substring(.,2,1)="1"]')
++11 21
++select extractValue(@xml, '/a/@b[substring(.,2,1)="2"]');
++extractValue(@xml, '/a/@b[substring(.,2,1)="2"]')
++12 22
++SET @xml='<a b="b11" b="b12" b="b21" b="22"/>';
++select extractValue(@xml,'/a/@b');
++extractValue(@xml,'/a/@b')
++b11 b12 b21 22
++select extractValue(@xml,'/a/@b[contains(.,"1")]');
++extractValue(@xml,'/a/@b[contains(.,"1")]')
++b11 b12 b21
++select extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")]');
++extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")]')
++b12 b21
++select extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")][2]');
++extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")][2]')
++b21
++SET @xml='<a>a1<b>b1<c>c1</c>b2</b>a2</a>';
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','+++++++++');
++UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','+++++++++')
++<a>a1<b>b1+++++++++b2</b>a2</a>
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1>+++++++++</c1>');
++UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1>+++++++++</c1>')
++<a>a1<b>b1<c1>+++++++++</c1>b2</b>a2</a>
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1/>');
++UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1/>')
++<a>a1<b>b1<c1/>b2</b>a2</a>
++SET @xml='<a><b>bb</b></a>';
++select UpdateXML(@xml, '/a/b', '<b>ccc</b>');
++UpdateXML(@xml, '/a/b', '<b>ccc</b>')
++<a><b>ccc</b></a>
++SET @xml='<a aa1="aa1" aa2="aa2"><b bb1="bb1" bb2="bb2">bb</b></a>';
++select UpdateXML(@xml, '/a/b', '<b>ccc</b>');
++UpdateXML(@xml, '/a/b', '<b>ccc</b>')
++<a aa1="aa1" aa2="aa2"><b>ccc</b></a>
++select UpdateXML(@xml, '/a/@aa1', '');
++UpdateXML(@xml, '/a/@aa1', '')
++<a  aa2="aa2"><b bb1="bb1" bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/@aa1', 'aa3="aa3"');
++UpdateXML(@xml, '/a/@aa1', 'aa3="aa3"')
++<a aa3="aa3" aa2="aa2"><b bb1="bb1" bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/@aa2', '');
++UpdateXML(@xml, '/a/@aa2', '')
++<a aa1="aa1" ><b bb1="bb1" bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/@aa2', 'aa3="aa3"');
++UpdateXML(@xml, '/a/@aa2', 'aa3="aa3"')
++<a aa1="aa1" aa3="aa3"><b bb1="bb1" bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/b/@bb1', '');
++UpdateXML(@xml, '/a/b/@bb1', '')
++<a aa1="aa1" aa2="aa2"><b  bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/b/@bb1', 'bb3="bb3"');
++UpdateXML(@xml, '/a/b/@bb1', 'bb3="bb3"')
++<a aa1="aa1" aa2="aa2"><b bb3="bb3" bb2="bb2">bb</b></a>
++select UpdateXML(@xml, '/a/b/@bb2', '');
++UpdateXML(@xml, '/a/b/@bb2', '')
++<a aa1="aa1" aa2="aa2"><b bb1="bb1" >bb</b></a>
++select UpdateXML(@xml, '/a/b/@bb2', 'bb3="bb3"');
++UpdateXML(@xml, '/a/b/@bb2', 'bb3="bb3"')
++<a aa1="aa1" aa2="aa2"><b bb1="bb1" bb3="bb3">bb</b></a>
+diff -Naur mysql.orig/mysql-test/t/xml.test mysql.xml/mysql-test/t/xml.test
+--- mysql.orig/mysql-test/t/xml.test	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/mysql-test/t/xml.test	2005-04-13 09:15:03.000000000 +0200
+@@ -0,0 +1,217 @@
++SET @xml='<a aa1="aa1" aa2="aa2">a1<b ba1="ba1">b1<c>c1</c>b2</b>a2</a>';
++SELECT extractValue(@xml,'/a');
++SELECT extractValue(@xml,'/a/b');
++SELECT extractValue(@xml,'/a/b/c');
++SELECT extractValue(@xml,'/a/@aa1');
++SELECT extractValue(@xml,'/a/@aa2');
++SELECT extractValue(@xml,'/a/@*');
++SELECT extractValue(@xml,'//@ba1');
++
++SELECT extractValue(@xml,'//a');
++SELECT extractValue(@xml,'//b');
++SELECT extractValue(@xml,'//c');
++SELECT extractValue(@xml,'/a//b');
++SELECT extractValue(@xml,'/a//c');
++SELECT extractValue(@xml,'//*');
++SELECT extractValue(@xml,'/a//*');
++SELECT extractValue(@xml,'/./a');
++SELECT extractValue(@xml,'/a/b/.');
++SELECT extractValue(@xml,'/a/b/..');
++SELECT extractValue(@xml,'/a/b/../@aa1');
++SELECT extractValue(@xml,'/*');
++SELECT extractValue(@xml,'/*/*');
++SELECT extractValue(@xml,'/*/*/*');
++
++SELECT extractValue(@xml,'/a/child::*');
++SELECT extractValue(@xml,'/a/descendant::*');
++SELECT extractValue(@xml,'/a/descendant-or-self::*');
++SELECT extractValue(@xml,'/a/attribute::*');
++SELECT extractValue(@xml,'/a/b/c/parent::*');
++SELECT extractValue(@xml,'/a/b/c/ancestor::*');
++SELECT extractValue(@xml,'/a/b/c/ancestor-or-self::*');
++SELECT extractValue(@xml,'/descendant-or-self::*');
++
++SET @xml='<a>a11<b ba="ba11" ba="ba12">b11</b><b ba="ba21" ba="ba22">b21<c>c1</c>b22</b>a12</a>';
++SELECT extractValue(@xml,'/a/b/c/ancestor-or-self::*');
++SELECT extractValue(@xml,'//@ba');
++
++SET @xml='<a><b>b</b><c>c</c></a>';
++SELECT extractValue(@xml,'/a/b');
++SELECT extractValue(@xml,'/a/c');
++SELECT extractValue(@xml,'/a/child::b');
++SELECT extractValue(@xml,'/a/child::c');
++
++SET @xml='<a><b>b1</b><c>c1</c><b>b2</b><c>c2</c></a>';
++SELECT extractValue(@xml,'/a/b[1]');
++SELECT extractValue(@xml,'/a/b[2]');
++SELECT extractValue(@xml,'/a/c[1]');
++SELECT extractValue(@xml,'/a/c[2]');
++
++SET @xml='<a><b x="xb1" x="xb2"/><c x="xc1" x="xc2"/></a>';
++SELECT extractValue(@xml,'/a//@x');
++SELECT extractValue(@xml,'/a//@x[1]');
++SELECT extractValue(@xml,'/a//@x[2]');
++
++SET @xml='<a><b>b1</b><b>b2</b><c><b>c1b1</b><b>c1b2</b></c><c><b>c2b1</c></b>/a>';
++SELECT extractValue(@xml,'//b[1]');
++SELECT extractValue(@xml,'/descendant::b[1]');
++
++SET @xml='<a><b>b1</b><b>b2</b></a>';
++SELECT extractValue(@xml,'/a/b[1+0]');
++SELECT extractValue(@xml,'/a/b[1*1]');
++SELECT extractValue(@xml,'/a/b[--1]');
++SELECT extractValue(@xml,'/a/b[2*1-1]');
++
++SELECT extractValue(@xml,'/a/b[1+1]');
++SELECT extractValue(@xml,'/a/b[1*2]');
++SELECT extractValue(@xml,'/a/b[--2]');
++SELECT extractValue(@xml,'/a/b[1*(3-1)]');
++
++SELECT extractValue(@xml,'//*[1=1]');
++SELECT extractValue(@xml,'//*[1!=1]');
++SELECT extractValue(@xml,'//*[1>1]');
++SELECT extractValue(@xml,'//*[2>1]');
++SELECT extractValue(@xml,'//*[1>2]');
++SELECT extractValue(@xml,'//*[1>=1]');
++SELECT extractValue(@xml,'//*[2>=1]');
++SELECT extractValue(@xml,'//*[1>=2]');
++SELECT extractValue(@xml,'//*[1<1]');
++SELECT extractValue(@xml,'//*[2<1]');
++SELECT extractValue(@xml,'//*[1<2]');
++SELECT extractValue(@xml,'//*[1<=1]');
++SELECT extractValue(@xml,'//*[2<=1]');
++SELECT extractValue(@xml,'//*[1<=2]');
++
++SET @xml='<a><b>b11<c>c11</c></b><b>b21<c>c21</c></b></a>';
++SELECT extractValue(@xml,'/a/b[c="c11"]');
++SELECT extractValue(@xml,'/a/b[c="c21"]');
++
++SET @xml='<a><b c="c11">b11</b><b c="c21">b21</b></a>';
++SELECT extractValue(@xml,'/a/b[@c="c11"]');
++SELECT extractValue(@xml,'/a/b[@c="c21"]');
++
++SET @xml='<a>a1<b c="c11">b11<d>d11</d></b><b c="c21">b21<d>d21</d></b></a>';
++SELECT extractValue(@xml, '/a/b[@c="c11"]/d');
++SELECT extractValue(@xml, '/a/b[@c="c21"]/d');
++SELECT extractValue(@xml, '/a/b[d="d11"]/@c');
++SELECT extractValue(@xml, '/a/b[d="d21"]/@c');
++SELECT extractValue(@xml, '/a[b="b11"]');
++SELECT extractValue(@xml, '/a[b/@c="c11"]');
++SELECT extractValue(@xml, '/a[b/d="d11"]');
++SELECT extractValue(@xml, '/a[/a/b="b11"]');
++SELECT extractValue(@xml, '/a[/a/b/@c="c11"]');
++SELECT extractValue(@xml, '/a[/a/b/d="d11"]');
++
++SELECT extractValue('<a>a</a>', '/a[false()]');
++SELECT extractValue('<a>a</a>', '/a[true()]');
++SELECT extractValue('<a>a</a>', '/a[not(false())]');
++SELECT extractValue('<a>a</a>', '/a[not(true())]');
++SELECT extractValue('<a>a</a>', '/a[true() and true()]');
++SELECT extractValue('<a>a</a>', '/a[true() and false()]');
++SELECT extractValue('<a>a</a>', '/a[false()and false()]');
++SELECT extractValue('<a>a</a>', '/a[false()and true()]');
++SELECT extractValue('<a>a</a>', '/a[true() or true()]');
++SELECT extractValue('<a>a</a>', '/a[true() or false()]');
++SELECT extractValue('<a>a</a>', '/a[false()or false()]');
++SELECT extractValue('<a>a</a>', '/a[false()or true()]');
++
++SET @xml='<a>ab<b c="c" c="e">b1</b><b c="d">b2</b><b c="f" c="e">b3</b></a>';
++select extractValue(@xml,'/a/b[@c="c"]');
++select extractValue(@xml,'/a/b[@c="d"]');
++select extractValue(@xml,'/a/b[@c="e"]');
++select extractValue(@xml,'/a/b[not(@c="e")]');
++select extractValue(@xml,'/a/b[@c!="e"]');
++select extractValue(@xml,'/a/b[@c="c" or @c="d"]');
++select extractValue(@xml,'/a/b[@c="c" and @c="e"]');
++
++SET @xml='<a><b c="c" d="d">b1</b><b d="d" e="e">b2</b></a>';
++select extractValue(@xml,'/a/b[@c]');
++select extractValue(@xml,'/a/b[@d]');
++select extractValue(@xml,'/a/b[@e]');
++select extractValue(@xml,'/a/b[not(@c)]');
++select extractValue(@xml,'/a/b[not(@d)]');
++select extractValue(@xml,'/a/b[not(@e)]');
++
++select extractValue(@xml, '/a/b[boolean(@c) or boolean(@d)]');
++select extractValue(@xml, '/a/b[boolean(@c) or boolean(@e)]');
++select extractValue(@xml, '/a/b[boolean(@d) or boolean(@e)]');
++select extractValue(@xml, '/a/b[boolean(@c) and boolean(@d)]');
++select extractValue(@xml, '/a/b[boolean(@c) and boolean(@e)]');
++select extractValue(@xml, '/a/b[boolean(@d) and boolean(@e)]');
++
++select extractValue(@xml, '/a/b[@c or @d]');
++select extractValue(@xml, '/a/b[@c or @e]');
++select extractValue(@xml, '/a/b[@d or @e]');
++select extractValue(@xml, '/a/b[@c and @d]');
++select extractValue(@xml, '/a/b[@c and @e]');
++select extractValue(@xml, '/a/b[@d and @e]');
++
++SET @xml='<a><b c="c">b1</b><b>b2</b></a>';
++SELECT extractValue(@xml,'/a/b[@*]');
++SELECT extractValue(@xml,'/a/b[not(@*)]');
++
++SELECT extractValue('<a>a</a>', '/a[ceiling(3.1)=4]');
++SELECT extractValue('<a>a</a>', '/a[floor(3.1)=3]');
++SELECT extractValue('<a>a</a>', '/a[round(3.1)=3]');
++SELECT extractValue('<a>a</a>', '/a[round(3.8)=4]');
++
++SELECT extractValue('<a><b>b</b><c>c</c></a>', '/a/b | /a/c');
++
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=1]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=2]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[1=position()]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2=position()]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[3=position()]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2>=position()]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[2<=position()]');
++select extractValue('<a b="b1" b="b2" b="b3"/>','/a/@b[position()=3 or position()=2]');
++
++SELECT extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=0]');
++SELECT extractValue('<a>a<b>a1<c>c1</c></b><b>a2</b></a>','/a/b[count(c)=1]');
++select extractValue('<a>a1<b ba="1" ba="2">b1</b><b>b2</b>4</a>','/a/b[sum(@ba)=3]');
++
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[1]');
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[boolean(1)]');
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[true()]');
++select extractValue('<a><b>b1</b><b>b2</b></a>','/a/b[number(true())]');
++
++select extractValue('<a>ab</a>','/a[contains("abc","b")]');
++select extractValue('<a>ab</a>','/a[contains(.,"a")]');
++select extractValue('<a>ab</a>','/a[contains(.,"b")]');
++select extractValue('<a>ab</a>','/a[contains(.,"c")]');
++
++select extractValue('<a b="1">ab</a>','/a[concat(@b,"2")="12"]');
++
++SET @xml='<a b="11" b="12" b="21" b="22">ab</a>';
++select extractValue(@xml, '/a/@b[substring(.,2)="1"]');
++select extractValue(@xml, '/a/@b[substring(.,2)="2"]');
++select extractValue(@xml, '/a/@b[substring(.,1,1)="1"]');
++select extractValue(@xml, '/a/@b[substring(.,1,1)="2"]');
++select extractValue(@xml, '/a/@b[substring(.,2,1)="1"]');
++select extractValue(@xml, '/a/@b[substring(.,2,1)="2"]');
++
++SET @xml='<a b="b11" b="b12" b="b21" b="22"/>';
++select extractValue(@xml,'/a/@b');
++select extractValue(@xml,'/a/@b[contains(.,"1")]');
++select extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")]');
++select extractValue(@xml,'/a/@b[contains(.,"1")][contains(.,"2")][2]');
++
++SET @xml='<a>a1<b>b1<c>c1</c>b2</b>a2</a>';
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','+++++++++');
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1>+++++++++</c1>');
++select UpdateXML('<a>a1<b>b1<c>c1</c>b2</b>a2</a>','/a/b/c','<c1/>');
++
++SET @xml='<a><b>bb</b></a>';
++select UpdateXML(@xml, '/a/b', '<b>ccc</b>');
++
++SET @xml='<a aa1="aa1" aa2="aa2"><b bb1="bb1" bb2="bb2">bb</b></a>';
++select UpdateXML(@xml, '/a/b', '<b>ccc</b>');
++select UpdateXML(@xml, '/a/@aa1', '');
++select UpdateXML(@xml, '/a/@aa1', 'aa3="aa3"');
++select UpdateXML(@xml, '/a/@aa2', '');
++select UpdateXML(@xml, '/a/@aa2', 'aa3="aa3"');
++select UpdateXML(@xml, '/a/b/@bb1', '');
++select UpdateXML(@xml, '/a/b/@bb1', 'bb3="bb3"');
++select UpdateXML(@xml, '/a/b/@bb2', '');
++select UpdateXML(@xml, '/a/b/@bb2', 'bb3="bb3"');
+diff -Naur mysql.orig/sql/Makefile.am mysql.xml/sql/Makefile.am
+--- mysql.orig/sql/Makefile.am	2005-05-15 06:16:51.000000000 +0200
++++ mysql.xml/sql/Makefile.am	2005-05-20 15:19:29.000000000 +0200
+@@ -45,6 +45,7 @@
+ 			$(LDADD)  $(CXXLDFLAGS) $(WRAPLIBS) @LIBDL@ @openssl_libs@
+ noinst_HEADERS =	item.h item_func.h item_sum.h item_cmpfunc.h \
+ 			item_strfunc.h item_timefunc.h item_uniq.h \
++			item_xmlfunc.h \
+ 			item_create.h item_subselect.h item_row.h \
+ 			mysql_priv.h item_geofunc.h sql_bitmap.h \
+ 			procedure.h sql_class.h sql_lex.h sql_list.h \
+@@ -68,7 +69,7 @@
+ 			item.cc item_sum.cc item_buff.cc item_func.cc \
+ 			item_cmpfunc.cc item_strfunc.cc item_timefunc.cc \
+ 			thr_malloc.cc item_create.cc item_subselect.cc \
+-			item_row.cc item_geofunc.cc \
++			item_row.cc item_geofunc.cc item_xmlfunc.cc \
+ 			field.cc strfunc.cc key.cc sql_class.cc sql_list.cc \
+ 			net_serv.cc protocol.cc sql_state.c \
+ 			lock.cc my_lock.c \
+diff -Naur mysql.orig/sql/item.h mysql.xml/sql/item.h
+--- mysql.orig/sql/item.h	2005-05-15 06:16:50.000000000 +0200
++++ mysql.xml/sql/item.h	2005-05-20 15:19:29.000000000 +0200
+@@ -241,7 +241,8 @@
+ 	     PROC_ITEM,COND_ITEM, REF_ITEM, FIELD_STD_ITEM,
+ 	     FIELD_VARIANCE_ITEM, INSERT_VALUE_ITEM,
+              SUBSELECT_ITEM, ROW_ITEM, CACHE_ITEM, TYPE_HOLDER,
+-             PARAM_ITEM, TRIGGER_FIELD_ITEM, DECIMAL_ITEM};
++             PARAM_ITEM, TRIGGER_FIELD_ITEM, DECIMAL_ITEM,
++             XPATH_NODESET, XPATH_NODESET_CMP };
+ 
+   enum cond_result { COND_UNDEF,COND_OK,COND_TRUE,COND_FALSE };
+ 
+@@ -391,6 +392,7 @@
+       TRUE value is true (not equal to 0)
+   */
+   virtual bool val_bool();
++  virtual String *val_nodeset(String*) { return 0; }
+   /* Helper functions, see item_sum.cc */
+   String *val_string_from_real(String *str);
+   String *val_string_from_int(String *str);
+@@ -1429,6 +1431,7 @@
+ #include "item_timefunc.h"
+ #include "item_uniq.h"
+ #include "item_subselect.h"
++#include "item_xmlfunc.h"
+ 
+ class Item_copy_string :public Item
+ {
+diff -Naur mysql.orig/sql/item.h.orig mysql.xml/sql/item.h.orig
+--- mysql.orig/sql/item.h.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/sql/item.h.orig	2005-05-15 06:16:50.000000000 +0200
+@@ -0,0 +1,1850 @@
++/* Copyright (C) 2000-2003 MySQL AB & MySQL Finland AB & TCX DataKonsult AB
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
++
++
++#ifdef USE_PRAGMA_INTERFACE
++#pragma interface			/* gcc class implementation */
++#endif
++
++class Protocol;
++struct st_table_list;
++void item_init(void);			/* Init item functions */
++class Item_field;
++
++
++/*
++   "Declared Type Collation"
++   A combination of collation and its derivation.
++*/
++
++enum Derivation
++{
++  DERIVATION_IGNORABLE= 5,
++  DERIVATION_COERCIBLE= 4,
++  DERIVATION_SYSCONST= 3,
++  DERIVATION_IMPLICIT= 2,
++  DERIVATION_NONE= 1,
++  DERIVATION_EXPLICIT= 0
++};
++
++/*
++  Flags for collation aggregation modes:
++  MY_COLL_ALLOW_SUPERSET_CONV  - allow conversion to a superset
++  MY_COLL_ALLOW_COERCIBLE_CONV - allow conversion of a coercible value
++                                 (i.e. constant).
++  MY_COLL_ALLOW_CONV           - allow any kind of conversion
++                                 (combination of the above two)
++  MY_COLL_DISALLOW_NONE        - don't allow return DERIVATION_NONE
++                                 (e.g. when aggregating for comparison)
++  MY_COLL_CMP_CONV             - combination of MY_COLL_ALLOW_CONV
++                                 and MY_COLL_DISALLOW_NONE
++*/
++
++#define MY_COLL_ALLOW_SUPERSET_CONV   1
++#define MY_COLL_ALLOW_COERCIBLE_CONV  2
++#define MY_COLL_ALLOW_CONV            3
++#define MY_COLL_DISALLOW_NONE         4
++#define MY_COLL_CMP_CONV              7
++
++class DTCollation {
++public:
++  CHARSET_INFO     *collation;
++  enum Derivation derivation;
++  
++  DTCollation()
++  {
++    collation= &my_charset_bin;
++    derivation= DERIVATION_NONE;
++  }
++  DTCollation(CHARSET_INFO *collation_arg, Derivation derivation_arg)
++  {
++    collation= collation_arg;
++    derivation= derivation_arg;
++  }
++  void set(DTCollation &dt)
++  { 
++    collation= dt.collation;
++    derivation= dt.derivation;
++  }
++  void set(CHARSET_INFO *collation_arg, Derivation derivation_arg)
++  {
++    collation= collation_arg;
++    derivation= derivation_arg;
++  }
++  void set(CHARSET_INFO *collation_arg)
++  { collation= collation_arg; }
++  void set(Derivation derivation_arg)
++  { derivation= derivation_arg; }
++  bool aggregate(DTCollation &dt, uint flags= 0);
++  bool set(DTCollation &dt1, DTCollation &dt2, uint flags= 0)
++  { set(dt1); return aggregate(dt2, flags); }
++  const char *derivation_name() const
++  {
++    switch(derivation)
++    {
++      case DERIVATION_IGNORABLE: return "IGNORABLE";
++      case DERIVATION_COERCIBLE: return "COERCIBLE";
++      case DERIVATION_IMPLICIT:  return "IMPLICIT";
++      case DERIVATION_SYSCONST:  return "SYSCONST";
++      case DERIVATION_EXPLICIT:  return "EXPLICIT";
++      case DERIVATION_NONE:      return "NONE";
++      default: return "UNKNOWN";
++    }
++  }
++};
++
++
++/*************************************************************************/
++/*
++  A framework to easily handle different return types for hybrid items
++  (hybrid item is an item whose operand can be of any type, e.g. integer,
++  real, decimal).
++*/
++
++struct Hybrid_type_traits;
++
++struct Hybrid_type
++{
++  longlong integer;
++
++  double real;
++  /*
++    Use two decimal buffers interchangeably to speed up += operation
++    which has no native support in decimal library.
++    Hybrid_type+= arg is implemented as dec_buf[1]= dec_buf[0] + arg.
++    The third decimal is used as a handy temporary storage.
++  */
++  my_decimal dec_buf[3];
++  int used_dec_buf_no;
++
++  /*
++    Traits moved to a separate class to
++      a) be able to easily change object traits in runtime
++      b) they work as a differentiator for the union above
++  */
++  const Hybrid_type_traits *traits;
++
++  Hybrid_type() {}
++  /* XXX: add traits->copy() when needed */
++  Hybrid_type(const Hybrid_type &rhs) :traits(rhs.traits) {}
++};
++
++
++/* Hybryd_type_traits interface + default implementation for REAL_RESULT */
++
++struct Hybrid_type_traits
++{
++  virtual Item_result type() const { return REAL_RESULT; }
++
++  virtual void
++  fix_length_and_dec(Item *item, Item *arg) const;
++
++  /* Hybrid_type operations. */
++  virtual void set_zero(Hybrid_type *val) const { val->real= 0.0; }
++  virtual void add(Hybrid_type *val, Field *f) const
++  { val->real+= f->val_real(); }
++  virtual void div(Hybrid_type *val, ulonglong u) const
++  { val->real/= ulonglong2double(u); }
++
++  virtual longlong val_int(Hybrid_type *val, bool unsigned_flag) const
++  { return (longlong) val->real; }
++  virtual double val_real(Hybrid_type *val) const { return val->real; }
++  virtual my_decimal *val_decimal(Hybrid_type *val, my_decimal *buf) const;
++  virtual String *val_str(Hybrid_type *val, String *buf, uint8 decimals) const;
++  static const Hybrid_type_traits *instance();
++};
++
++
++struct Hybrid_type_traits_decimal: public Hybrid_type_traits
++{
++  virtual Item_result type() const { return DECIMAL_RESULT; }
++
++  virtual void
++  fix_length_and_dec(Item *arg, Item *item) const;
++
++  /* Hybrid_type operations. */
++  virtual void set_zero(Hybrid_type *val) const;
++  virtual void add(Hybrid_type *val, Field *f) const;
++  virtual void div(Hybrid_type *val, ulonglong u) const;
++
++  virtual longlong val_int(Hybrid_type *val, bool unsigned_flag) const;
++  virtual double val_real(Hybrid_type *val) const;
++  virtual my_decimal *val_decimal(Hybrid_type *val, my_decimal *buf) const
++  { return &val->dec_buf[val->used_dec_buf_no]; }
++  virtual String *val_str(Hybrid_type *val, String *buf, uint8 decimals) const;
++  static const Hybrid_type_traits_decimal *instance();
++};
++
++
++struct Hybrid_type_traits_integer: public Hybrid_type_traits
++{
++  virtual Item_result type() const { return INT_RESULT; }
++
++  virtual void
++  fix_length_and_dec(Item *arg, Item *item) const;
++
++  /* Hybrid_type operations. */
++  virtual void set_zero(Hybrid_type *val) const
++  { val->integer= 0; }
++  virtual void add(Hybrid_type *val, Field *f) const
++  { val->integer+= f->val_int(); }
++  virtual void div(Hybrid_type *val, ulonglong u) const
++  { val->integer/= (longlong) u; }
++
++  virtual longlong val_int(Hybrid_type *val, bool unsigned_flag) const
++  { return val->integer; }
++  virtual double val_real(Hybrid_type *val) const
++  { return (double) val->integer; }
++  virtual my_decimal *val_decimal(Hybrid_type *val, my_decimal *buf) const
++  {
++    int2my_decimal(E_DEC_FATAL_ERROR, val->integer, 0, &val->dec_buf[2]);
++    return &val->dec_buf[2];
++  }
++  virtual String *val_str(Hybrid_type *val, String *buf, uint8 decimals) const
++  { buf->set(val->integer, &my_charset_bin); return buf;}
++  static const Hybrid_type_traits_integer *instance();
++};
++
++/*************************************************************************/
++
++typedef bool (Item::*Item_processor)(byte *arg);
++typedef Item* (Item::*Item_transformer) (byte *arg);
++
++typedef void (*Cond_traverser) (const Item *item, void *arg);
++
++class Item {
++  Item(const Item &);			/* Prevent use of these */
++  void operator=(Item &);
++public:
++  static void *operator new(size_t size) {return (void*) sql_alloc((uint) size); }
++  static void *operator new(size_t size, MEM_ROOT *mem_root)
++  { return (void*) alloc_root(mem_root, (uint) size); }
++  static void operator delete(void *ptr,size_t size) { TRASH(ptr, size); }
++  static void operator delete(void *ptr, MEM_ROOT *mem_root) {}
++
++  enum Type {FIELD_ITEM= 0, FUNC_ITEM, SUM_FUNC_ITEM, STRING_ITEM,
++	     INT_ITEM, REAL_ITEM, NULL_ITEM, VARBIN_ITEM,
++	     COPY_STR_ITEM, FIELD_AVG_ITEM, DEFAULT_VALUE_ITEM,
++	     PROC_ITEM,COND_ITEM, REF_ITEM, FIELD_STD_ITEM,
++	     FIELD_VARIANCE_ITEM, INSERT_VALUE_ITEM,
++             SUBSELECT_ITEM, ROW_ITEM, CACHE_ITEM, TYPE_HOLDER,
++             PARAM_ITEM, TRIGGER_FIELD_ITEM, DECIMAL_ITEM};
++
++  enum cond_result { COND_UNDEF,COND_OK,COND_TRUE,COND_FALSE };
++
++  enum traverse_order { POSTFIX, PREFIX };
++  
++  /*
++    str_values's main purpose is to be used to cache the value in
++    save_in_field
++  */
++  String str_value;
++  my_string name;			/* Name from select */
++  /* Original item name (if it was renamed)*/
++  my_string orig_name;
++  Item *next;
++  uint32 max_length;
++  uint name_length;                     /* Length of name */
++  uint8 marker, decimals;
++  my_bool maybe_null;			/* If item may be null */
++  my_bool null_value;			/* if item is null */
++  my_bool unsigned_flag;
++  my_bool with_sum_func;
++  my_bool fixed;                        /* If item fixed with fix_fields */
++  DTCollation collation;
++
++  // alloc & destruct is done as start of select using sql_alloc
++  Item();
++  /*
++     Constructor used by Item_field, Item_ref & aggregate (sum) functions.
++     Used for duplicating lists in processing queries with temporary
++     tables
++     Also it used for Item_cond_and/Item_cond_or for creating
++     top AND/OR structure of WHERE clause to protect it of
++     optimisation changes in prepared statements
++  */
++  Item(THD *thd, Item *item);
++  virtual ~Item()
++  {
++    name=0;
++  }		/*lint -e1509 */
++  void set_name(const char *str,uint length, CHARSET_INFO *cs);
++  void rename(char *new_name);
++  void init_make_field(Send_field *tmp_field,enum enum_field_types type);
++  virtual void cleanup();
++  virtual void make_field(Send_field *field);
++  Field *make_string_field(TABLE *table);
++  virtual bool fix_fields(THD *, struct st_table_list *, Item **);
++  /*
++    should be used in case where we are sure that we do not need
++    complete fix_fields() procedure.
++  */
++  inline void quick_fix_field() { fixed= 1; }
++  /* Function returns 1 on overflow and -1 on fatal errors */
++  int save_in_field_no_warnings(Field *field, bool no_conversions);
++  virtual int save_in_field(Field *field, bool no_conversions);
++  virtual void save_org_in_field(Field *field)
++  { (void) save_in_field(field, 1); }
++  virtual int save_safe_in_field(Field *field)
++  { return save_in_field(field, 1); }
++  virtual bool send(Protocol *protocol, String *str);
++  virtual bool eq(const Item *, bool binary_cmp) const;
++  virtual Item_result result_type() const { return REAL_RESULT; }
++  virtual Item_result cast_to_int_type() const { return result_type(); }
++  virtual enum_field_types field_type() const;
++  virtual enum Type type() const =0;
++  /* valXXX methods must return NULL or 0 or 0.0 if null_value is set. */
++  /*
++    Return double precision floating point representation of item.
++
++    SYNOPSIS
++      val_real()
++
++    RETURN
++      In case of NULL value return 0.0 and set null_value flag to TRUE.
++      If value is not null null_value flag will be reset to FALSE.
++  */
++  virtual double val_real()=0;
++  /*
++    Return integer representation of item.
++
++    SYNOPSIS
++      val_int()
++
++    RETURN
++      In case of NULL value return 0 and set null_value flag to TRUE.
++      If value is not null null_value flag will be reset to FALSE.
++  */
++  virtual longlong val_int()=0;
++  /*
++    Return string representation of this item object.
++
++    SYNOPSIS
++      val_str()
++      str   an allocated buffer this or any nested Item object can use to
++            store return value of this method.
++
++    NOTE
++      Buffer passed via argument  should only be used if the item itself
++      doesn't have an own String buffer. In case when the item maintains
++      it's own string buffer, it's preferable to return it instead to
++      minimize number of mallocs/memcpys.
++      The caller of this method can modify returned string, but only in case
++      when it was allocated on heap, (is_alloced() is true).  This allows
++      the caller to efficiently use a buffer allocated by a child without
++      having to allocate a buffer of it's own. The buffer, given to
++      val_str() as argument, belongs to the caller and is later used by the
++      caller at it's own choosing.
++      A few implications from the above:
++      - unless you return a string object which only points to your buffer
++        but doesn't manages it you should be ready that it will be
++        modified.
++      - even for not allocated strings (is_alloced() == false) the caller
++        can change charset (see Item_func_{typecast/binary}. XXX: is this
++        a bug?
++      - still you should try to minimize data copying and return internal
++        object whenever possible.
++
++    RETURN
++      In case of NULL value return 0 (NULL pointer) and set null_value flag
++      to TRUE.
++      If value is not null null_value flag will be reset to FALSE.
++  */
++  virtual String *val_str(String *str)=0;
++  /*
++    Return decimal representation of item with fixed point.
++
++    SYNOPSIS
++      val_decimal()
++      decimal_buffer  buffer which can be used by Item for returning value
++                      (but can be not)
++
++    NOTE
++      Returned value should not be changed if it is not the same which was
++      passed via argument.
++
++    RETURN
++      Return pointer on my_decimal (it can be other then passed via argument)
++        if value is not NULL (null_value flag will be reset to FALSE).
++      In case of NULL value it return 0 pointer and set null_value flag
++        to TRUE.
++  */
++  virtual my_decimal *val_decimal(my_decimal *decimal_buffer)= 0;
++  /*
++    Return boolean value of item.
++
++    RETURN
++      FALSE value is false or NULL
++      TRUE value is true (not equal to 0)
++  */
++  virtual bool val_bool();
++  /* Helper functions, see item_sum.cc */
++  String *val_string_from_real(String *str);
++  String *val_string_from_int(String *str);
++  String *val_string_from_decimal(String *str);
++  my_decimal *val_decimal_from_real(my_decimal *decimal_value);
++  my_decimal *val_decimal_from_int(my_decimal *decimal_value);
++  my_decimal *val_decimal_from_string(my_decimal *decimal_value);
++  longlong val_int_from_decimal();
++  double val_real_from_decimal();
++
++  virtual Field *get_tmp_table_field() { return 0; }
++  virtual Field *tmp_table_field(TABLE *t_arg) { return 0; }
++  virtual const char *full_name() const { return name ? name : "???"; }
++
++  /*
++    *result* family of methods is analog of *val* family (see above) but
++    return value of result_field of item if it is present. If Item have not
++    result field, it return val(). This methods set null_value flag in same
++    way as *val* methods do it.
++  */
++  virtual double  val_result() { return val_real(); }
++  virtual longlong val_int_result() { return val_int(); }
++  virtual String *str_result(String* tmp) { return val_str(tmp); }
++  virtual my_decimal *val_decimal_result(my_decimal *val)
++  { return val_decimal(val); }
++  virtual bool val_bool_result() { return val_bool(); }
++
++  /* bit map of tables used by item */
++  virtual table_map used_tables() const { return (table_map) 0L; }
++  /*
++    Return table map of tables that can't be NULL tables (tables that are
++    used in a context where if they would contain a NULL row generated
++    by a LEFT or RIGHT join, the item would not be true).
++    This expression is used on WHERE item to determinate if a LEFT JOIN can be
++    converted to a normal join.
++    Generally this function should return used_tables() if the function
++    would return null if any of the arguments are null
++    As this is only used in the beginning of optimization, the value don't
++    have to be updated in update_used_tables()
++  */
++  virtual table_map not_null_tables() const { return used_tables(); }
++  /*
++    Returns true if this is a simple constant item like an integer, not
++    a constant expression. Used in the optimizer to propagate basic constants.
++  */
++  virtual bool basic_const_item() const { return 0; }
++  /* cloning of constant items (0 if it is not const) */
++  virtual Item *new_item() { return 0; }
++  virtual cond_result eq_cmp_result() const { return COND_OK; }
++  inline uint float_length(uint decimals_par) const
++  { return decimals != NOT_FIXED_DEC ? (DBL_DIG+2+decimals_par) : DBL_DIG+8;}
++  virtual uint decimal_precision() const;
++  inline int decimal_int_part() const
++  { return my_decimal_int_part(decimal_precision(), decimals); }
++  /* 
++    Returns true if this is constant (during query execution, i.e. its value
++    will not change until next fix_fields) and its value is known.
++  */
++  virtual bool const_item() const { return used_tables() == 0; }
++  /* 
++    Returns true if this is constant but its value may be not known yet.
++    (Can be used for parameters of prep. stmts or of stored procedures.)
++  */
++  virtual bool const_during_execution() const 
++  { return (used_tables() & ~PARAM_TABLE_BIT) == 0; }
++  virtual void print(String *str_arg) { str_arg->append(full_name()); }
++  void print_item_w_name(String *);
++  virtual void update_used_tables() {}
++  virtual void split_sum_func(THD *thd, Item **ref_pointer_array,
++                              List<Item> &fields) {}
++  /* Called for items that really have to be split */
++  void split_sum_func2(THD *thd, Item **ref_pointer_array, List<Item> &fields,
++                       Item **ref);
++  virtual bool get_date(TIME *ltime,uint fuzzydate);
++  virtual bool get_time(TIME *ltime);
++  virtual bool get_date_result(TIME *ltime,uint fuzzydate)
++  { return get_date(ltime,fuzzydate); }
++  /*
++    This function is used only in Item_func_isnull/Item_func_isnotnull
++    (implementations of IS NULL/IS NOT NULL clauses). Item_func_is{not}null
++    calls this method instead of one of val/result*() methods, which
++    normally will set null_value. This allows to determine nullness of
++    a complex expression without fully evaluating it.
++    Any new item which can be NULL must implement this call.
++  */
++  virtual bool is_null() { return 0; }
++  /*
++    it is "top level" item of WHERE clause and we do not need correct NULL
++    handling
++  */
++  virtual void top_level_item() {}
++  /*
++    set field of temporary table for Item which can be switched on temporary
++    table during query processing (grouping and so on)
++  */
++  virtual void set_result_field(Field *field) {}
++  virtual bool is_result_field() { return 0; }
++  virtual bool is_bool_func() { return 0; }
++  virtual void save_in_result_field(bool no_conversions) {}
++  /*
++    set value of aggregate function in case of no rows for grouping were found
++  */
++  virtual void no_rows_in_result() {}
++  virtual Item *copy_or_same(THD *thd) { return this; }
++  virtual Item *copy_andor_structure(THD *thd) { return this; }
++  virtual Item *real_item() { return this; }
++  virtual Item *get_tmp_table_item(THD *thd) { return copy_or_same(thd); }
++
++  static CHARSET_INFO *default_charset();
++  virtual CHARSET_INFO *compare_collation() { return NULL; }
++
++  virtual bool walk(Item_processor processor, byte *arg)
++  {
++    return (this->*processor)(arg);
++  }
++
++  virtual Item* transform(Item_transformer transformer, byte *arg)
++  {
++    return (this->*transformer)(arg);
++  }
++
++   virtual void traverse_cond(Cond_traverser traverser,
++                              void *arg, traverse_order order)
++   {
++     (*traverser)(this, arg);
++   }
++
++  virtual bool remove_dependence_processor(byte * arg) { return 0; }
++  virtual bool remove_fixed(byte * arg) { fixed= 0; return 0; }
++  virtual bool cleanup_processor(byte *arg);
++  virtual bool collect_item_field_processor(byte * arg) { return 0; }
++  virtual Item *equal_fields_propagator(byte * arg) { return this; }
++  virtual Item *set_no_const_sub(byte *arg) { return this; }
++  virtual Item *replace_equal_field(byte * arg) { return this; }
++
++  /*
++    For SP local variable returns pointer to Item representing its
++    current value and pointer to current Item otherwise.
++  */
++  virtual Item *this_item() { return this; }
++  /*
++    For SP local variable returns address of pointer to Item representing its
++    current value and pointer passed via parameter otherwise.
++  */
++  virtual Item **this_item_addr(THD *thd, Item **addr) { return addr; }
++  virtual Item *this_const_item() const { return const_cast<Item*>(this); } /* For SPs mostly. */
++
++  // Row emulation
++  virtual uint cols() { return 1; }
++  virtual Item* el(uint i) { return this; }
++  virtual Item** addr(uint i) { return 0; }
++  virtual bool check_cols(uint c);
++  // It is not row => null inside is impossible
++  virtual bool null_inside() { return 0; }
++  // used in row subselects to get value of elements
++  virtual void bring_value() {}
++
++  Field *tmp_table_field_from_field_type(TABLE *table);
++  virtual Item_field *filed_for_view_update() { return 0; }
++
++  virtual Item *neg_transformer(THD *thd) { return NULL; }
++  virtual Item *safe_charset_converter(CHARSET_INFO *tocs);
++  void delete_self()
++  {
++    cleanup();
++    delete this;
++  }
++
++  virtual bool is_splocal() { return 0; } /* Needed for error checking */
++};
++
++
++// A local SP variable (incl. parameters), used in runtime
++class Item_splocal : public Item
++{
++private:
++  
++  uint m_offset;
++  LEX_STRING m_name;
++
++public:
++
++  Item_splocal(LEX_STRING name, uint offset)
++    : m_offset(offset), m_name(name)
++  {
++    Item::maybe_null= TRUE;
++  }
++
++  bool is_splocal() { return 1; } /* Needed for error checking */
++
++  Item *this_item();
++  Item **this_item_addr(THD *thd, Item **);
++  Item *this_const_item() const;
++
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  void cleanup();
++
++  inline uint get_offset()
++  {
++    return m_offset;
++  }
++
++  // Abstract methods inherited from Item. Just defer the call to
++  // the item in the frame
++  enum Type type() const;
++
++  double val_real();
++  longlong val_int();
++  String *val_str(String *sp);
++  my_decimal *val_decimal(my_decimal *);
++  bool is_null();
++  void print(String *str);
++
++  inline void make_field(Send_field *field)
++  {
++    Item *it= this_item();
++
++    if (name)
++      it->set_name(name, strlen(name), system_charset_info);
++    else
++      it->set_name(m_name.str, m_name.length, system_charset_info);
++    it->make_field(field);
++  }
++
++  inline Item_result result_type() const
++  {
++    return this_const_item()->result_type();
++  }
++
++  inline bool const_item() const
++  {
++    return TRUE;
++  }
++
++  inline int save_in_field(Field *field, bool no_conversions)
++  {
++    return this_item()->save_in_field(field, no_conversions);
++  }
++
++  inline bool send(Protocol *protocol, String *str)
++  {
++    return this_item()->send(protocol, str);
++  }
++};
++
++
++class Item_num: public Item
++{
++public:
++  virtual Item_num *neg()= 0;
++};
++
++#define NO_CACHED_FIELD_INDEX ((uint)(-1))
++
++class st_select_lex;
++class Item_ident :public Item
++{
++protected:
++  /* 
++    We have to store initial values of db_name, table_name and field_name
++    to be able to restore them during cleanup() because they can be 
++    updated during fix_fields() to values from Field object and life-time 
++    of those is shorter than life-time of Item_field.
++  */
++  const char *orig_db_name;
++  const char *orig_table_name;
++  const char *orig_field_name;
++public:
++  const char *db_name;
++  const char *table_name;
++  const char *field_name;
++  bool alias_name_used; /* true if item was resolved against alias */
++  /* 
++    Cached value of index for this field in table->field array, used by prep. 
++    stmts for speeding up their re-execution. Holds NO_CACHED_FIELD_INDEX 
++    if index value is not known.
++  */
++  uint cached_field_index;
++  /*
++    Cached pointer to table which contains this field, used for the same reason
++    by prep. stmt. too in case then we have not-fully qualified field.
++    0 - means no cached value.
++  */
++  TABLE_LIST *cached_table;
++  st_select_lex *depended_from;
++  Item_ident(const char *db_name_par,const char *table_name_par,
++	     const char *field_name_par);
++  Item_ident(THD *thd, Item_ident *item);
++  const char *full_name() const;
++  void cleanup();
++  bool remove_dependence_processor(byte * arg);
++  void print(String *str);
++
++  friend bool insert_fields(THD *thd,TABLE_LIST *tables, const char *db_name,
++                            const char *table_name, List_iterator<Item> *it,
++                            bool any_privileges, bool allocate_view_names);
++};
++
++class Item_equal;
++class COND_EQUAL;
++
++class Item_field :public Item_ident
++{
++protected:
++  void set_field(Field *field);
++public:
++  Field *field,*result_field;
++  Item_equal *item_equal;
++  bool no_const_subst;
++  /*
++    if any_privileges set to TRUE then here real effective privileges will
++    be stored
++  */
++  uint have_privileges;
++  /* field need any privileges (for VIEW creation) */
++  bool any_privileges;
++
++  Item_field(const char *db_par,const char *table_name_par,
++	     const char *field_name_par)
++    :Item_ident(db_par,table_name_par,field_name_par),
++    field(0), result_field(0), item_equal(0), no_const_subst(0),
++     have_privileges(0), any_privileges(0)
++  { collation.set(DERIVATION_IMPLICIT); }
++  /*
++    Constructor needed to process subselect with temporary tables (see Item)
++  */
++  Item_field(THD *thd, Item_field *item);
++  /*
++    Constructor used inside setup_wild(), ensures that field, table,
++    and database names will live as long as Item_field (this is important
++    in prepared statements).
++  */
++  Item_field(THD *thd, Field *field);
++  /*
++    If this constructor is used, fix_fields() won't work, because
++    db_name, table_name and column_name are unknown. It's necessary to call
++    reset_field() before fix_fields() for all fields created this way.
++  */
++  Item_field(Field *field);
++  enum Type type() const { return FIELD_ITEM; }
++  bool eq(const Item *item, bool binary_cmp) const;
++  double val_real();
++  longlong val_int();
++  my_decimal *val_decimal(my_decimal *);
++  String *val_str(String*);
++  double val_result();
++  longlong val_int_result();
++  String *str_result(String* tmp);
++  my_decimal *val_decimal_result(my_decimal *);
++  bool val_bool_result();
++  bool send(Protocol *protocol, String *str_arg);
++  void reset_field(Field *f);
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  void make_field(Send_field *tmp_field);
++  int save_in_field(Field *field,bool no_conversions);
++  void save_org_in_field(Field *field);
++  table_map used_tables() const;
++  enum Item_result result_type () const
++  {
++    return field->result_type();
++  }
++  Item_result cast_to_int_type() const
++  {
++    return field->cast_to_int_type();
++  }
++  enum_field_types field_type() const
++  {
++    return field->type();
++  }
++  Field *get_tmp_table_field() { return result_field; }
++  Field *tmp_table_field(TABLE *t_arg) { return result_field; }
++  bool get_date(TIME *ltime,uint fuzzydate);
++  bool get_date_result(TIME *ltime,uint fuzzydate);
++  bool get_time(TIME *ltime);
++  bool is_null() { return field->is_null(); }
++  Item *get_tmp_table_item(THD *thd);
++  bool collect_item_field_processor(byte * arg);
++  void cleanup();
++  Item_equal *find_item_equal(COND_EQUAL *cond_equal);
++  Item *equal_fields_propagator(byte *arg);
++  Item *set_no_const_sub(byte *arg);
++  Item *replace_equal_field(byte *arg);
++  inline uint32 max_disp_length() { return field->max_length(); }
++  Item_field *filed_for_view_update() { return this; }
++  Item *safe_charset_converter(CHARSET_INFO *tocs);
++  friend class Item_default_value;
++  friend class Item_insert_value;
++  friend class st_select_lex_unit;
++};
++
++class Item_null :public Item
++{
++public:
++  Item_null(char *name_par=0)
++  {
++    maybe_null= null_value= TRUE;
++    max_length= 0;
++    name= name_par ? name_par : (char*) "NULL";
++    fixed= 1;
++    collation.set(&my_charset_bin, DERIVATION_IGNORABLE);
++  }
++  enum Type type() const { return NULL_ITEM; }
++  bool eq(const Item *item, bool binary_cmp) const;
++  double val_real();
++  longlong val_int();
++  String *val_str(String *str);
++  my_decimal *val_decimal(my_decimal *);
++  int save_in_field(Field *field, bool no_conversions);
++  int save_safe_in_field(Field *field);
++  bool send(Protocol *protocol, String *str);
++  enum Item_result result_type () const { return STRING_RESULT; }
++  enum_field_types field_type() const   { return MYSQL_TYPE_NULL; }
++  /* to prevent drop fixed flag (no need parent cleanup call) */
++  void cleanup() {}
++  bool basic_const_item() const { return 1; }
++  Item *new_item() { return new Item_null(name); }
++  bool is_null() { return 1; }
++  void print(String *str) { str->append("NULL", 4); }
++  Item *safe_charset_converter(CHARSET_INFO *tocs);
++};
++
++class Item_null_result :public Item_null
++{
++public:
++  Field *result_field;
++  Item_null_result() : Item_null(), result_field(0) {}
++  bool is_result_field() { return result_field != 0; }
++  void save_in_result_field(bool no_conversions)
++  {
++    save_in_field(result_field, no_conversions);
++  }
++};  
++
++/* Item represents one placeholder ('?') of prepared statement */
++
++class Item_param :public Item
++{
++public:
++  enum enum_item_param_state
++  {
++    NO_VALUE, NULL_VALUE, INT_VALUE, REAL_VALUE,
++    STRING_VALUE, TIME_VALUE, LONG_DATA_VALUE,
++    DECIMAL_VALUE
++  } state;
++
++  /*
++    A buffer for string and long data values. Historically all allocated
++    values returned from val_str() were treated as eligible to
++    modification. I. e. in some cases Item_func_concat can append it's
++    second argument to return value of the first one. Because of that we
++    can't return the original buffer holding string data from val_str(),
++    and have to have one buffer for data and another just pointing to
++    the data. This is the latter one and it's returned from val_str().
++    Can not be declared inside the union as it's not a POD type.
++  */
++  String str_value_ptr;
++  my_decimal decimal_value;
++  union
++  {
++    longlong integer;
++    double   real;
++    /*
++      Character sets conversion info for string values.
++      Character sets of client and connection defined at bind time are used
++      for all conversions, even if one of them is later changed (i.e.
++      between subsequent calls to mysql_stmt_execute).
++    */
++    struct CONVERSION_INFO
++    {
++      CHARSET_INFO *character_set_client;
++      /*
++        This points at character set of connection if conversion
++        to it is required (i. e. if placeholder typecode is not BLOB).
++        Otherwise it's equal to character_set_client (to simplify
++        check in convert_str_value()).
++      */
++      CHARSET_INFO *final_character_set_of_str_value;
++    } cs_info;
++    TIME     time;
++  } value;
++
++  /* Cached values for virtual methods to save us one switch.  */
++  enum Item_result item_result_type;
++  enum Type item_type;
++
++  /*
++    Used when this item is used in a temporary table.
++    This is NOT placeholder metadata sent to client, as this value
++    is assigned after sending metadata (in setup_one_conversion_function).
++    For example in case of 'SELECT ?' you'll get MYSQL_TYPE_STRING both
++    in result set and placeholders metadata, no matter what type you will
++    supply for this placeholder in mysql_stmt_execute.
++  */
++  enum enum_field_types param_type;
++  /*
++    Offset of placeholder inside statement text. Used to create
++    no-placeholders version of this statement for the binary log.
++  */
++  uint pos_in_query;
++
++  Item_param(uint pos_in_query_arg);
++
++  enum Item_result result_type () const { return item_result_type; }
++  enum Type type() const { return item_type; }
++  enum_field_types field_type() const { return param_type; }
++
++  double val_real();
++  longlong val_int();
++  my_decimal *val_decimal(my_decimal*);
++  String *val_str(String*);
++  bool get_time(TIME *tm);
++  bool get_date(TIME *tm, uint fuzzydate);
++  int  save_in_field(Field *field, bool no_conversions);
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++
++  void set_null();
++  void set_int(longlong i, uint32 max_length_arg);
++  void set_double(double i);
++  void set_decimal(const char *str, ulong length);
++  bool set_str(const char *str, ulong length);
++  bool set_longdata(const char *str, ulong length);
++  void set_time(TIME *tm, timestamp_type type, uint32 max_length_arg);
++  bool set_from_user_var(THD *thd, const user_var_entry *entry);
++  void reset();
++  /*
++    Assign placeholder value from bind data.
++    Note, that 'len' has different semantics in embedded library (as we
++    don't need to check that packet is not broken there). See
++    sql_prepare.cc for details.
++  */
++  void (*set_param_func)(Item_param *param, uchar **pos, ulong len);
++
++  const String *query_val_str(String *str) const;
++
++  bool convert_str_value(THD *thd);
++
++  /*
++    If value for parameter was not set we treat it as non-const
++    so noone will use parameters value in fix_fields still
++    parameter is constant during execution.
++  */
++  virtual table_map used_tables() const
++  { return state != NO_VALUE ? (table_map)0 : PARAM_TABLE_BIT; }
++  void print(String *str);
++  bool is_null()
++  { DBUG_ASSERT(state != NO_VALUE); return state == NULL_VALUE; }
++  bool basic_const_item() const;
++  /*
++    This method is used to make a copy of a basic constant item when
++    propagating constants in the optimizer. The reason to create a new
++    item and not use the existing one is not precisely known (2005/04/16).
++    Probably we are trying to preserve tree structure of items, in other
++    words, avoid pointing at one item from two different nodes of the tree.
++    Return a new basic constant item if parameter value is a basic
++    constant, assert otherwise. This method is called only if
++    basic_const_item returned TRUE.
++  */
++  Item *new_item();
++  /*
++    Implement by-value equality evaluation if parameter value
++    is set and is a basic constant (integer, real or string).
++    Otherwise return FALSE.
++  */
++  bool eq(const Item *item, bool binary_cmp) const;
++};
++
++
++class Item_int :public Item_num
++{
++public:
++  longlong value;
++  Item_int(int32 i,uint length=11) :value((longlong) i)
++    { max_length=length; fixed= 1; }
++#ifdef HAVE_LONG_LONG
++  Item_int(longlong i,uint length=21) :value(i)
++    { max_length=length; fixed= 1; }
++#endif
++  Item_int(const char *str_arg,longlong i,uint length) :value(i)
++    { max_length=length; name=(char*) str_arg; fixed= 1; }
++  Item_int(const char *str_arg, uint length=64);
++  enum Type type() const { return INT_ITEM; }
++  enum Item_result result_type () const { return INT_RESULT; }
++  enum_field_types field_type() const { return MYSQL_TYPE_LONGLONG; }
++  longlong val_int() { DBUG_ASSERT(fixed == 1); return value; }
++  double val_real() { DBUG_ASSERT(fixed == 1); return (double) value; }
++  my_decimal *val_decimal(my_decimal *);
++  String *val_str(String*);
++  int save_in_field(Field *field, bool no_conversions);
++  bool basic_const_item() const { return 1; }
++  Item *new_item() { return new Item_int(name,value,max_length); }
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++  void print(String *str);
++  Item_num *neg() { value= -value; return this; }
++  uint decimal_precision() const { return (uint)(max_length - test(value < 0)); }
++  bool eq(const Item *, bool binary_cmp) const;
++};
++
++
++class Item_static_int_func :public Item_int
++{
++  const char *func_name;
++public:
++  Item_static_int_func(const char *str_arg, longlong i, uint length)
++    :Item_int(NullS, i, length), func_name(str_arg)
++  {}
++  void print(String *str) { str->append(func_name); }
++};
++
++
++class Item_uint :public Item_int
++{
++public:
++  Item_uint(const char *str_arg, uint length);
++  Item_uint(const char *str_arg, longlong i, uint length);
++  Item_uint(uint32 i) :Item_int((longlong) i, 10) 
++    { unsigned_flag= 1; }
++  double val_real()
++    { DBUG_ASSERT(fixed == 1); return ulonglong2double((ulonglong)value); }
++  String *val_str(String*);
++  Item *new_item() { return new Item_uint(name,max_length); }
++  int save_in_field(Field *field, bool no_conversions);
++  void print(String *str);
++  Item_num *neg ();
++  uint decimal_precision() const { return max_length; }
++};
++
++
++/* decimal (fixed point) constant */
++class Item_decimal :public Item_num
++{
++protected:
++  my_decimal decimal_value;
++public:
++  Item_decimal(const char *str_arg, uint length, CHARSET_INFO *charset);
++  Item_decimal(const char *str, const my_decimal *val_arg,
++               uint decimal_par, uint length);
++  Item_decimal(my_decimal *value_par);
++  Item_decimal(longlong val, bool unsig);
++  Item_decimal(double val, int precision, int scale);
++  Item_decimal(const char *bin, int precision, int scale);
++
++  enum Type type() const { return DECIMAL_ITEM; }
++  enum Item_result result_type () const { return DECIMAL_RESULT; }
++  enum_field_types field_type() const { return MYSQL_TYPE_NEWDECIMAL; }
++  longlong val_int();
++  double val_real();
++  String *val_str(String*);
++  my_decimal *val_decimal(my_decimal *val) { return &decimal_value; }
++  int save_in_field(Field *field, bool no_conversions);
++  bool basic_const_item() const { return 1; }
++  Item *new_item()
++  {
++    return new Item_decimal(name, &decimal_value, decimals, max_length);
++  }
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++  void print(String *str);
++  Item_num *neg()
++  {
++    my_decimal_neg(&decimal_value);
++    unsigned_flag= !decimal_value.sign();
++    return this;
++  }
++  uint decimal_precision() const { return decimal_value.precision(); }
++  bool eq(const Item *, bool binary_cmp) const;
++};
++
++
++class Item_float :public Item_num
++{
++  char *presentation;
++public:
++  double value;
++  // Item_real() :value(0) {}
++  Item_float(const char *str_arg, uint length);
++  Item_float(const char *str,double val_arg,uint decimal_par,uint length)
++    :value(val_arg)
++  {
++    presentation= name=(char*) str;
++    decimals=(uint8) decimal_par;
++    max_length=length;
++    fixed= 1;
++  }
++  Item_float(double value_par) :presentation(0), value(value_par) { fixed= 1; }
++
++  int save_in_field(Field *field, bool no_conversions);
++  enum Type type() const { return REAL_ITEM; }
++  enum_field_types field_type() const { return MYSQL_TYPE_DOUBLE; }
++  double val_real() { DBUG_ASSERT(fixed == 1); return value; }
++  longlong val_int()
++  {
++    DBUG_ASSERT(fixed == 1);
++    return (longlong) (value+(value > 0 ? 0.5 : -0.5));
++  }
++  String *val_str(String*);
++  my_decimal *val_decimal(my_decimal *);
++  bool basic_const_item() const { return 1; }
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++  Item *new_item()
++  { return new Item_float(name, value, decimals, max_length); }
++  Item_num *neg() { value= -value; return this; }
++  void print(String *str);
++  bool eq(const Item *, bool binary_cmp) const;
++};
++
++
++class Item_static_float_func :public Item_float
++{
++  const char *func_name;
++public:
++  Item_static_float_func(const char *str, double val_arg, uint decimal_par,
++                        uint length)
++    :Item_float(NullS, val_arg, decimal_par, length), func_name(str)
++  {}
++  void print(String *str) { str->append(func_name); }
++};
++
++
++class Item_string :public Item
++{
++public:
++  Item_string(const char *str,uint length,
++  	      CHARSET_INFO *cs, Derivation dv= DERIVATION_COERCIBLE)
++  {
++    collation.set(cs, dv);
++    str_value.set_or_copy_aligned(str,length,cs);
++    /*
++      We have to have a different max_length than 'length' here to
++      ensure that we get the right length if we do use the item
++      to create a new table. In this case max_length must be the maximum
++      number of chars for a string of this type because we in create_field::
++      divide the max_length with mbmaxlen).
++    */
++    max_length= str_value.numchars()*cs->mbmaxlen;
++    set_name(str, length, cs);
++    decimals=NOT_FIXED_DEC;
++    // it is constant => can be used without fix_fields (and frequently used)
++    fixed= 1;
++  }
++  Item_string(const char *name_par, const char *str, uint length,
++	      CHARSET_INFO *cs, Derivation dv= DERIVATION_COERCIBLE)
++  {
++    collation.set(cs, dv);
++    str_value.set_or_copy_aligned(str,length,cs);
++    max_length= str_value.numchars()*cs->mbmaxlen;
++    set_name(name_par,0,cs);
++    decimals=NOT_FIXED_DEC;
++    // it is constant => can be used without fix_fields (and frequently used)
++    fixed= 1;
++  }
++  enum Type type() const { return STRING_ITEM; }
++  double val_real();
++  longlong val_int();
++  String *val_str(String*)
++  {
++    DBUG_ASSERT(fixed == 1);
++    return (String*) &str_value;
++  }
++  my_decimal *val_decimal(my_decimal *);
++  int save_in_field(Field *field, bool no_conversions);
++  enum Item_result result_type () const { return STRING_RESULT; }
++  enum_field_types field_type() const { return MYSQL_TYPE_VARCHAR; }
++  bool basic_const_item() const { return 1; }
++  bool eq(const Item *item, bool binary_cmp) const;
++  Item *new_item() 
++  {
++    return new Item_string(name, str_value.ptr(), 
++    			   str_value.length(), collation.collation);
++  }
++  Item *safe_charset_converter(CHARSET_INFO *tocs);
++  String *const_string() { return &str_value; }
++  inline void append(char *str, uint length) { str_value.append(str, length); }
++  void print(String *str);
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++};
++
++
++class Item_static_string_func :public Item_string
++{
++  const char *func_name;
++public:
++  Item_static_string_func(const char *name_par, const char *str, uint length,
++                          CHARSET_INFO *cs,
++                          Derivation dv= DERIVATION_COERCIBLE)
++    :Item_string(NullS, str, length, cs, dv), func_name(name_par)
++  {}
++  void print(String *str) { str->append(func_name); }
++};
++
++
++/* for show tables */
++
++class Item_datetime :public Item_string
++{
++public:
++  Item_datetime(const char *item_name): Item_string(item_name,"",0,
++                                                    &my_charset_bin)
++  { max_length=19;}
++  enum_field_types field_type() const { return MYSQL_TYPE_DATETIME; }
++};
++
++class Item_empty_string :public Item_string
++{
++public:
++  Item_empty_string(const char *header,uint length, CHARSET_INFO *cs= NULL) :
++    Item_string("",0, cs ? cs : &my_charset_bin)
++    { name=(char*) header; max_length= cs ? length * cs->mbmaxlen : length; }
++  void make_field(Send_field *field);
++};
++
++class Item_return_int :public Item_int
++{
++  enum_field_types int_field_type;
++public:
++  Item_return_int(const char *name, uint length,
++		  enum_field_types field_type_arg)
++    :Item_int(name, 0, length), int_field_type(field_type_arg)
++  {
++    unsigned_flag=1;
++  }
++  enum_field_types field_type() const { return int_field_type; }
++};
++
++
++class Item_hex_string: public Item
++{
++public:
++  Item_hex_string(): Item() {}
++  Item_hex_string(const char *str,uint str_length);
++  enum Type type() const { return VARBIN_ITEM; }
++  double val_real()
++    { DBUG_ASSERT(fixed == 1); return (double) Item_hex_string::val_int(); }
++  longlong val_int();
++  bool basic_const_item() const { return 1; }
++  String *val_str(String*) { DBUG_ASSERT(fixed == 1); return &str_value; }
++  my_decimal *val_decimal(my_decimal *);
++  int save_in_field(Field *field, bool no_conversions);
++  enum Item_result result_type () const { return STRING_RESULT; }
++  enum_field_types field_type() const { return MYSQL_TYPE_VARCHAR; }
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++  bool eq(const Item *item, bool binary_cmp) const;
++};
++
++
++class Item_bin_string: public Item_hex_string
++{
++public:
++  Item_bin_string(const char *str,uint str_length);
++};
++
++class Item_result_field :public Item	/* Item with result field */
++{
++public:
++  Field *result_field;				/* Save result here */
++  Item_result_field() :result_field(0) {}
++  // Constructor used for Item_sum/Item_cond_and/or (see Item comment)
++  Item_result_field(THD *thd, Item_result_field *item):
++    Item(thd, item), result_field(item->result_field)
++  {}
++  ~Item_result_field() {}			/* Required with gcc 2.95 */
++  Field *get_tmp_table_field() { return result_field; }
++  Field *tmp_table_field(TABLE *t_arg) { return result_field; }
++  table_map used_tables() const { return 1; }
++  virtual void fix_length_and_dec()=0;
++  void set_result_field(Field *field) { result_field= field; }
++  bool is_result_field() { return 1; }
++  void save_in_result_field(bool no_conversions)
++  {
++    save_in_field(result_field, no_conversions);
++  }
++  void cleanup();
++};
++
++
++class Item_ref :public Item_ident
++{
++protected:
++  void set_properties();
++public:
++  Field *result_field;			 /* Save result here */
++  Item **ref;
++  Item_ref(const char *db_par, const char *table_name_par,
++           const char *field_name_par)
++    :Item_ident(db_par, table_name_par, field_name_par), result_field(0), ref(0) {}
++  /*
++    This constructor is used in two scenarios:
++    A) *item = NULL
++      No initialization is performed, fix_fields() call will be necessary.
++      
++    B) *item points to an Item this Item_ref will refer to. This is 
++      used for GROUP BY. fix_fields() will not be called in this case,
++      so we call set_properties to make this item "fixed". set_properties
++      performs a subset of action Item_ref::fix_fields does, and this subset
++      is enough for Item_ref's used in GROUP BY.
++    
++    TODO we probably fix a superset of problems like in BUG#6658. Check this 
++         with Bar, and if we have a more broader set of problems like this.
++  */
++  Item_ref(Item **item, const char *table_name_par, const char *field_name_par);
++
++  /* Constructor need to process subselect with temporary tables (see Item) */
++  Item_ref(THD *thd, Item_ref *item) :Item_ident(thd, item), result_field(item->result_field), ref(item->ref) {}
++  enum Type type() const		{ return REF_ITEM; }
++  bool eq(const Item *item, bool binary_cmp) const
++  { return ref && (*ref)->eq(item, binary_cmp); }
++  double val_real();
++  longlong val_int();
++  my_decimal *val_decimal(my_decimal *);
++  bool val_bool();
++  String *val_str(String* tmp);
++  bool is_null();
++  bool get_date(TIME *ltime,uint fuzzydate);
++  double val_result();
++  longlong val_int_result();
++  String *str_result(String* tmp);
++  my_decimal *val_decimal_result(my_decimal *);
++  bool val_bool_result();
++  bool send(Protocol *prot, String *tmp);
++  void make_field(Send_field *field)	{ (*ref)->make_field(field); }
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  int save_in_field(Field *field, bool no_conversions)
++  { return (*ref)->save_in_field(field, no_conversions); }
++  void save_org_in_field(Field *field)	{ (*ref)->save_org_in_field(field); }
++  enum Item_result result_type () const { return (*ref)->result_type(); }
++  enum_field_types field_type() const   { return (*ref)->field_type(); }
++  Field *get_tmp_table_field() { return result_field; }
++  table_map used_tables() const		
++  { 
++    return depended_from ? OUTER_REF_TABLE_BIT : (*ref)->used_tables(); 
++  }
++  void set_result_field(Field *field)	{ result_field= field; }
++  bool is_result_field() { return 1; }
++  void save_in_result_field(bool no_conversions)
++  {
++    (*ref)->save_in_field(result_field, no_conversions);
++  }
++  Item *real_item() { return *ref; }
++  bool walk(Item_processor processor, byte *arg)
++  { return (*ref)->walk(processor, arg); }
++  void print(String *str);
++  void cleanup();
++};
++
++
++/*
++  The same as Item_ref, but get value from val_* family of method to get
++  value of item on which it referred instead of result* family.
++*/
++class Item_direct_ref :public Item_ref
++{
++public:
++  Item_direct_ref(Item **item, const char *table_name_par,
++                  const char *field_name_par)
++    :Item_ref(item, table_name_par, field_name_par) {}
++  /* Constructor need to process subselect with temporary tables (see Item) */
++  Item_direct_ref(THD *thd, Item_direct_ref *item) : Item_ref(thd, item) {}
++
++  double val_real();
++  longlong val_int();
++  String *val_str(String* tmp);
++  my_decimal *val_decimal(my_decimal *);
++  bool val_bool();
++  bool is_null();
++  bool get_date(TIME *ltime,uint fuzzydate);
++};
++
++
++class Item_in_subselect;
++
++class Item_ref_null_helper: public Item_ref
++{
++protected:
++  Item_in_subselect* owner;
++public:
++  Item_ref_null_helper(Item_in_subselect* master, Item **item,
++		       const char *table_name_par, const char *field_name_par):
++    Item_ref(item, table_name_par, field_name_par), owner(master) {}
++  double val_real();
++  longlong val_int();
++  String* val_str(String* s);
++  my_decimal *val_decimal(my_decimal *);
++  bool val_bool();
++  bool get_date(TIME *ltime, uint fuzzydate);
++  void print(String *str);
++};
++
++class Item_null_helper :public Item_ref_null_helper
++{
++  Item *store;
++public:
++  Item_null_helper(Item_in_subselect* master, Item *item,
++		   const char *table_name_par, const char *field_name_par)
++    :Item_ref_null_helper(master, (store= 0, &store), table_name_par,
++                          field_name_par),
++     store(item)
++    { ref= &store; }
++  void print(String *str);
++};
++
++/*
++  The following class is used to optimize comparing of date and bigint columns
++  We need to save the original item, to be able to set the field to the
++  original value in 'opt_range'.
++  An instance of Item_int_with_ref may refer to a signed or an unsigned
++  integer.
++*/
++
++class Item_int_with_ref :public Item_int
++{
++  Item *ref;
++public:
++  Item_int_with_ref(longlong i, Item *ref_arg) :Item_int(i), ref(ref_arg)
++  {
++    unsigned_flag= ref_arg->unsigned_flag;
++  }
++  int save_in_field(Field *field, bool no_conversions)
++  {
++    return ref->save_in_field(field, no_conversions);
++  }
++  Item *new_item();
++};
++
++
++#include "gstream.h"
++#include "spatial.h"
++#include "item_sum.h"
++#include "item_func.h"
++#include "item_row.h"
++#include "item_cmpfunc.h"
++#include "item_strfunc.h"
++#include "item_geofunc.h"
++#include "item_timefunc.h"
++#include "item_uniq.h"
++#include "item_subselect.h"
++
++class Item_copy_string :public Item
++{
++  enum enum_field_types cached_field_type;
++public:
++  Item *item;
++  Item_copy_string(Item *i) :item(i)
++  {
++    null_value=maybe_null=item->maybe_null;
++    decimals=item->decimals;
++    max_length=item->max_length;
++    name=item->name;
++    cached_field_type= item->field_type();
++  }
++  enum Type type() const { return COPY_STR_ITEM; }
++  enum Item_result result_type () const { return STRING_RESULT; }
++  enum_field_types field_type() const { return cached_field_type; }
++  double val_real()
++  {
++    int err_not_used;
++    char *end_not_used;
++    return (null_value ? 0.0 :
++	    my_strntod(str_value.charset(), (char*) str_value.ptr(),
++		       str_value.length(), &end_not_used, &err_not_used));
++  }
++  longlong val_int()
++  { 
++    int err;
++    return null_value ? LL(0) : my_strntoll(str_value.charset(),str_value.ptr(),str_value.length(),10, (char**) 0,&err); 
++  }
++  String *val_str(String*);
++  my_decimal *val_decimal(my_decimal *);
++  void make_field(Send_field *field) { item->make_field(field); }
++  void copy();
++  int save_in_field(Field *field, bool no_conversions);
++  table_map used_tables() const { return (table_map) 1L; }
++  bool const_item() const { return 0; }
++  bool is_null() { return null_value; }
++};
++
++
++class Item_buff :public Sql_alloc
++{
++public:
++  my_bool null_value;
++  Item_buff() :null_value(0) {}
++  virtual bool cmp(void)=0;
++  virtual ~Item_buff(); /*line -e1509 */
++};
++
++class Item_str_buff :public Item_buff
++{
++  Item *item;
++  String value,tmp_value;
++public:
++  Item_str_buff(Item *arg) :item(arg),value(arg->max_length) {}
++  bool cmp(void);
++  ~Item_str_buff();				// Deallocate String:s
++};
++
++
++class Item_real_buff :public Item_buff
++{
++  Item *item;
++  double value;
++public:
++  Item_real_buff(Item *item_par) :item(item_par),value(0.0) {}
++  bool cmp(void);
++};
++
++class Item_int_buff :public Item_buff
++{
++  Item *item;
++  longlong value;
++public:
++  Item_int_buff(Item *item_par) :item(item_par),value(0) {}
++  bool cmp(void);
++};
++
++
++class Item_decimal_buff :public Item_buff
++{
++  Item *item;
++  my_decimal value;
++public:
++  Item_decimal_buff(Item *item_par);
++  bool cmp(void);
++};
++
++class Item_field_buff :public Item_buff
++{
++  char *buff;
++  Field *field;
++  uint length;
++
++public:
++  Item_field_buff(Item_field *item)
++  {
++    field=item->field;
++    buff= (char*) sql_calloc(length=field->pack_length());
++  }
++  bool cmp(void);
++};
++
++class Item_default_value : public Item_field
++{
++public:
++  Item *arg;
++  Item_default_value() :
++    Item_field((const char *)NULL, (const char *)NULL, (const char *)NULL), arg(NULL) {}
++  Item_default_value(Item *a) :
++    Item_field((const char *)NULL, (const char *)NULL, (const char *)NULL), arg(a) {}
++  enum Type type() const { return DEFAULT_VALUE_ITEM; }
++  bool eq(const Item *item, bool binary_cmp) const;
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  void print(String *str);
++  int save_in_field(Field *field_arg, bool no_conversions);
++  table_map used_tables() const { return (table_map)0L; }
++  
++  bool walk(Item_processor processor, byte *args)
++  {
++    return arg->walk(processor, args) ||
++      (this->*processor)(args);
++  }
++
++  /* 
++     This method like the walk method traverses the item tree, but
++     at the same time it can replace some nodes in the tree
++  */ 
++  Item *transform(Item_transformer transformer, byte *args)
++  {
++    Item *new_item= arg->transform(transformer, args);
++    if (!new_item)
++      return 0;
++    arg= new_item;
++    return (this->*transformer)(args);
++  }
++};
++
++class Item_insert_value : public Item_field
++{
++public:
++  Item *arg;
++  Item_insert_value(Item *a) :
++    Item_field((const char *)NULL, (const char *)NULL, (const char *)NULL), arg(a) {}
++  bool eq(const Item *item, bool binary_cmp) const;
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  void print(String *str);
++  int save_in_field(Field *field_arg, bool no_conversions)
++  {
++    return Item_field::save_in_field(field_arg, no_conversions);
++  }
++  table_map used_tables() const { return (table_map)0L; }
++
++  bool walk(Item_processor processor, byte *args)
++  {
++    return arg->walk(processor, args) ||
++	    (this->*processor)(args);
++  }
++};
++
++
++/*
++  We need this two enums here instead of sql_lex.h because
++  at least one of them is used by Item_trigger_field interface.
++
++  Time when trigger is invoked (i.e. before or after row actually
++  inserted/updated/deleted).
++*/
++enum trg_action_time_type
++{
++  TRG_ACTION_BEFORE= 0, TRG_ACTION_AFTER= 1
++};
++
++/*
++  Event on which trigger is invoked.
++*/
++enum trg_event_type
++{
++  TRG_EVENT_INSERT= 0 , TRG_EVENT_UPDATE= 1, TRG_EVENT_DELETE= 2
++};
++
++/*
++  Represents NEW/OLD version of field of row which is
++  changed/read in trigger.
++
++  Note: For this item actual binding to Field object happens not during
++        fix_fields() (like for Item_field) but during parsing of trigger
++        definition, when table is opened, with special setup_field() call.
++*/
++class Item_trigger_field : public Item_field
++{
++public:
++  /* Is this item represents row from NEW or OLD row ? */
++  enum row_version_type {OLD_ROW, NEW_ROW};
++  row_version_type row_version;
++  /* Next in list of all Item_trigger_field's in trigger */
++  Item_trigger_field *next_trg_field;
++
++  Item_trigger_field(row_version_type row_ver_par,
++                     const char *field_name_par):
++    Item_field((const char *)NULL, (const char *)NULL, field_name_par),
++    row_version(row_ver_par)
++  {}
++  void setup_field(THD *thd, TABLE *table, enum trg_event_type event);
++  enum Type type() const { return TRIGGER_FIELD_ITEM; }
++  bool eq(const Item *item, bool binary_cmp) const;
++  bool fix_fields(THD *, struct st_table_list *, Item **);
++  void print(String *str);
++  table_map used_tables() const { return (table_map)0L; }
++  void cleanup();
++};
++
++
++class Item_cache: public Item
++{
++protected:
++  Item *example;
++  table_map used_table_map;
++public:
++  Item_cache(): example(0), used_table_map(0) {fixed= 1; null_value= 1;}
++
++  void set_used_tables(table_map map) { used_table_map= map; }
++
++  virtual bool allocate(uint i) { return 0; }
++  virtual bool setup(Item *item)
++  {
++    example= item;
++    max_length= item->max_length;
++    decimals= item->decimals;
++    collation.set(item->collation);
++    return 0;
++  };
++  virtual void store(Item *)= 0;
++  enum Type type() const { return CACHE_ITEM; }
++  static Item_cache* get_cache(Item_result type);
++  table_map used_tables() const { return used_table_map; }
++  virtual void keep_array() {}
++  // to prevent drop fixed flag (no need parent cleanup call)
++  void cleanup() {}
++  void print(String *str);
++};
++
++
++class Item_cache_int: public Item_cache
++{
++protected:
++  longlong value;
++public:
++  Item_cache_int(): Item_cache(), value(0) {}
++
++  void store(Item *item);
++  double val_real() { DBUG_ASSERT(fixed == 1); return (double) value; }
++  longlong val_int() { DBUG_ASSERT(fixed == 1); return value; }
++  String* val_str(String *str);
++  my_decimal *val_decimal(my_decimal *);
++  enum Item_result result_type() const { return INT_RESULT; }
++};
++
++
++class Item_cache_real: public Item_cache
++{
++  double value;
++public:
++  Item_cache_real(): Item_cache(), value(0) {}
++
++  void store(Item *item);
++  double val_real() { DBUG_ASSERT(fixed == 1); return value; }
++  longlong val_int();
++  String* val_str(String *str);
++  my_decimal *val_decimal(my_decimal *);
++  enum Item_result result_type() const { return REAL_RESULT; }
++};
++
++
++class Item_cache_decimal: public Item_cache
++{
++protected:
++  my_decimal decimal_value;
++public:
++  Item_cache_decimal(): Item_cache() {}
++
++  void store(Item *item);
++  double val_real();
++  longlong val_int();
++  String* val_str(String *str);
++  my_decimal *val_decimal(my_decimal *);
++  enum Item_result result_type() const { return DECIMAL_RESULT; }
++};
++
++
++class Item_cache_str: public Item_cache
++{
++  char buffer[STRING_BUFFER_USUAL_SIZE];
++  String *value, value_buff;
++public:
++  Item_cache_str(): Item_cache(), value(0) { }
++
++  void store(Item *item);
++  double val_real();
++  longlong val_int();
++  String* val_str(String *) { DBUG_ASSERT(fixed == 1); return value; }
++  my_decimal *val_decimal(my_decimal *);
++  enum Item_result result_type() const { return STRING_RESULT; }
++  CHARSET_INFO *charset() const { return value->charset(); };
++};
++
++class Item_cache_row: public Item_cache
++{
++  Item_cache  **values;
++  uint item_count;
++  bool save_array;
++public:
++  Item_cache_row()
++    :Item_cache(), values(0), item_count(2), save_array(0) {}
++  
++  /*
++    'allocate' used only in row transformer, to preallocate space for row 
++    cache.
++  */
++  bool allocate(uint num);
++  /*
++    'setup' is needed only by row => it not called by simple row subselect
++    (only by IN subselect (in subselect optimizer))
++  */
++  bool setup(Item *item);
++  void store(Item *item);
++  void illegal_method_call(const char *);
++  void make_field(Send_field *)
++  {
++    illegal_method_call((const char*)"make_field");
++  };
++  double val_real()
++  {
++    illegal_method_call((const char*)"val");
++    return 0;
++  };
++  longlong val_int()
++  {
++    illegal_method_call((const char*)"val_int");
++    return 0;
++  };
++  String *val_str(String *)
++  {
++    illegal_method_call((const char*)"val_str");
++    return 0;
++  };
++  my_decimal *val_decimal(my_decimal *val)
++  {
++    illegal_method_call((const char*)"val_decimal");
++    return 0;
++  };
++
++  enum Item_result result_type() const { return ROW_RESULT; }
++  
++  uint cols() { return item_count; }
++  Item* el(uint i) { return values[i]; }
++  Item** addr(uint i) { return (Item **) (values + i); }
++  bool check_cols(uint c);
++  bool null_inside();
++  void bring_value();
++  void keep_array() { save_array= 1; }
++  void cleanup()
++  {
++    DBUG_ENTER("Item_cache_row::cleanup");
++    Item_cache::cleanup();
++    if (save_array)
++      bzero(values, item_count*sizeof(Item**));
++    else
++      values= 0;
++    DBUG_VOID_RETURN;
++  }
++};
++
++
++/*
++  Item_type_holder used to store type. name, length of Item for UNIONS &
++  derived tables.
++
++  Item_type_holder do not need cleanup() because its time of live limited by
++  single SP/PS execution.
++*/
++class Item_type_holder: public Item
++{
++protected:
++  TYPELIB *enum_set_typelib;
++  enum_field_types fld_type;
++
++  void get_full_info(Item *item);
++
++  /* It is used to count decimal precision in join_types */
++  int prev_decimal_int_part;
++public:
++  Item_type_holder(THD*, Item*);
++
++  Item_result result_type() const;
++  virtual enum_field_types field_type() const { return fld_type; };
++  enum Type type() const { return TYPE_HOLDER; }
++  double val_real();
++  longlong val_int();
++  my_decimal *val_decimal(my_decimal *);
++  String *val_str(String*);
++  bool join_types(THD *thd, Item *);
++  Field *make_field_by_type(TABLE *table);
++  static uint32 display_length(Item *item);
++  static enum_field_types get_real_type(Item *);
++};
++
++class st_select_lex;
++void mark_select_range_as_dependent(THD *thd,
++                                    st_select_lex *last_select,
++                                    st_select_lex *current_sel,
++                                    Field *found_field, Item *found_item,
++                                    Item_ident *resolved_item);
++
++extern Item_buff *new_Item_buff(Item *item);
++extern Item_result item_cmp_type(Item_result a,Item_result b);
++extern void resolve_const_item(THD *thd, Item **ref, Item *cmp_item);
++extern bool field_is_equal_to_item(Field *field,Item *item);
+diff -Naur mysql.orig/sql/item_create.cc mysql.xml/sql/item_create.cc
+--- mysql.orig/sql/item_create.cc	2005-05-15 06:16:52.000000000 +0200
++++ mysql.xml/sql/item_create.cc	2005-05-20 15:19:29.000000000 +0200
+@@ -496,6 +496,16 @@
+   return new Item_func_quote(a);
+ }
+ 
++Item *create_func_xml_extractvalue(Item *a, Item *b)
++{
++  return new Item_func_xml_extractvalue(a, b);
++}
++
++Item *create_func_xml_update(Item *a, Item *b, Item *c)
++{
++  return new Item_func_xml_update(a, b, c);
++}
++
+ #ifdef HAVE_SPATIAL
+ Item *create_func_as_wkt(Item *a)
+ {
+diff -Naur mysql.orig/sql/item_create.cc.orig mysql.xml/sql/item_create.cc.orig
+--- mysql.orig/sql/item_create.cc.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/sql/item_create.cc.orig	2005-05-15 06:16:52.000000000 +0200
+@@ -0,0 +1,725 @@
++/* Copyright (C) 2000-2003 MySQL AB
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
++
++/* Functions to create an item. Used by lex.h */
++
++#include "mysql_priv.h"
++
++Item *create_func_abs(Item* a)
++{
++  return new Item_func_abs(a);
++}
++
++Item *create_func_acos(Item* a)
++{
++  return new Item_func_acos(a);
++}
++
++Item *create_func_aes_encrypt(Item* a, Item* b)
++{
++  return new Item_func_aes_encrypt(a, b);
++}
++
++Item *create_func_aes_decrypt(Item* a, Item* b)
++{
++  return new Item_func_aes_decrypt(a, b);
++}
++
++Item *create_func_ascii(Item* a)
++{
++  return new Item_func_ascii(a);
++}
++
++Item *create_func_ord(Item* a)
++{
++  return new Item_func_ord(a);
++}
++
++Item *create_func_asin(Item* a)
++{
++  return new Item_func_asin(a);
++}
++
++Item *create_func_bin(Item* a)
++{
++  return new Item_func_conv(a,new Item_int((int32) 10,2),
++			    new Item_int((int32) 2,1));
++}
++
++Item *create_func_bit_count(Item* a)
++{
++  return new Item_func_bit_count(a);
++}
++
++Item *create_func_ceiling(Item* a)
++{
++  return new Item_func_ceiling(a);
++}
++
++Item *create_func_connection_id(void)
++{
++  THD *thd=current_thd;
++  thd->lex->safe_to_cache_query= 0;
++  return new Item_static_int_func("connection_id()",
++                                  (longlong)
++                                  ((thd->slave_thread) ?
++                                   thd->variables.pseudo_thread_id :
++                                   thd->thread_id),
++                                  10);
++}
++
++Item *create_func_conv(Item* a, Item *b, Item *c)
++{
++  return new Item_func_conv(a,b,c);
++}
++
++Item *create_func_cos(Item* a)
++{
++  return new Item_func_cos(a);
++}
++
++Item *create_func_cot(Item* a)
++{
++  return new Item_func_div(new Item_int((char*) "1",1,1),
++			   new Item_func_tan(a));
++}
++
++Item *create_func_date_format(Item* a,Item *b)
++{
++  return new Item_func_date_format(a,b,0);
++}
++
++Item *create_func_dayofmonth(Item* a)
++{
++  return new Item_func_dayofmonth(a);
++}
++
++Item *create_func_dayofweek(Item* a)
++{
++  return new Item_func_weekday(new Item_func_to_days(a),1);
++}
++
++Item *create_func_dayofyear(Item* a)
++{
++  return new Item_func_dayofyear(a);
++}
++
++Item *create_func_dayname(Item* a)
++{
++  return new Item_func_dayname(new Item_func_to_days(a));
++}
++
++Item *create_func_degrees(Item *a)
++{
++  return new Item_func_units((char*) "degrees",a,180/M_PI,0.0);
++}
++
++Item *create_func_exp(Item* a)
++{
++  return new Item_func_exp(a);
++}
++
++Item *create_func_find_in_set(Item* a, Item *b)
++{
++  return new Item_func_find_in_set(a, b);
++}
++
++Item *create_func_floor(Item* a)
++{
++  return new Item_func_floor(a);
++}
++
++Item *create_func_found_rows(void)
++{
++  THD *thd=current_thd;
++  thd->lex->safe_to_cache_query= 0;
++  return new Item_func_found_rows();
++}
++
++Item *create_func_from_days(Item* a)
++{
++  return new Item_func_from_days(a);
++}
++
++Item *create_func_get_lock(Item* a, Item *b)
++{
++  current_thd->lex->uncacheable(UNCACHEABLE_SIDEEFFECT);
++  return new Item_func_get_lock(a, b);
++}
++
++Item *create_func_hex(Item *a)
++{
++  return new Item_func_hex(a);
++}
++
++Item *create_func_inet_ntoa(Item* a)
++{
++  return new Item_func_inet_ntoa(a);
++}
++
++Item *create_func_inet_aton(Item* a)
++{
++  return new Item_func_inet_aton(a);
++}
++
++
++Item *create_func_ifnull(Item* a, Item *b)
++{
++  return new Item_func_ifnull(a,b);
++}
++
++Item *create_func_nullif(Item* a, Item *b)
++{
++  return new Item_func_nullif(a,b);
++}
++
++Item *create_func_locate(Item* a, Item *b)
++{
++  return new Item_func_locate(b,a);
++}
++
++Item *create_func_instr(Item* a, Item *b)
++{
++  return new Item_func_locate(a,b);
++}
++
++Item *create_func_isnull(Item* a)
++{
++  return new Item_func_isnull(a);
++}
++
++Item *create_func_lcase(Item* a)
++{
++  return new Item_func_lcase(a);
++}
++
++Item *create_func_length(Item* a)
++{
++  return new Item_func_length(a);
++}
++
++Item *create_func_bit_length(Item* a)
++{
++  return new Item_func_bit_length(a);
++}
++
++Item *create_func_coercibility(Item* a)
++{
++  return new Item_func_coercibility(a);
++}
++
++Item *create_func_char_length(Item* a)
++{
++  return new Item_func_char_length(a);
++}
++
++Item *create_func_ln(Item* a)
++{
++  return new Item_func_ln(a);
++}
++
++Item *create_func_log2(Item* a)
++{
++  return new Item_func_log2(a);
++}
++
++Item *create_func_log10(Item* a)
++{
++  return new Item_func_log10(a);
++}
++
++Item *create_func_lpad(Item* a, Item *b, Item *c)
++{
++  return new Item_func_lpad(a,b,c);
++}
++
++Item *create_func_ltrim(Item* a)
++{
++  return new Item_func_ltrim(a);
++}
++
++Item *create_func_md5(Item* a)
++{
++  return new Item_func_md5(a);
++}
++
++Item *create_func_mod(Item* a, Item *b)
++{
++  return new Item_func_mod(a,b);
++}
++
++Item *create_func_monthname(Item* a)
++{
++  return new Item_func_monthname(a);
++}
++
++Item *create_func_month(Item* a)
++{
++  return new Item_func_month(a);
++}
++
++Item *create_func_oct(Item *a)
++{
++  return new Item_func_conv(a,new Item_int((int32) 10,2),
++			    new Item_int((int32) 8,1));
++}
++
++Item *create_func_period_add(Item* a, Item *b)
++{
++  return new Item_func_period_add(a,b);
++}
++
++Item *create_func_period_diff(Item* a, Item *b)
++{
++  return new Item_func_period_diff(a,b);
++}
++
++Item *create_func_pi(void)
++{
++  return new Item_static_float_func("pi()", M_PI, 6, 8);
++}
++
++Item *create_func_pow(Item* a, Item *b)
++{
++  return new Item_func_pow(a,b);
++}
++
++Item *create_func_current_user()
++{
++  THD *thd=current_thd;
++  char buff[HOSTNAME_LENGTH+USERNAME_LENGTH+2];
++  uint length;
++
++  thd->lex->safe_to_cache_query= 0;
++  length= (uint) (strxmov(buff, thd->priv_user, "@", thd->priv_host, NullS) -
++		  buff);
++  return new Item_static_string_func("current_user()",
++                                     thd->memdup(buff, length), length,
++                                     system_charset_info);
++}
++
++Item *create_func_radians(Item *a)
++{
++  return new Item_func_units((char*) "radians",a,M_PI/180,0.0);
++}
++
++Item *create_func_release_lock(Item* a)
++{
++  current_thd->lex->uncacheable(UNCACHEABLE_SIDEEFFECT);
++  return new Item_func_release_lock(a);
++}
++
++Item *create_func_repeat(Item* a, Item *b)
++{
++  return new Item_func_repeat(a,b);
++}
++
++Item *create_func_reverse(Item* a)
++{
++  return new Item_func_reverse(a);
++}
++
++Item *create_func_rpad(Item* a, Item *b, Item *c)
++{
++  return new Item_func_rpad(a,b,c);
++}
++
++Item *create_func_rtrim(Item* a)
++{
++  return new Item_func_rtrim(a);
++}
++
++Item *create_func_sec_to_time(Item* a)
++{
++  return new Item_func_sec_to_time(a);
++}
++
++Item *create_func_sign(Item* a)
++{
++  return new Item_func_sign(a);
++}
++
++Item *create_func_sin(Item* a)
++{
++  return new Item_func_sin(a);
++}
++
++Item *create_func_sha(Item* a)
++{
++  return new Item_func_sha(a);
++}
++
++Item *create_func_space(Item *a)
++{
++  CHARSET_INFO *cs= current_thd->variables.collation_connection;
++  Item *sp;
++
++  if (cs->mbminlen > 1)
++  {
++    uint dummy_errors;
++    sp= new Item_string("",0,cs);
++    if (sp)
++      sp->str_value.copy(" ", 1, &my_charset_latin1, cs, &dummy_errors);
++  }
++  else
++  {
++    sp= new Item_string(" ",1,cs);
++  }
++  return sp ? new Item_func_repeat(sp, a) : 0;
++}
++
++Item *create_func_soundex(Item* a)
++{
++  return new Item_func_soundex(a);
++}
++
++Item *create_func_sqrt(Item* a)
++{
++  return new Item_func_sqrt(a);
++}
++
++Item *create_func_strcmp(Item* a, Item *b)
++{
++  return new Item_func_strcmp(a,b);
++}
++
++Item *create_func_tan(Item* a)
++{
++  return new Item_func_tan(a);
++}
++
++Item *create_func_time_format(Item *a, Item *b)
++{
++  return new Item_func_date_format(a,b,1);
++}
++
++Item *create_func_time_to_sec(Item* a)
++{
++  return new Item_func_time_to_sec(a);
++}
++
++Item *create_func_to_days(Item* a)
++{
++  return new Item_func_to_days(a);
++}
++
++Item *create_func_ucase(Item* a)
++{
++  return new Item_func_ucase(a);
++}
++
++Item *create_func_unhex(Item* a)
++{
++  return new Item_func_unhex(a);
++}
++
++Item *create_func_uuid(void)
++{
++  return new Item_func_uuid();
++}
++
++Item *create_func_version(void)
++{
++  return new Item_static_string_func("version()", server_version,
++			 (uint) strlen(server_version),
++			 system_charset_info, DERIVATION_SYSCONST);
++}
++
++Item *create_func_weekday(Item* a)
++{
++  return new Item_func_weekday(new Item_func_to_days(a),0);
++}
++
++Item *create_func_year(Item* a)
++{
++  return new Item_func_year(a);
++}
++
++Item *create_load_file(Item* a)
++{
++  current_thd->lex->uncacheable(UNCACHEABLE_SIDEEFFECT);
++  return new Item_load_file(a);
++}
++
++
++Item *create_func_cast(Item *a, Cast_target cast_type, int len, int dec,
++		       CHARSET_INFO *cs)
++{
++  Item *res;
++  LINT_INIT(res);
++
++  switch (cast_type) {
++  case ITEM_CAST_BINARY: 	res= new Item_func_binary(a); break;
++  case ITEM_CAST_SIGNED_INT:	res= new Item_func_signed(a); break;
++  case ITEM_CAST_UNSIGNED_INT:  res= new Item_func_unsigned(a); break;
++  case ITEM_CAST_DATE:		res= new Item_date_typecast(a); break;
++  case ITEM_CAST_TIME:		res= new Item_time_typecast(a); break;
++  case ITEM_CAST_DATETIME:	res= new Item_datetime_typecast(a); break;
++  case ITEM_CAST_DECIMAL:
++    res= new Item_decimal_typecast(a, (len>0) ? len : 10, dec ? dec : 2);
++    break;
++  case ITEM_CAST_CHAR:
++    res= new Item_char_typecast(a, len, cs ? cs : 
++				current_thd->variables.collation_connection);
++    break;
++  }
++  return res;
++}
++
++Item *create_func_is_free_lock(Item* a)
++{
++  current_thd->lex->uncacheable(UNCACHEABLE_SIDEEFFECT);
++  return new Item_func_is_free_lock(a);
++}
++
++Item *create_func_is_used_lock(Item* a)
++{
++  current_thd->lex->uncacheable(UNCACHEABLE_SIDEEFFECT);
++  return new Item_func_is_used_lock(a);
++}
++
++Item *create_func_quote(Item* a)
++{
++  return new Item_func_quote(a);
++}
++
++#ifdef HAVE_SPATIAL
++Item *create_func_as_wkt(Item *a)
++{
++  return new Item_func_as_wkt(a);
++}
++
++Item *create_func_as_wkb(Item *a)
++{
++  return new Item_func_as_wkb(a);
++}
++
++Item *create_func_srid(Item *a)
++{
++  return new Item_func_srid(a);
++}
++
++Item *create_func_startpoint(Item *a)
++{
++  return new Item_func_spatial_decomp(a, Item_func::SP_STARTPOINT);
++}
++
++Item *create_func_endpoint(Item *a)
++{
++  return new Item_func_spatial_decomp(a, Item_func::SP_ENDPOINT);
++}
++
++Item *create_func_exteriorring(Item *a)
++{
++  return new Item_func_spatial_decomp(a, Item_func::SP_EXTERIORRING);
++}
++
++Item *create_func_pointn(Item *a, Item *b)
++{
++  return new Item_func_spatial_decomp_n(a, b, Item_func::SP_POINTN);
++}
++
++Item *create_func_interiorringn(Item *a, Item *b)
++{
++  return new Item_func_spatial_decomp_n(a, b, Item_func::SP_INTERIORRINGN);
++}
++
++Item *create_func_geometryn(Item *a, Item *b)
++{
++  return new Item_func_spatial_decomp_n(a, b, Item_func::SP_GEOMETRYN);
++}
++
++Item *create_func_centroid(Item *a)
++{
++  return new Item_func_centroid(a);
++}
++
++Item *create_func_envelope(Item *a)
++{
++  return new Item_func_envelope(a);
++}
++
++Item *create_func_equals(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_EQUALS_FUNC);
++}
++
++Item *create_func_disjoint(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_DISJOINT_FUNC);
++}
++
++Item *create_func_intersects(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_INTERSECTS_FUNC);
++}
++
++Item *create_func_touches(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_TOUCHES_FUNC);
++}
++
++Item *create_func_crosses(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_CROSSES_FUNC);
++}
++
++Item *create_func_within(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_WITHIN_FUNC);
++}
++
++Item *create_func_contains(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_CONTAINS_FUNC);
++}
++
++Item *create_func_overlaps(Item *a, Item *b)
++{
++  return new Item_func_spatial_rel(a, b, Item_func::SP_OVERLAPS_FUNC);
++}
++
++Item *create_func_isempty(Item *a)
++{
++  return new Item_func_isempty(a);
++}
++
++Item *create_func_issimple(Item *a)
++{
++  return new Item_func_issimple(a);
++}
++
++Item *create_func_isclosed(Item *a)
++{
++  return new Item_func_isclosed(a);
++}
++
++Item *create_func_geometry_type(Item *a)
++{
++  return new Item_func_geometry_type(a);
++}
++
++Item *create_func_dimension(Item *a)
++{
++  return new Item_func_dimension(a);
++}
++
++Item *create_func_x(Item *a)
++{
++  return new Item_func_x(a);
++}
++
++Item *create_func_y(Item *a)
++{
++  return new Item_func_y(a);
++}
++
++Item *create_func_numpoints(Item *a)
++{
++  return new Item_func_numpoints(a);
++}
++
++Item *create_func_numinteriorring(Item *a)
++{
++  return new Item_func_numinteriorring(a);
++}
++
++Item *create_func_numgeometries(Item *a)
++{
++  return new Item_func_numgeometries(a);
++}
++
++Item *create_func_area(Item *a)
++{
++  return new Item_func_area(a);
++}
++
++Item *create_func_glength(Item *a)
++{
++  return new Item_func_glength(a);
++}
++
++Item *create_func_point(Item *a, Item *b)
++{
++  return new Item_func_point(a, b);
++}
++#endif /*HAVE_SPATIAL*/
++
++Item *create_func_crc32(Item* a)
++{
++  return new Item_func_crc32(a);
++}
++
++Item *create_func_compress(Item* a)
++{
++  return new Item_func_compress(a);
++}
++
++Item *create_func_uncompress(Item* a)
++{
++  return new Item_func_uncompress(a);
++}
++
++Item *create_func_uncompressed_length(Item* a)
++{
++  return new Item_func_uncompressed_length(a);
++}
++
++Item *create_func_datediff(Item *a, Item *b)
++{
++  return new Item_func_minus(new Item_func_to_days(a),
++			     new Item_func_to_days(b));
++}
++
++Item *create_func_weekofyear(Item *a)
++{
++  return new Item_func_week(a, new Item_int((char*) "0", 3, 1));
++}
++
++Item *create_func_makedate(Item* a,Item* b)
++{
++  return new Item_func_makedate(a, b);
++}
++
++Item *create_func_addtime(Item* a,Item* b)
++{
++  return new Item_func_add_time(a, b, 0, 0);
++}
++
++Item *create_func_subtime(Item* a,Item* b)
++{
++  return new Item_func_add_time(a, b, 0, 1);
++}
++
++Item *create_func_timediff(Item* a,Item* b)
++{
++  return new Item_func_timediff(a, b);
++}
++
++Item *create_func_maketime(Item* a,Item* b,Item* c)
++{
++  return new Item_func_maketime(a, b, c);
++}
++
++Item *create_func_str_to_date(Item* a,Item* b)
++{
++  return new Item_func_str_to_date(a, b);
++}
++
++Item *create_func_last_day(Item *a)
++{
++  return new Item_func_last_day(a);
++}
+diff -Naur mysql.orig/sql/item_create.h mysql.xml/sql/item_create.h
+--- mysql.orig/sql/item_create.h	2005-05-15 06:16:52.000000000 +0200
++++ mysql.xml/sql/item_create.h	2005-05-20 15:19:29.000000000 +0200
+@@ -100,7 +100,8 @@
+ Item *create_func_is_free_lock(Item* a);
+ Item *create_func_is_used_lock(Item* a);
+ Item *create_func_quote(Item* a);
+-
++Item *create_func_xml_extractvalue(Item *a, Item *b);
++Item *create_func_xml_update(Item *a, Item *b, Item *c);
+ #ifdef HAVE_SPATIAL
+ 
+ Item *create_func_geometry_from_text(Item *a);
+diff -Naur mysql.orig/sql/item_xmlfunc.cc mysql.xml/sql/item_xmlfunc.cc
+--- mysql.orig/sql/item_xmlfunc.cc	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/sql/item_xmlfunc.cc	2005-04-16 13:49:09.000000000 +0200
+@@ -0,0 +1,2555 @@
++/* Copyright (C) 2000 MySQL AB & MySQL Finland AB & TCX DataKonsult AB
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
++
++
++#ifdef __GNUC__
++#pragma implementation
++#endif
++
++#include "mysql_priv.h"
++#include "my_xml.h"
++
++
++/*
++  TODO: future development directions:
++  1. add real constants for XPATH_NODESET_CMP and XPATH_NODESET
++     into enum Type in item.h.
++  2. add nodeset_to_nodeset_comparator
++  3. add lacking functions:
++       - name()
++       - last()
++       - lang()
++       - string()
++       - id()
++       - translate()
++       - local-name()
++       - starts-with()
++       - namespace-uri()
++       - substring-after()
++       - normalize-space()
++       - substring-before()
++  4. add lacking axis:
++       - following-sibling
++       - following, 
++       - preceding-sibling 
++       - preceding
++*/
++
++
++/* Structure to store a parsed XML tree */
++typedef struct my_xml_node_st
++{
++  uint level;                 /* level in XML tree, 0 means root node   */
++  enum my_xml_node_type type; /* node type: node, or attribute, or text */
++  uint parent;                /* link to the parent                     */
++  const char *beg;            /* beginning of the name or text          */
++  const char *end;            /* end of the name or text                */
++  const char *tagend;         /* where this tag ends                    */
++} MY_XML_NODE;
++
++
++/* Lexical analizer token */
++typedef struct my_xpath_lex_st
++{
++  int        term;  /* token type, see MY_XPATH_LEX_XXXXX below */
++  const char *beg;  /* beginnign of the token                   */
++  const char *end;  /* end of the token                         */
++} MY_XPATH_LEX;
++
++
++/* Structure to store nodesets */
++typedef struct my_xpath_flt_st
++{
++  uint num;     /* absolute position in MY_XML_NODE array */
++  uint pos;     /* relative position in context           */
++} MY_XPATH_FLT;
++
++
++/* XPath function creator */
++typedef struct my_xpath_function_names_st
++{
++  const char *name;  /* function name           */
++  size_t length;     /* function name length    */
++  size_t minargs;    /* min number of arguments */
++  size_t maxargs;    /* max number of arguments */
++  Item *(*create)(struct my_xpath_st *xpath, Item **args, uint nargs);
++} MY_XPATH_FUNC;
++
++
++/* XPath query parser */
++typedef struct my_xpath_st
++{
++  int debug;
++  MY_XPATH_LEX query;    /* Whole query                               */
++  MY_XPATH_LEX lasttok;  /* last scanned token                        */
++  MY_XPATH_LEX prevtok;  /* previous scanned token                    */
++  int axis;              /* last scanned axis                         */
++  int extra;             /* last scanned "extra", context dependent   */
++  MY_XPATH_FUNC *func;   /* last scanned function creator             */
++  Item *item;            /* current expression                        */
++  Item *context;         /* last scanned context                      */
++  String *context_cache; /* last context provider                     */
++  String *pxml;          /* Parsed XML, an array of MY_XML_NODE       */
++  CHARSET_INFO *cs;      /* character set/collation string comparison */
++} MY_XPATH;
++
++
++/* Dynamic array of MY_XPATH_FLT */
++class XPathFilter :public String
++{
++public:
++  XPathFilter() :String() {}
++  inline bool append_element(MY_XPATH_FLT *flt)
++  {
++    String *str= this;
++    return str->append((const char*)flt, (uint32) sizeof(MY_XPATH_FLT));
++  }
++  inline bool append_element(uint32 num, uint32 pos)
++  {
++    MY_XPATH_FLT add;
++    add.num= num;
++    add.pos= pos;
++    return append_element(&add);
++  }
++  inline MY_XPATH_FLT *element(uint i)
++  { 
++    return (MY_XPATH_FLT*) (ptr() + i * sizeof(MY_XPATH_FLT));
++  }
++  inline uint32 numelements()
++  {
++    return length() / sizeof(MY_XPATH_FLT);
++  }
++};
++
++
++/*
++  Common features of the functions returning a node set.
++*/
++class Item_nodeset_func :public Item_str_func
++{
++protected:
++  String tmp_value, tmp2_value;
++  MY_XPATH_FLT *fltbeg, *fltend;
++  MY_XML_NODE *nodebeg, *nodeend;
++  uint numnodes;
++public:
++  String *pxml;
++  String context_cache;
++  Item_nodeset_func(String *pxml_arg) :Item_str_func(), pxml(pxml_arg) {}
++  Item_nodeset_func(Item *a, String *pxml_arg) 
++    :Item_str_func(a), pxml(pxml_arg) {}
++  Item_nodeset_func(Item *a, Item *b, String *pxml_arg) 
++    :Item_str_func(a, b), pxml(pxml_arg) {}
++  Item_nodeset_func(Item *a, Item *b, Item *c, String *pxml_arg) 
++    :Item_str_func(a,b,c), pxml(pxml_arg) {}
++  void prepare_nodes()
++  {
++    nodebeg= (MY_XML_NODE*) pxml->ptr();
++    nodeend= (MY_XML_NODE*) (pxml->ptr() + pxml->length());
++    numnodes= nodeend - nodebeg;
++  }
++  void prepare(String *nodeset)
++  {
++    prepare_nodes();
++    String *res= args[0]->val_nodeset(&tmp_value);
++    fltbeg= (MY_XPATH_FLT*) res->ptr();
++    fltend= (MY_XPATH_FLT*) (res->ptr() + res->length());
++    nodeset->length(0);
++  }
++  enum Type type() const { return XPATH_NODESET; }
++  String *val_str(String *str)
++  {
++    prepare_nodes();
++    String *res= val_nodeset(&tmp2_value);
++    fltbeg= (MY_XPATH_FLT*) res->ptr();
++    fltend= (MY_XPATH_FLT*) (res->ptr() + res->length());
++    String active;
++    active.alloc(numnodes);
++    bzero((char*) active.ptr(), numnodes);
++    for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++    {
++      MY_XML_NODE *node;
++      uint j;
++      for (j=0, node= nodebeg ; j < numnodes; j++, node++)
++      {
++        if (node->type == MY_XML_NODE_TEXT &&
++            node->parent == flt->num)
++          active[j]= 1;
++      }
++    }
++
++    str->length(0);
++    str->set_charset(collation.collation);
++    for (uint i=0 ; i < numnodes; i++)
++    {
++      if(active[i])
++      {
++        if (str->length())
++          str->append(" ", 1, &my_charset_latin1);
++        str->append(nodebeg[i].beg, nodebeg[i].end - nodebeg[i].beg);
++      }
++    }
++    return str;
++  }
++  enum Item_result result_type () const { return STRING_RESULT; }
++  void fix_length_and_dec() { max_length=  MAX_BLOB_WIDTH; }
++  const char *func_name() const { return "nodeset"; }
++};
++
++
++/* Returns an XML root */
++class Item_nodeset_func_rootelement :public Item_nodeset_func
++{
++public:
++  Item_nodeset_func_rootelement(String *pxml): Item_nodeset_func(pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Returns a Union of two node sets */
++class Item_nodeset_func_union :public Item_nodeset_func
++{
++public:
++  Item_nodeset_func_union(Item *a, Item *b, String *pxml)
++    :Item_nodeset_func(a, b, pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Makes one step towards the given axis */
++class Item_nodeset_func_axisbyname :public Item_nodeset_func
++{
++  const char *node_name;
++  uint node_namelen;
++public:
++  Item_nodeset_func_axisbyname(Item *a, const char *n_arg, uint l_arg,
++                               String *pxml): 
++    Item_nodeset_func(a, pxml), node_name(n_arg), node_namelen(l_arg) { }
++  bool validname(MY_XML_NODE *n)
++  {
++    if (node_name[0] == '*')
++      return 1;
++    return (node_namelen == (uint) (n->end - n->beg)) &&
++            !memcmp(node_name, n->beg, node_namelen);
++  }
++};
++
++
++/* Returns children */
++class Item_nodeset_func_childbyname: public Item_nodeset_func_axisbyname
++{
++public:
++  Item_nodeset_func_childbyname(Item *a, const char *n_arg, uint l_arg,
++                                String *pxml): 
++    Item_nodeset_func_axisbyname(a, n_arg, l_arg, pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Returns descendants */
++class Item_nodeset_func_descendantbyname: public Item_nodeset_func_axisbyname
++{
++  bool need_self;
++public:
++  Item_nodeset_func_descendantbyname(Item *a, const char *n_arg, uint l_arg,
++                                     String *pxml, bool need_self_arg): 
++    Item_nodeset_func_axisbyname(a, n_arg, l_arg, pxml), 
++      need_self(need_self_arg) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Returns ancestors */
++class Item_nodeset_func_ancestorbyname: public Item_nodeset_func_axisbyname
++{
++  bool need_self;
++public:
++  Item_nodeset_func_ancestorbyname(Item *a, const char *n_arg, uint l_arg,
++                                   String *pxml, bool need_self_arg): 
++    Item_nodeset_func_axisbyname(a, n_arg, l_arg, pxml),
++      need_self(need_self_arg) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Returns parents */
++class Item_nodeset_func_parentbyname: public Item_nodeset_func_axisbyname
++{
++public:
++  Item_nodeset_func_parentbyname(Item *a, const char *n_arg, uint l_arg,
++                                 String *pxml): 
++    Item_nodeset_func_axisbyname(a, n_arg, l_arg, pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Returns attributes */
++class Item_nodeset_func_attributebyname: public Item_nodeset_func_axisbyname
++{
++public:
++  Item_nodeset_func_attributebyname(Item *a, const char *n_arg, uint l_arg,
++                                    String *pxml): 
++    Item_nodeset_func_axisbyname(a, n_arg, l_arg, pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/*
++  Condition iterator: goes through all nodes in the current
++  context and checks a condition, returning those nodes
++  giving TRUE condition result.
++*/
++class Item_nodeset_func_predicate :public Item_nodeset_func
++{
++public:
++  Item_nodeset_func_predicate(Item *a, Item *b, String *pxml):
++    Item_nodeset_func(a, b, pxml) {}
++  String *val_nodeset(String *nodeset);
++};
++
++
++/* Selects nodes with a given position in context */
++class Item_nodeset_func_elementbyindex :public Item_nodeset_func
++{
++public:
++  Item_nodeset_func_elementbyindex(Item *a, Item *b, String *pxml): 
++    Item_nodeset_func(a, b, pxml) { }
++  String *val_nodeset(String *nodeset);
++};
++
++
++/*
++  We need to distinguish a number from a boolean:
++  a[1] and a[true] are different things in XPath.
++*/
++class Item_bool :public Item_int
++{
++public:
++  Item_bool(int32 i): Item_int(i) {}
++  bool is_bool_func() { return 1; }
++};
++
++
++/*
++  Converts its argument into a boolean value.
++  * a number is true if it is non-zero
++  * a node-set is true if and only if it is non-empty
++  * a string is true if and only if its length is non-zero
++*/
++class Item_xpath_cast_bool :public Item_int_func
++{
++  String *pxml;
++  String tmp_value;
++public:
++  Item_xpath_cast_bool(Item *a, String *pxml_arg)
++    :Item_int_func(a), pxml(pxml_arg) {}
++  bool is_bool_func() { return 1; }
++  longlong val_int()
++  {
++    if (args[0]->type() == XPATH_NODESET)
++    {
++      String *flt= args[0]->val_nodeset(&tmp_value);
++      return flt->length() == sizeof(MY_XPATH_FLT) ? 1 : 0;
++    }
++    return args[0]->val_real() ? 1 : 0;
++  }
++};
++
++
++/*
++  Converts its argument into a number
++*/
++class Item_xpath_cast_number :public Item_real_func
++{
++public:
++  Item_xpath_cast_number(Item *a): Item_real_func(a) {}
++  virtual double val_real() { return args[0]->val_real(); }
++};
++
++
++/*
++  Context cache, for predicate
++*/
++class Item_nodeset_context_cache :public Item_nodeset_func
++{
++public:
++  String *string_cache;
++  Item_nodeset_context_cache(String *str_arg, String *pxml):
++    Item_nodeset_func(pxml), string_cache(str_arg) { }
++  String *val_nodeset(String *res)
++  { return string_cache; }
++  void fix_length_and_dec() { max_length= MAX_BLOB_WIDTH; }
++};
++
++
++class Item_func_xpath_position :public Item_int_func
++{
++  String *pxml;
++  String tmp_value;
++public:
++  Item_func_xpath_position(Item *a, String *p)
++    :Item_int_func(a), pxml(p) {}
++  void fix_length_and_dec() { max_length=10; }
++  longlong val_int()
++  {
++    String *flt= args[0]->val_nodeset(&tmp_value);
++    if (flt->length() == sizeof(MY_XPATH_FLT))
++      return ((MY_XPATH_FLT*)flt->ptr())->pos + 1;
++    return 0;
++  }
++};
++
++
++class Item_func_xpath_count :public Item_int_func
++{
++  String *pxml;
++  String tmp_value;
++public:
++  Item_func_xpath_count(Item *a, String *p)
++    :Item_int_func(a), pxml(p) {}
++  void fix_length_and_dec() { max_length=10; }
++  longlong val_int()
++  {
++    String *res= args[0]->val_nodeset(&tmp_value);
++    return res->length() / sizeof(MY_XPATH_FLT);
++  }
++};
++
++
++class Item_func_xpath_sum :public Item_real_func
++{
++  String *pxml;
++  String tmp_value;
++public:
++  Item_func_xpath_sum(Item *a, String *p)
++    :Item_real_func(a), pxml(p) {}
++
++  double val_real()
++  {
++    double sum= 0;
++    String *res= args[0]->val_nodeset(&tmp_value);
++    MY_XPATH_FLT *fltbeg= (MY_XPATH_FLT*) res->ptr();
++    MY_XPATH_FLT *fltend= (MY_XPATH_FLT*) (res->ptr() + res->length());
++    uint numnodes= pxml->length() / sizeof(MY_XML_NODE);
++    MY_XML_NODE *nodebeg= (MY_XML_NODE*) pxml->ptr();
++  
++    for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++    {
++      MY_XML_NODE *self= &nodebeg[flt->num];
++      for (uint j= flt->num + 1; j < numnodes; j++)
++      {
++        MY_XML_NODE *node= &nodebeg[j];
++        if (node->level <= self->level)
++          break;
++        if ((node->parent == flt->num) &&
++            (node->type == MY_XML_NODE_TEXT))
++        {
++          char *end;
++          int err;
++          double add= my_strntod(collation.collation, (char*) node->beg,
++                                 node->end - node->beg, &end, &err);
++          if (!err)
++            sum+= add;
++        }
++      }
++    }
++    return sum;
++  }
++};
++
++
++class Item_nodeset_to_const_comparator :public Item_bool_func
++{
++  String *pxml;
++  String tmp_nodeset;
++public:
++  Item_nodeset_to_const_comparator(Item *nodeset, Item *cmpfunc, String *p) 
++    :Item_bool_func(nodeset,cmpfunc), pxml(p) {}
++  enum Type type() const { return XPATH_NODESET_CMP; };
++  bool is_bool_func() { return 1; }
++
++  longlong val_int()
++  {
++    Item_func *comp= (Item_func*)args[1];
++    Item_string *fake= (Item_string*)(comp->arguments()[1]);
++    String *res= args[0]->val_nodeset(&tmp_nodeset);
++    MY_XPATH_FLT *fltbeg= (MY_XPATH_FLT*) res->ptr();
++    MY_XPATH_FLT *fltend= (MY_XPATH_FLT*) (res->ptr() + res->length());
++    MY_XML_NODE *nodebeg= (MY_XML_NODE*) pxml->ptr();
++    uint numnodes= pxml->length() / sizeof(MY_XML_NODE);
++
++    for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++    {
++      MY_XML_NODE *self= &nodebeg[flt->num];
++      for (uint j= flt->num + 1; j < numnodes; j++)
++      {
++        MY_XML_NODE *node= &nodebeg[j];
++        if (node->level <= self->level)
++          break;
++        if ((node->parent == flt->num) &&
++            (node->type == MY_XML_NODE_TEXT))
++        {
++          fake->str_value.set(node->beg, node->end - node->beg,
++                              collation.collation);
++          if (args[1]->val_int())
++            return 1;
++        }
++      }
++    }
++    return 0;
++  }
++};
++
++
++String *Item_nodeset_func_rootelement::val_nodeset(String *nodeset)
++{
++  nodeset->length(0);
++  ((XPathFilter*)nodeset)->append_element(0, 0);
++  return nodeset;
++}
++
++
++String * Item_nodeset_func_union::val_nodeset(String *nodeset)
++{
++  uint numnodes= pxml->length() / sizeof(MY_XML_NODE);
++  String set0, *s0= args[0]->val_nodeset(&set0);
++  String set1, *s1= args[1]->val_nodeset(&set1);
++  String both_str;
++  both_str.alloc(numnodes);
++  char *both= (char*) both_str.ptr();
++  bzero((void*)both, numnodes);
++  uint pos= 0;
++  MY_XPATH_FLT *flt;
++
++  fltbeg= (MY_XPATH_FLT*) s0->ptr();
++  fltend= (MY_XPATH_FLT*) (s0->ptr() + s0->length());
++  for (flt= fltbeg; flt < fltend; flt++)
++    both[flt->num]= 1;
++
++  fltbeg= (MY_XPATH_FLT*) s1->ptr();
++  fltend= (MY_XPATH_FLT*) (s1->ptr() + s1->length());
++  for (flt= fltbeg; flt < fltend; flt++)
++    both[flt->num]= 1;
++
++  nodeset->length(0);
++  for (uint i= 0, pos= 0; i < numnodes; i++)
++  {
++    if (both[i])
++     ((XPathFilter*)nodeset)->append_element(i, pos++);
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_childbyname::val_nodeset(String *nodeset)
++{
++  prepare(nodeset);
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    MY_XML_NODE *self= &nodebeg[flt->num];
++    for (uint pos= 0, j= flt->num + 1 ; j < numnodes; j++)
++    {
++      MY_XML_NODE *node= &nodebeg[j];
++      if (node->level <= self->level)
++        break;
++      if ((node->parent == flt->num) &&
++          (node->type == MY_XML_NODE_TAG) &&
++          validname(node))
++        ((XPathFilter*)nodeset)->append_element(j, pos++);
++    }
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_descendantbyname::val_nodeset(String *nodeset)
++{
++  prepare(nodeset);
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    uint pos= 0;
++    MY_XML_NODE *self= &nodebeg[flt->num];
++    if (need_self && validname(self))
++      ((XPathFilter*)nodeset)->append_element(flt->num,pos++);
++    for (uint j= flt->num + 1 ; j < numnodes ; j++)
++    {
++      MY_XML_NODE *node= &nodebeg[j];
++      if (node->level <= self->level)
++        break;
++      if ((node->type == MY_XML_NODE_TAG) && validname(node))
++        ((XPathFilter*)nodeset)->append_element(j,pos++);
++    }
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_ancestorbyname::val_nodeset(String *nodeset)
++{
++  char *active;
++  String active_str;
++  prepare(nodeset);
++  active_str.alloc(numnodes);
++  active= (char*) active_str.ptr();
++  bzero((void*)active, numnodes);
++  uint pos= 0;
++
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    /*
++       Go to the root and add all nodes on the way.
++       Don't add the root if context is the root itelf
++    */
++    MY_XML_NODE *self= &nodebeg[flt->num];
++    if (need_self && validname(self))
++    {
++      active[flt->num]= 1;
++      pos++;
++    }
++
++    for (uint j= self->parent; nodebeg[j].parent != j; j= nodebeg[j].parent)
++    {
++      if (flt->num && validname(&nodebeg[j]))
++      {
++        active[j]= 1;
++        pos++;
++      }
++    }
++  }
++
++  for (uint j= 0; j < numnodes ; j++)
++  {
++    if (active[j])
++      ((XPathFilter*)nodeset)->append_element(j, --pos);
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_parentbyname::val_nodeset(String *nodeset)
++{
++  char *active;
++  String active_str;
++  prepare(nodeset);
++  active_str.alloc(numnodes);
++  active= (char*) active_str.ptr();
++  bzero((void*)active, numnodes);
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    uint j= nodebeg[flt->num].parent;
++    if (flt->num && validname(&nodebeg[j]))
++        active[j]= 1;
++  }
++  for (uint j= 0, pos= 0; j < numnodes ; j++)
++  {
++    if (active[j])
++      ((XPathFilter*)nodeset)->append_element(j, pos++);
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_attributebyname::val_nodeset(String *nodeset)
++{
++  prepare(nodeset);
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    MY_XML_NODE *self= &nodebeg[flt->num];
++    for (uint pos=0, j= flt->num + 1 ; j < numnodes; j++)
++    {
++      MY_XML_NODE *node= &nodebeg[j];
++      if (node->level <= self->level)
++        break;
++      if ((node->parent == flt->num) &&
++         (node->type == MY_XML_NODE_ATTR) &&
++          validname(node))
++        ((XPathFilter*)nodeset)->append_element(j, pos++);
++    }
++  }
++  return nodeset;
++}
++
++
++String *Item_nodeset_func_predicate::val_nodeset(String *str)
++{
++  Item_nodeset_func *nodeset_func= (Item_nodeset_func*) args[0];
++  Item_func *comp_func= (Item_func*)args[1];
++  uint pos= 0;
++  prepare(str);
++  for (MY_XPATH_FLT *flt= fltbeg; flt < fltend; flt++)
++  {
++    nodeset_func->context_cache.length(0);
++    ((XPathFilter*)(&nodeset_func->context_cache))->append_element(flt->num,
++                                                                   flt->pos);
++    if (comp_func->val_int())
++      ((XPathFilter*)str)->append_element(flt->num, pos++);
++  }
++  return str;
++};
++
++
++String *Item_nodeset_func_elementbyindex::val_nodeset(String *nodeset)
++{
++  prepare(nodeset);
++  int index= args[1]->val_int() - 1;
++  if (index >= 0)
++  {
++    MY_XPATH_FLT *flt;
++    uint pos;
++    for (pos= 0, flt= fltbeg; flt < fltend; flt++)
++    {
++      if (flt->pos == (uint) index || args[1]->is_bool_func())
++        ((XPathFilter*)nodeset)->append_element(flt->num, pos++);
++    }
++  }
++  return nodeset;
++}
++
++
++/*
++  If item is a node set, then casts it to boolean,
++  otherwise returns the item itself.
++*/
++static Item* nodeset2bool(MY_XPATH *xpath, Item *item)
++{
++  if (item->type() == Item::XPATH_NODESET)
++    return new Item_xpath_cast_bool(item, xpath->pxml);
++  return item;
++}
++
++
++/*
++  XPath lexical tokens
++*/
++#define MY_XPATH_LEX_DIGITS   'd'
++#define MY_XPATH_LEX_IDENT    'i'
++#define MY_XPATH_LEX_STRING   's'
++#define MY_XPATH_LEX_SLASH    '/'
++#define MY_XPATH_LEX_LB       '['
++#define MY_XPATH_LEX_RB       ']'
++#define MY_XPATH_LEX_LP       '('
++#define MY_XPATH_LEX_RP       ')'
++#define MY_XPATH_LEX_EQ       '='
++#define MY_XPATH_LEX_LESS     '<'
++#define MY_XPATH_LEX_GREATER  '>'
++#define MY_XPATH_LEX_AT       '@'
++#define MY_XPATH_LEX_COLON    ':'
++#define MY_XPATH_LEX_ASTERISK '*'
++#define MY_XPATH_LEX_DOT      '.'
++#define MY_XPATH_LEX_VLINE    '|'
++#define MY_XPATH_LEX_MINUS    '-'
++#define MY_XPATH_LEX_PLUS     '+'
++#define MY_XPATH_LEX_EXCL     '!'
++#define MY_XPATH_LEX_COMMA    ','
++#define MY_XPATH_LEX_DOLLAR   '$'
++#define MY_XPATH_LEX_ERROR    'A'
++#define MY_XPATH_LEX_EOF      'B'
++#define MY_XPATH_LEX_AND      'C'
++#define MY_XPATH_LEX_OR       'D'
++#define MY_XPATH_LEX_DIV      'E'
++#define MY_XPATH_LEX_MOD      'F'
++#define MY_XPATH_LEX_FUNC     'G'
++#define MY_XPATH_LEX_NODETYPE 'H'
++#define MY_XPATH_LEX_AXIS     'I'
++#define MY_XPATH_LEX_LE       'J'
++#define MY_XPATH_LEX_GE       'K'
++
++
++/*
++  XPath axis type
++*/
++#define MY_XPATH_AXIS_ANCESTOR            0
++#define MY_XPATH_AXIS_ANCESTOR_OR_SELF    1
++#define MY_XPATH_AXIS_ATTRIBUTE           2
++#define MY_XPATH_AXIS_CHILD               3
++#define MY_XPATH_AXIS_DESCENDANT          4
++#define MY_XPATH_AXIS_DESCENDANT_OR_SELF  5
++#define MY_XPATH_AXIS_FOLLOWING           6
++#define MY_XPATH_AXIS_FOLLOWING_SIBLING   7
++#define MY_XPATH_AXIS_NAMESPACE           8
++#define MY_XPATH_AXIS_PARENT              9
++#define MY_XPATH_AXIS_PRECEDING          10
++#define MY_XPATH_AXIS_PRECEDING_SIBLING  11
++#define MY_XPATH_AXIS_SELF               12
++
++
++/*
++  Create scalar comparator
++
++  SYNOPSYS
++    Create a comparator function for scalar arguments,
++    for the given arguments and operation.
++
++  RETURN
++    The newly created item.
++*/
++static Item *eq_func(int oper, Item *a, Item *b)
++{
++  switch (oper)
++  {
++    case '=': return new Item_func_eq(a, b);
++    case '!': return new Item_func_ne(a, b);
++    case MY_XPATH_LEX_GE: return new Item_func_ge(a, b);
++    case MY_XPATH_LEX_LE: return new Item_func_le(a, b);
++    case MY_XPATH_LEX_GREATER: return new Item_func_gt(a, b);
++    case MY_XPATH_LEX_LESS: return new Item_func_lt(a, b);
++  }
++  return 0;
++}
++
++
++/*
++  Create scalar comparator
++
++  SYNOPSYS
++    Create a comparator function for scalar arguments,
++    for the given arguments and reverse operation, e.g.
++
++    A >= B  is converted into  A < B
++
++  RETURN
++    The newly created item.
++*/
++static Item *eq_func_reverse(int oper, Item *a, Item *b)
++{
++  switch (oper)
++  {
++    case '=': return new Item_func_eq(a, b);
++    case '!': return new Item_func_ne(a, b);
++    case MY_XPATH_LEX_GE: return new Item_func_lt(a, b);
++    case MY_XPATH_LEX_LE: return new Item_func_gt(a, b);
++    case MY_XPATH_LEX_GREATER: return new Item_func_le(a, b);
++    case MY_XPATH_LEX_LESS: return new Item_func_ge(a, b);
++  }
++  return 0;
++}
++
++
++/*
++  Create a comparator
++
++  SYNOPSYS
++    Create a comparator for scalar or non-scalar arguments,
++    for the given arguments and operation.
++
++  RETURN
++    The newly created item.
++*/
++static Item *create_comparator(MY_XPATH *xpath, int oper, Item *a, Item *b)
++{
++  if (a->type() != Item::XPATH_NODESET &&
++      b->type() != Item::XPATH_NODESET)
++  {
++    return eq_func(oper, a, b); // two scalar arguments
++  }
++  else if (a->type() == Item::XPATH_NODESET &&
++           b->type() == Item::XPATH_NODESET)
++  {
++    return 0; // TODO: Comparison of two nodesets
++  }
++  else
++  {
++    /*
++     Compare a node set to a scalar value.
++     We just create a fake Item_string() argument,
++     which will be filled to the partular value
++     in a loop through all of the nodes in the node set.
++    */
++
++    Item *fake= new Item_string("", 0, xpath->cs);
++    Item_nodeset_func *nodeset;
++    Item *scalar, *comp;
++    if (a->type() == Item::XPATH_NODESET)
++    {
++      nodeset= (Item_nodeset_func*) a;
++      scalar= b;
++      comp= eq_func(oper, scalar, fake);
++    }
++    else
++    {
++      nodeset= (Item_nodeset_func*) b;
++      scalar= a;
++      comp= eq_func_reverse(oper, scalar, fake);
++    }
++    return new Item_nodeset_to_const_comparator(nodeset, comp, xpath->pxml);
++  }
++}
++
++
++/*
++  Create a step
++
++  SYNOPSYS
++    Create a step function for the given argument and axis.
++
++  RETURN
++    The newly created item.
++*/
++static Item* nametestfunc(MY_XPATH *xpath,
++                          int type, Item *arg, const char *beg, uint len)
++{
++  DBUG_ASSERT(arg != 0);
++  DBUG_ASSERT(arg->type() == Item::XPATH_NODESET);
++  DBUG_ASSERT(beg != 0);
++  DBUG_ASSERT(len > 0);
++
++  Item *res;
++  switch (type)
++  {
++  case MY_XPATH_AXIS_ANCESTOR:
++    res= new Item_nodeset_func_ancestorbyname(arg, beg, len, xpath->pxml, 0);
++    break;
++  case MY_XPATH_AXIS_ANCESTOR_OR_SELF:
++    res= new Item_nodeset_func_ancestorbyname(arg, beg, len, xpath->pxml, 1);
++    break;
++  case MY_XPATH_AXIS_PARENT:
++    res= new Item_nodeset_func_parentbyname(arg, beg, len, xpath->pxml);
++    break;
++  case MY_XPATH_AXIS_DESCENDANT:
++    res= new Item_nodeset_func_descendantbyname(arg, beg, len, xpath->pxml, 0);
++    break;
++  case MY_XPATH_AXIS_DESCENDANT_OR_SELF:
++    res= new Item_nodeset_func_descendantbyname(arg, beg, len, xpath->pxml, 1);
++    break;
++  case MY_XPATH_AXIS_ATTRIBUTE:
++    res= new Item_nodeset_func_attributebyname(arg, beg, len, xpath->pxml);
++    break;
++  default:
++    res= new Item_nodeset_func_childbyname(arg, beg, len, xpath->pxml);
++  }
++  return res;
++}
++
++
++/*
++  Tokens consisting of one character, for faster lexical analizer.
++*/
++static char simpletok[128]=
++{
++  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
++/*
++    ! " # $ % & ' ( ) * + , - . / 0 1 2 3 4 5 6 7 8 9 : ; < = > ?
++  @ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z [ \ ] ^ _
++  ` a b c d e f g h i j k l m n o p q r s t u v w x y z { | } ~ €
++*/
++  0,1,0,0,1,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,0,
++  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,
++  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0  
++};
++
++
++/*
++  XPath keywords
++*/
++struct my_xpath_keyword_names_st
++{
++  int tok;
++  const char *name;
++  size_t length;
++  int extra;
++};
++
++
++static struct my_xpath_keyword_names_st my_keyword_names[] =
++{
++  {MY_XPATH_LEX_AND     , "and"                    ,  3, 0 },
++  {MY_XPATH_LEX_OR      , "or"                     ,  2, 0 },
++  {MY_XPATH_LEX_DIV     , "div"                    ,  3, 0 },
++  {MY_XPATH_LEX_MOD     , "mod"                    ,  3, 0 },
++  
++  {MY_XPATH_LEX_NODETYPE, "comment"                ,  7, 0 },
++  {MY_XPATH_LEX_NODETYPE, "text"                   ,  4, 0 },
++  {MY_XPATH_LEX_NODETYPE, "processing-instruction" ,  22,0 },
++  {MY_XPATH_LEX_NODETYPE, "node"                   ,  4, 0 },
++  
++  {MY_XPATH_LEX_AXIS,"ancestor"          , 8,MY_XPATH_AXIS_ANCESTOR          },
++  {MY_XPATH_LEX_AXIS,"ancestor-or-self"  ,16,MY_XPATH_AXIS_ANCESTOR_OR_SELF  },
++  {MY_XPATH_LEX_AXIS,"attribute"         , 9,MY_XPATH_AXIS_ATTRIBUTE         },
++  {MY_XPATH_LEX_AXIS,"child"             , 5,MY_XPATH_AXIS_CHILD             },
++  {MY_XPATH_LEX_AXIS,"descendant"        ,10,MY_XPATH_AXIS_DESCENDANT        },
++  {MY_XPATH_LEX_AXIS,"descendant-or-self",18,MY_XPATH_AXIS_DESCENDANT_OR_SELF},
++  {MY_XPATH_LEX_AXIS,"following"         , 9,MY_XPATH_AXIS_FOLLOWING         },
++  {MY_XPATH_LEX_AXIS,"following-sibling" ,17,MY_XPATH_AXIS_FOLLOWING_SIBLING },
++  {MY_XPATH_LEX_AXIS,"namespace"         , 9,MY_XPATH_AXIS_NAMESPACE         },
++  {MY_XPATH_LEX_AXIS,"parent"            , 6,MY_XPATH_AXIS_PARENT            },
++  {MY_XPATH_LEX_AXIS,"preceding"         , 9,MY_XPATH_AXIS_PRECEDING         },
++  {MY_XPATH_LEX_AXIS,"preceding-sibling" ,17,MY_XPATH_AXIS_PRECEDING_SIBLING },
++  {MY_XPATH_LEX_AXIS,"self"              , 4,MY_XPATH_AXIS_SELF              },
++
++  {0,NULL,0,0}
++};
++
++
++/*
++  Lookup a keyword
++
++  SYNOPSYS
++    Check that the last scanned identifier is a keyword.
++
++  RETURN
++    - Token type, on lookup success.
++    - MY_XPATH_LEX_IDENT, on lookup failure.
++*/
++static int my_xpath_keyword(MY_XPATH *x, const char *beg, const char *end)
++{
++  struct my_xpath_keyword_names_st *k;
++  size_t length= end-beg;
++  for (k= my_keyword_names; k->name; k++)
++  {
++    if (length == k->length && !strncasecmp(beg, k->name, length))
++    {
++      x->extra= k->extra;
++      return k->tok;
++    }
++  }
++  return MY_XPATH_LEX_IDENT;
++}
++
++
++/*
++  Functions to create an item, a-la those in item_create.cc
++*/
++
++static Item *create_func_true(MY_XPATH *xpath, Item **args, uint nargs)
++{ 
++  return new Item_bool(1);
++}
++
++
++static Item *create_func_false(MY_XPATH *xpath, Item **args, uint nargs)
++{ 
++  return new Item_bool(0);
++}
++
++
++static Item *create_func_not(MY_XPATH *xpath, Item **args, uint nargs)
++{ 
++  return new Item_func_not(nodeset2bool(xpath, args[0]));
++}
++
++
++static Item *create_func_ceiling(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_func_ceiling(args[0]);
++}
++
++
++static Item *create_func_floor(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_func_floor(args[0]);
++}
++
++
++static Item *create_func_bool(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_xpath_cast_bool(args[0], xpath->pxml);
++}
++
++
++static Item *create_func_number(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_xpath_cast_number(args[0]);
++}
++
++
++static Item *create_func_round(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_func_round(args[0], new Item_int((char*)"0",0,1),0);
++}
++
++
++static Item *create_func_last(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_func_xpath_count(xpath->context, xpath->pxml);
++}
++
++
++static Item *create_func_position(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_func_xpath_position(xpath->context, xpath->pxml);
++}
++
++
++static Item *create_func_contains(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  return new Item_xpath_cast_bool(new Item_func_locate(args[0], args[1]),
++                                  xpath->pxml);
++}
++
++
++static Item *create_func_concat(MY_XPATH *xpath, Item **args, uint nargs)
++{ 
++  return new Item_func_concat(args[0], args[1]); 
++}
++
++
++static Item *create_func_substr(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  if (nargs == 2)
++    return new Item_func_substr(args[0], args[1]);
++  else
++    return new Item_func_substr(args[0], args[1], args[2]);
++}
++
++
++static Item *create_func_count(MY_XPATH *xpath, Item **args, uint nargs)
++{  
++  if (args[0]->type() != Item::XPATH_NODESET)
++    return 0;
++  return new Item_func_xpath_count(args[0], xpath->pxml);
++}
++
++
++static Item *create_func_sum(MY_XPATH *xpath, Item **args, uint nargs)
++{
++  if (args[0]->type() != Item::XPATH_NODESET)
++    return 0;
++  return new Item_func_xpath_sum(args[0], xpath->pxml);
++}
++
++
++/*
++  Functions names. Separate lists for names with
++  lengths 3,4,5 and 6 for faster lookups.
++*/
++static MY_XPATH_FUNC my_func_names3[]=
++{
++  {"sum", 3, 1 , 1  , create_func_sum},
++  {"not", 3, 1 , 1  , create_func_not},
++  {0    , 0, 0 , 0, 0}
++};
++
++
++static MY_XPATH_FUNC my_func_names4[]=
++{
++  {"last", 4, 0, 0, create_func_last},
++  {"true", 4, 0, 0, create_func_true},
++  {"name", 4, 0, 1, 0},
++  {"lang", 4, 1, 1, 0},
++  {0     , 0, 0, 0, 0}
++};
++
++
++static MY_XPATH_FUNC my_func_names5[]=
++{
++  {"count", 5, 1, 1, create_func_count},
++  {"false", 5, 0, 0, create_func_false},
++  {"floor", 5, 1, 1, create_func_floor},
++  {"round", 5, 1, 1, create_func_round},
++  {0      , 0, 0, 0, 0}
++};
++
++
++static MY_XPATH_FUNC my_func_names6[]=
++{
++  {"concat", 6, 2, 255, create_func_concat},
++  {"number", 6, 0, 1  , create_func_number},
++  {"string", 6, 0, 1  , 0},
++  {0       , 0, 0, 0  , 0}
++};
++
++
++/* Other functions, with name longer than 6, all together */
++static MY_XPATH_FUNC my_func_names[] =
++{
++  {"id"               , 2  ,  1 , 1  , 0},
++  {"boolean"          , 7  ,  1 , 1  , create_func_bool},
++  {"ceiling"          , 7  ,  1 , 1  , create_func_ceiling},
++  {"position"         , 8  ,  0 , 0  , create_func_position},
++  {"contains"         , 8  ,  2 , 2  , create_func_contains},
++  {"substring"        , 9  ,  2 , 3  , create_func_substr},
++  {"translate"        , 9  ,  3 , 3  , 0},
++
++  {"local-name"       , 10 ,  0 , 1  , 0},
++  {"starts-with"      , 11 ,  2 , 2  , 0},
++  {"namespace-uri"    , 13 ,  0 , 1  , 0},
++  {"substring-after"  , 15 ,  2 , 2  , 0},
++  {"normalize-space"  , 15 ,  0 , 1  , 0},
++  {"substring-before" , 16 ,  2 , 2  , 0},
++
++  {NULL,0,0,0,0}
++};
++
++
++/*
++  Lookup a function by name
++
++  SYNOPSYS
++    Lookup a function by its name.
++
++  RETURN
++    Pointer to a MY_XPATH_FUNC variable on success.
++    0 - on failure.
++
++*/
++MY_XPATH_FUNC *
++my_xpath_function(const char *beg, const char *end)
++{
++  MY_XPATH_FUNC *k, *function_names;
++  uint length= end-beg;
++  switch (length)
++  {
++    case 1: return 0;
++    case 3: function_names= my_func_names3; break;
++    case 4: function_names= my_func_names4; break;
++    case 5: function_names= my_func_names5; break;
++    case 6: function_names= my_func_names6; break;
++    default: function_names= my_func_names;
++  }
++  for (k= function_names; k->name; k++)
++    if (k->create && length == k->length && !strncasecmp(beg, k->name, length))
++      return k;
++  return NULL;
++}
++
++
++/* Initialize a lex analizer token */
++static void
++my_xpath_lex_init(MY_XPATH_LEX *lex,
++                  const char *str, const char *strend)
++{
++  lex->beg= str;
++  lex->end= strend;
++}
++
++
++/* Initialize an XPath query parser */
++static void
++my_xpath_init(MY_XPATH *xpath)
++{
++  bzero((void*)xpath, sizeof(xpath[0]));
++}
++
++
++/*
++  Some ctype-alike helper functions. Note, we cannot
++  reuse cs->ident_map[], because in Xpath, unlike in SQL, 
++  dash character is a valid identifier part.
++*/
++static int
++my_xident_beg(int c)
++{
++  return (((c) >= 'a' && (c) <= 'z') ||
++          ((c) >= 'A' && (c) <= 'Z') ||
++          ((c) == '_'));
++}
++
++
++static int
++my_xident_body(int c)
++{
++  return (((c) >= 'a' && (c) <= 'z') ||
++          ((c) >= 'A' && (c) <= 'Z') ||
++          ((c) >= '0' && (c) <= '9') ||
++          ((c)=='-'));
++}
++
++
++static int
++my_xdigit(int c)
++{
++  return ((c) >= '0' && (c) <= '9');
++}
++
++
++/*
++  Scan the next token
++
++  SYNOPSYS
++    Scan the next token from the input.
++    lex->term is set to the scanned token type.
++    lex->beg and lex->end are set to the beginnig
++    and to the end of the token.
++  RETURN
++    N/A
++*/
++static void
++my_xpath_lex_scan(MY_XPATH *xpath,
++                  MY_XPATH_LEX *lex, const char *beg, const char *end)
++{
++  int ch;
++  for ( ; beg < end && *beg == ' ' ; beg++); // skip leading spaces
++  lex->beg= beg;
++  
++  if (beg >= end)
++  {
++    lex->end= beg;
++    lex->term= MY_XPATH_LEX_EOF; // end of line reached
++    return;
++  }
++  ch= *beg++;
++  
++  if (ch > 0 && ch < 128 && simpletok[ch])
++  {
++    // a token consisting of one character found
++    lex->end= beg;
++    lex->term= ch;
++    return;
++  }
++  
++  if (my_xident_beg(ch)) // ident, or a function call, or a keyword
++  {
++    // scan until the end of the identifier
++    for ( ; beg < end && my_xident_body(*beg); beg++);
++    lex->end= beg;
++
++    // check if a function call
++    if (*beg == '(' && (xpath->func= my_xpath_function(lex->beg, beg)))
++    {
++      lex->term= MY_XPATH_LEX_FUNC;
++      return;
++    }
++
++    // check if a keyword
++    lex->term= my_xpath_keyword(xpath, lex->beg, beg);
++    return;
++  }
++
++  if (my_xdigit(ch)) // a sequence of digits
++  {
++    for ( ; beg < end && my_xdigit(*beg) ; beg++);
++    lex->end= beg;
++    lex->term= MY_XPATH_LEX_DIGITS;
++    return;
++  }
++
++  if (ch == '"' || ch == '\'')  // a string: either '...' or "..."
++  {
++    for ( ; beg < end && *beg != ch ; beg++);
++    if (beg < end)
++    {
++      lex->end= beg+1;
++      lex->term= MY_XPATH_LEX_STRING;
++      return;
++    } 
++    else
++    {
++      // unexpected end-of-line, without closing quot sign
++      lex->end= end;
++      lex->term= MY_XPATH_LEX_ERROR;
++      return;
++    }
++  }
++
++  lex->end= beg;
++  lex->term= MY_XPATH_LEX_ERROR; // unknown character
++  return;
++}
++
++
++/*
++  Scan the given token
++
++  SYNOPSYS
++    Scan the given token and rotate lasttok to prevtok on success.
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int
++my_xpath_parse_term(MY_XPATH *xpath, int term)
++{
++  if (xpath->lasttok.term == term)
++  {
++    xpath->prevtok= xpath->lasttok;
++    my_xpath_lex_scan(xpath, &xpath->lasttok,
++                      xpath->lasttok.end, xpath->query.end);
++    return 1;
++  }
++  return 0;
++}
++
++
++/*
++  Scan AxisName
++
++  SYNOPSYS
++    Scan an axis name and store the scanned axis type into xpath->axis.
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AxisName(MY_XPATH *xpath)
++{
++  int rc= my_xpath_parse_term(xpath, MY_XPATH_LEX_AXIS);
++  xpath->axis= xpath->extra;
++  return rc;
++}
++
++
++/*********************************************
++** Grammar rules, according to http://www.w3.org/TR/xpath
++** Implemented using recursive descendant method.
++** All the following grammar processing functions accept
++** a signle "xpath" argument and return 1 on success and 0 on error.
++** They also modify "xpath" argument by creating new items.
++*/
++
++/* [9]  PredicateExpr ::= Expr */
++#define my_xpath_parse_PredicateExpr(x) my_xpath_parse_Expr((x))
++
++/* [14] Expr ::= OrExpr */
++#define my_xpath_parse_Expr(x) my_xpath_parse_OrExpr((x))
++
++static int my_xpath_parse_LocationPath(MY_XPATH *xpath);
++static int my_xpath_parse_AbsoluteLocationPath(MY_XPATH *xpath);
++static int my_xpath_parse_RelativeLocationPath(MY_XPATH *xpath);
++static int my_xpath_parse_AbbreviatedAbsoluteLocationPath(MY_XPATH *xpath);
++static int my_xpath_parse_AbbreviatedStep(MY_XPATH *xpath);
++static int my_xpath_parse_Step(MY_XPATH *xpath);
++static int my_xpath_parse_AxisSpecifier(MY_XPATH *xpath);
++static int my_xpath_parse_NodeTest(MY_XPATH *xpath);
++static int my_xpath_parse_AbbreviatedAxisSpecifier(MY_XPATH *xpath);
++static int my_xpath_parse_NameTest(MY_XPATH *xpath);
++static int my_xpath_parse_FunctionCall(MY_XPATH *xpath);
++static int my_xpath_parse_Number(MY_XPATH *xpath);
++static int my_xpath_parse_FilterExpr(MY_XPATH *xpath);
++static int my_xpath_parse_PathExpr(MY_XPATH *xpath);
++static int my_xpath_parse_OrExpr(MY_XPATH *xpath);
++static int my_xpath_parse_UnaryExpr(MY_XPATH *xpath);
++static int my_xpath_parse_MultiplicativeExpr(MY_XPATH *xpath);
++static int my_xpath_parse_AdditiveExpr(MY_XPATH *xpath);
++static int my_xpath_parse_RelationalExpr(MY_XPATH *xpath);
++static int my_xpath_parse_AndExpr(MY_XPATH *xpath);
++static int my_xpath_parse_EqualityExpr(MY_XPATH *xpath);
++static int my_xpath_parse_VariableReference(MY_XPATH *xpath);
++static int my_xpath_parse_slash_opt_slash(MY_XPATH *xpath);
++
++
++/*
++  Scan LocationPath
++
++  SYNOPSYS
++
++    [1] LocationPath ::=   RelativeLocationPath
++                         | AbsoluteLocationPath
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_LocationPath(MY_XPATH *xpath)
++{
++  Item *context= xpath->context;
++
++  int rc= my_xpath_parse_RelativeLocationPath(xpath) || 
++          my_xpath_parse_AbsoluteLocationPath(xpath);
++
++  xpath->item= xpath->context;
++  xpath->context= context;
++  return rc;
++}
++
++
++/*
++  Scan Absolute Location Path
++
++  SYNOPSYS
++
++    [2]     AbsoluteLocationPath ::=   '/' RelativeLocationPath?	
++                                     | AbbreviatedAbsoluteLocationPath
++    [10]    AbbreviatedAbsoluteLocationPath ::=  '//' RelativeLocationPath
++
++    We combine these two rules into one rule for better performance:
++
++    [2,10]  AbsoluteLocationPath ::=  '/'   RelativeLocationPath?
++                                     | '//' RelativeLocationPath
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AbsoluteLocationPath(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH))
++    return 0;
++
++  xpath->context= new Item_nodeset_func_rootelement(xpath->pxml);
++
++  if (my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH))
++  {
++    xpath->context= new Item_nodeset_func_descendantbyname(xpath->context,
++                                                           "*", 1,
++                                                           xpath->pxml, 1);
++    return my_xpath_parse_RelativeLocationPath(xpath);
++  }
++
++  if (my_xpath_parse_RelativeLocationPath(xpath))
++    return 1;
++
++  return 1;
++}
++
++
++/*
++  Scan Relative Location Path
++
++  SYNOPSYS
++
++    For better performance we combine these two rules 
++
++    [3] RelativeLocationPath ::=   Step
++                                 | RelativeLocationPath '/' Step
++                                 | AbbreviatedRelativeLocationPath
++    [11] AbbreviatedRelativeLocationPath ::=  RelativeLocationPath '//' Step
++
++
++    Into this one:
++
++    [3-11] RelativeLocationPath ::=   Step
++                                    | RelativeLocationPath '/'  Step
++                                    | RelativeLocationPath '//' Step
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_RelativeLocationPath(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_Step(xpath))
++    return 0;
++  while (my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH))
++  {
++    if (my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH))
++      xpath->context= new Item_nodeset_func_descendantbyname(xpath->context,
++                                                             "*", 1,
++                                                             xpath->pxml, 1);
++    if (!my_xpath_parse_Step(xpath))
++      return 0;
++  }
++  return 1;
++}
++
++
++/*
++  Scan non-abbreviated or abbreviated Step
++
++  SYNOPSYS
++
++  [4] Step ::=   AxisSpecifier NodeTest Predicate*
++               | AbbreviatedStep
++  [8] Predicate ::= '[' PredicateExpr ']'
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int 
++my_xpath_parse_AxisSpecifier_NodeTest_opt_Predicate_list(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_AxisSpecifier(xpath))
++    return 0;
++ 
++  if (!my_xpath_parse_NodeTest(xpath))
++    return 0;
++
++  while (my_xpath_parse_term(xpath, MY_XPATH_LEX_LB))
++  {
++    Item *prev_context= xpath->context;
++    String *context_cache;
++    context_cache= &((Item_nodeset_func*)xpath->context)->context_cache;
++    xpath->context= new Item_nodeset_context_cache(context_cache, xpath->pxml);
++    xpath->context_cache= context_cache;
++
++    if(!my_xpath_parse_PredicateExpr(xpath))
++      return 0;
++
++    if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_RB))
++      return 0;
++
++    xpath->item= nodeset2bool(xpath, xpath->item);
++
++    if (xpath->item->is_bool_func())
++    {
++      xpath->context= new Item_nodeset_func_predicate(prev_context,
++                                                      xpath->item,
++                                                      xpath->pxml);
++    }
++    else
++    {
++      xpath->context= new Item_nodeset_func_elementbyindex(prev_context,
++                                                           xpath->item,
++                                                           xpath->pxml);
++    }
++  }
++  return 1;
++}
++
++
++static int my_xpath_parse_Step(MY_XPATH *xpath)
++{  
++  return
++    my_xpath_parse_AxisSpecifier_NodeTest_opt_Predicate_list(xpath) ||
++    my_xpath_parse_AbbreviatedStep(xpath);
++}
++
++
++/*
++  Scan Abbreviated Axis Specifier
++
++  SYNOPSYS
++  [5] AxisSpecifier ::=  AxisName '::' 
++                         | AbbreviatedAxisSpecifier
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AbbreviatedAxisSpecifier(MY_XPATH *xpath)
++{
++  if (my_xpath_parse_term(xpath, MY_XPATH_LEX_AT))
++    xpath->axis= MY_XPATH_AXIS_ATTRIBUTE;
++  else
++    xpath->axis= MY_XPATH_AXIS_CHILD;
++  return 1;
++}
++
++
++/*
++  Scan non-abbreviated axis specifier
++
++  SYNOPSYS
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AxisName_colon_colon(MY_XPATH *xpath)
++{
++  return my_xpath_parse_AxisName(xpath) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_COLON) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_COLON);
++}
++
++
++/*
++  Scan Abbreviated AxisSpecifier
++
++  SYNOPSYS
++    [13] AbbreviatedAxisSpecifier  ::=  '@'?
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AxisSpecifier(MY_XPATH *xpath)
++{
++  return my_xpath_parse_AxisName_colon_colon(xpath) ||
++         my_xpath_parse_AbbreviatedAxisSpecifier(xpath);
++}
++
++
++/*
++  Scan NodeType followed by parens
++
++  SYNOPSYS
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_NodeTest_lp_rp(MY_XPATH *xpath)
++{
++  return my_xpath_parse_term(xpath, MY_XPATH_LEX_NODETYPE) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_LP) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_RP);
++}
++
++
++/*
++  Scan NodeTest
++
++  SYNOPSYS
++
++  [7] NodeTest ::=   NameTest
++                   | NodeType '(' ')'
++                   | 'processing-instruction' '(' Literal ')'
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_NodeTest(MY_XPATH *xpath)
++{
++  return my_xpath_parse_NameTest(xpath) ||
++         my_xpath_parse_NodeTest_lp_rp(xpath);
++}
++
++
++/*
++  Scan Abbreviated Step
++
++  SYNOPSYS
++
++  [12] AbbreviatedStep  ::= '.'	| '..'
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AbbreviatedStep(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_DOT))
++    return 0;
++  if (my_xpath_parse_term(xpath, MY_XPATH_LEX_DOT))
++    xpath->context= new Item_nodeset_func_parentbyname(xpath->context, "*", 1,
++                                                       xpath->pxml);
++  return 1;
++}
++
++
++/*
++  Scan Primary Expression
++
++  SYNOPSYS
++
++  [15] PrimaryExpr ::= VariableReference	
++                       | '(' Expr ')'	
++                       | Literal	
++                       | Number	
++                       | FunctionCall
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_lp_Expr_rp(MY_XPATH *xpath)
++{
++  return my_xpath_parse_term(xpath, MY_XPATH_LEX_LP) &&
++         my_xpath_parse_Expr(xpath) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_RP);
++}
++static int my_xpath_parse_PrimaryExpr_literal(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_STRING))
++    return 0;
++  xpath->item= new Item_string(xpath->prevtok.beg + 1,
++                               xpath->prevtok.end - xpath->prevtok.beg - 2,
++                               xpath->cs);
++  return 1;
++}
++static int my_xpath_parse_PrimaryExpr(MY_XPATH *xpath)
++{
++  return 
++      my_xpath_parse_lp_Expr_rp(xpath)          ||
++      my_xpath_parse_VariableReference(xpath)   ||
++      my_xpath_parse_PrimaryExpr_literal(xpath) ||
++      my_xpath_parse_Number(xpath)              ||
++      my_xpath_parse_FunctionCall(xpath);
++}
++
++
++/*
++  Scan Function Call
++
++  SYNOPSYS
++    [16] FunctionCall ::= FunctionName '(' ( Argument ( ',' Argument )* )? ')'
++    [17] Argument      ::= Expr
++
++  RETURN
++    1 - success
++    0 - failure
++
++*/
++static int my_xpath_parse_FunctionCall(MY_XPATH *xpath)
++{
++  Item *args[256];
++  uint nargs;
++
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_FUNC))
++    return 0;
++
++  MY_XPATH_FUNC *func= xpath->func;
++
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_LP))
++    return 0;
++
++  for (nargs= 0 ; nargs < func->maxargs; )
++  {
++    if (!my_xpath_parse_Expr(xpath))
++     return 0;
++    args[nargs++]= xpath->item;
++    if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_COMMA))
++    {
++      if (nargs < func->minargs)
++        return 0;
++      else
++        break;
++    }
++  }
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_RP))
++    return 0;
++
++  return ((xpath->item= func->create(xpath, args, nargs))) ? 1 : 0;
++}
++
++
++/*
++  Scan Union Expression
++
++  SYNOPSYS
++    [18] UnionExpr ::=   PathExpr	
++                       | UnionExpr '|' PathExpr
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_UnionExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_PathExpr(xpath))
++    return 0;
++ 
++  while (my_xpath_parse_term(xpath, MY_XPATH_LEX_VLINE))
++  {
++    Item *prev= xpath->item;
++    if (prev->type() != Item::XPATH_NODESET)
++      return 0;
++    
++    if (!my_xpath_parse_PathExpr(xpath)
++        || xpath->item->type() != Item::XPATH_NODESET)
++      return 0;
++    xpath->item= new Item_nodeset_func_union(prev, xpath->item, xpath->pxml);
++  }
++  return 1;
++}
++
++
++/*
++  Scan Path Expression
++
++  SYNOPSYS
++
++  [19] PathExpr ::=   LocationPath
++                    | FilterExpr
++                    | FilterExpr '/' RelativeLocationPath
++                    | FilterExpr '//' RelativeLocationPath
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int
++my_xpath_parse_FilterExpr_opt_slashes_RelativeLocationPath(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_FilterExpr(xpath))
++    return 0;
++
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH))
++    return 1;
++
++  my_xpath_parse_term(xpath, MY_XPATH_LEX_SLASH);
++  return my_xpath_parse_RelativeLocationPath(xpath);
++}
++static int my_xpath_parse_PathExpr(MY_XPATH *xpath)
++{
++  return my_xpath_parse_LocationPath(xpath) || 
++         my_xpath_parse_FilterExpr_opt_slashes_RelativeLocationPath(xpath);
++}
++
++
++
++/*
++  Scan Filter Expression
++
++  SYNOPSYS
++    [20]  FilterExpr ::=   PrimaryExpr	
++                         | FilterExpr Predicate
++
++    or in other words:
++
++    [20]  FilterExpr ::=   PrimaryExpr Predicate*
++
++  RETURN
++    1 - success
++    0 - failure
++
++*/
++static int my_xpath_parse_FilterExpr(MY_XPATH *xpath)
++{
++  return my_xpath_parse_PrimaryExpr(xpath);
++}
++
++
++/*
++  Scan Or Expression
++
++  SYNOPSYS
++    [21] OrExpr ::=   AndExpr
++                    | OrExpr 'or' AndExpr
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_OrExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_AndExpr(xpath))
++    return 0;
++
++  while (my_xpath_parse_term(xpath, MY_XPATH_LEX_OR))
++  {
++    Item *prev= xpath->item;
++    if (!my_xpath_parse_AndExpr(xpath))
++      return 0;
++    xpath->item= new Item_cond_or(nodeset2bool(xpath, prev),
++                                  nodeset2bool(xpath, xpath->item));
++  }
++  return 1;
++}
++
++
++/*
++  Scan And Expression
++
++  SYNOPSYS
++    [22] AndExpr ::=   EqualityExpr	
++                     | AndExpr 'and' EqualityExpr
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AndExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_EqualityExpr(xpath))
++    return 0;
++
++  while (my_xpath_parse_term(xpath, MY_XPATH_LEX_AND))
++  {
++    Item *prev= xpath->item;
++    if (!my_xpath_parse_EqualityExpr(xpath))
++      return 0;
++
++    xpath->item= new Item_cond_and(nodeset2bool(xpath,prev), 
++                                   nodeset2bool(xpath,xpath->item));
++  }
++  return 1;
++}
++
++
++/*
++  Scan Equality Expression
++
++  SYNOPSYS
++    [23] EqualityExpr ::=   RelationalExpr
++                          | EqualityExpr '=' RelationalExpr
++                          | EqualityExpr '!=' RelationalExpr
++    or in other words:
++
++    [23] EqualityExpr ::= RelationalExpr ( EqualityOperator EqualityExpr )*
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_ne(MY_XPATH *xpath)
++{ 
++  return my_xpath_parse_term(xpath, MY_XPATH_LEX_EXCL) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_EQ);
++}
++static int my_xpath_parse_EqualityOperator(MY_XPATH *xpath)
++{
++  if (my_xpath_parse_ne(xpath))
++  {
++    xpath->extra= '!';
++    return 1;
++  }
++  if (my_xpath_parse_term(xpath, MY_XPATH_LEX_EQ))
++  {
++    xpath->extra= '=';
++    return 1;
++  }
++  return 0;
++}
++static int my_xpath_parse_EqualityExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_RelationalExpr(xpath))
++    return 0;
++  while (my_xpath_parse_EqualityOperator(xpath))
++  {
++    Item *prev= xpath->item;
++    int oper= xpath->extra;
++    if (!my_xpath_parse_RelationalExpr(xpath))
++      return 0;
++
++    if (!(xpath->item= create_comparator(xpath, oper, prev, xpath->item)))
++      return 0;
++  }
++  return 1;
++}
++
++
++/*
++  Scan Relational Expression
++
++  SYNOPSYS
++
++    [24] RelationalExpr ::=   AdditiveExpr
++                            | RelationalExpr '<' AdditiveExpr
++                            | RelationalExpr '>' AdditiveExpr
++                            | RelationalExpr '<=' AdditiveExpr
++                            | RelationalExpr '>=' AdditiveExpr
++  or in other words:
++
++    [24] RelationalExpr ::= AdditiveExpr (RelationalOperator RelationalExpr)*
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_RelationalOperator(MY_XPATH *xpath)
++{
++  if (my_xpath_parse_term(xpath, MY_XPATH_LEX_LESS))
++  {
++    xpath->extra= my_xpath_parse_term(xpath, MY_XPATH_LEX_EQ) ? 
++                  MY_XPATH_LEX_LE : MY_XPATH_LEX_LESS;
++    return 1;
++  }
++  else if (my_xpath_parse_term(xpath, MY_XPATH_LEX_GREATER))
++  {
++    xpath->extra= my_xpath_parse_term(xpath, MY_XPATH_LEX_EQ) ?
++                  MY_XPATH_LEX_GE : MY_XPATH_LEX_GREATER;
++    return 1;
++  }
++  return 0;
++}
++static int my_xpath_parse_RelationalExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_AdditiveExpr(xpath))
++    return 0;
++  while (my_xpath_parse_RelationalOperator(xpath))
++  {
++    Item *prev= xpath->item;
++    int oper= xpath->extra;
++
++    if (!my_xpath_parse_AdditiveExpr(xpath))
++      return 0;
++
++    if (!(xpath->item= create_comparator(xpath, oper, prev, xpath->item)))
++      return 0;
++  }
++  return 1;
++}
++
++
++/*
++  Scan Additive Expression
++
++  SYNOPSYS
++
++    [25] AdditiveExpr ::=   MultiplicativeExpr	
++                          | AdditiveExpr '+' MultiplicativeExpr	
++                          | AdditiveExpr '-' MultiplicativeExpr
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_AdditiveOperator(MY_XPATH *xpath)
++{
++ return my_xpath_parse_term(xpath, MY_XPATH_LEX_PLUS) ||
++        my_xpath_parse_term(xpath, MY_XPATH_LEX_MINUS);
++}
++static int my_xpath_parse_AdditiveExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_MultiplicativeExpr(xpath))
++    return 0;
++
++  while (my_xpath_parse_AdditiveOperator(xpath))
++  {
++    int oper= xpath->prevtok.term;
++    Item *prev= xpath->item;
++    if (!my_xpath_parse_MultiplicativeExpr(xpath))
++      return 0;
++
++    if (oper == MY_XPATH_LEX_PLUS)
++      xpath->item= new Item_func_plus(prev, xpath->item);
++    else
++      xpath->item= new Item_func_minus(prev, xpath->item);
++  };
++  return 1;
++}
++
++
++/*
++  Scan Multiplicative Expression
++
++  SYNOPSYS
++
++    [26] MultiplicativeExpr ::=   UnaryExpr	
++                                | MultiplicativeExpr MultiplyOperator UnaryExpr	
++                                | MultiplicativeExpr 'div' UnaryExpr	
++                                | MultiplicativeExpr 'mod' UnaryExpr
++    or in other words:  
++  
++    [26]  MultiplicativeExpr ::= UnaryExpr (MulOper MultiplicativeExpr)*
++  
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_MultiplicativeOperator(MY_XPATH *xpath)
++{
++  return
++      my_xpath_parse_term(xpath, MY_XPATH_LEX_ASTERISK) ||
++      my_xpath_parse_term(xpath, MY_XPATH_LEX_DIV)      ||
++      my_xpath_parse_term(xpath, MY_XPATH_LEX_MOD);
++}
++static int my_xpath_parse_MultiplicativeExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_UnaryExpr(xpath))
++    return 0;
++
++  while (my_xpath_parse_MultiplicativeOperator(xpath))
++  {
++    int oper= xpath->prevtok.term;
++    Item *prev= xpath->item;
++    if (!my_xpath_parse_UnaryExpr(xpath))
++      return 0;
++    switch (oper)
++    {
++      case MY_XPATH_LEX_ASTERISK:
++        xpath->item= new Item_func_mul(prev, xpath->item);
++        break;
++      case MY_XPATH_LEX_DIV:
++        xpath->item= new Item_func_int_div(prev, xpath->item);
++        break;
++      case MY_XPATH_LEX_MOD:
++        xpath->item= new Item_func_mod(prev, xpath->item);
++        break;
++    }
++  }
++  return 1;
++}
++
++
++/*
++  Scan Unary Expression
++
++  SYNOPSYS
++
++    [27] UnaryExpr ::=   UnionExpr	
++                       | '-' UnaryExpr
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_UnaryExpr(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_MINUS))
++    return my_xpath_parse_UnionExpr(xpath);
++  if (!my_xpath_parse_UnaryExpr(xpath))
++    return 0;
++  xpath->item= new Item_func_neg(xpath->item);
++  return 1;
++}
++
++
++/*
++  Scan Number
++
++  SYNOPSYS
++
++    [30] Number ::= Digits ('.' Digits?)? | '.' Digits)
++
++  or in other words:
++
++    [30] Number ::= Digits
++                    | Digits '.'
++                    | Digits '.' Digits
++                    | '.' Digits
++
++  Note: the last rule is not supported yet,
++  as it is in conflict with abbreviated step.
++  1 + .123    does not work,
++  1 + 0.123   does.
++  Perhaps it is better to move this code into lex analizer.
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int my_xpath_parse_Number(MY_XPATH *xpath)
++{
++  const char *beg;
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_DIGITS))
++    return 0;
++  beg= xpath->prevtok.beg;
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_DOT))
++  {
++    xpath->item= new Item_int(xpath->prevtok.beg,
++                              xpath->prevtok.end - xpath->prevtok.beg);
++    return 1;
++  }
++  my_xpath_parse_term(xpath, MY_XPATH_LEX_DIGITS);
++
++  xpath->item= new Item_float(beg, xpath->prevtok.end - beg);
++  return 1;
++}
++
++
++/*
++  Scan Variable reference
++
++  SYNOPSYS
++
++    [36] VariableReference ::= '$' QName
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int
++my_xpath_parse_VariableReference(MY_XPATH *xpath)
++{
++  return my_xpath_parse_term(xpath, MY_XPATH_LEX_DOLLAR) &&
++         my_xpath_parse_term(xpath, MY_XPATH_LEX_IDENT);
++}
++
++
++/*
++  Scan Name Test
++
++  SYNOPSYS
++
++    [37] NameTest ::=  '*'
++                      | NCName ':' '*'
++                      | QName
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int
++my_xpath_parse_NodeTest_QName(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_IDENT))
++    return 0;
++  DBUG_ASSERT(xpath->context);
++  uint len= xpath->prevtok.end - xpath->prevtok.beg;
++  xpath->context= nametestfunc(xpath, xpath->axis, xpath->context,
++                               xpath->prevtok.beg, len);
++  return 1;
++}
++static int
++my_xpath_parse_NodeTest_asterisk(MY_XPATH *xpath)
++{
++  if (!my_xpath_parse_term(xpath, MY_XPATH_LEX_ASTERISK))
++    return 0;
++  DBUG_ASSERT(xpath->context);
++  xpath->context= nametestfunc(xpath, xpath->axis, xpath->context, "*", 1);
++  return 1;
++}
++static int
++my_xpath_parse_NameTest(MY_XPATH *xpath)
++{
++  return my_xpath_parse_NodeTest_asterisk(xpath) ||
++         my_xpath_parse_NodeTest_QName(xpath);
++}
++
++
++/*
++  Scan an XPath expression
++
++  SYNOPSYS
++    Scan xpath expression.
++    The expression is returned in xpath->expr. 
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static int
++my_xpath_parse(MY_XPATH *xpath, const char *str, const char *strend)
++{
++  my_xpath_lex_init(&xpath->query, str, strend);
++  my_xpath_lex_init(&xpath->prevtok, str, strend);
++  my_xpath_lex_scan(xpath, &xpath->lasttok, str, strend);
++
++  return
++     my_xpath_parse_Expr(xpath) &&
++     my_xpath_parse_term(xpath, MY_XPATH_LEX_EOF);
++}
++
++
++void Item_xml_str_func::fix_length_and_dec()
++{
++  String *xp, tmp;
++  MY_XPATH xpath;
++  int rc;
++
++  nodeset_func= 0;
++
++  if (agg_arg_charsets(collation, args, arg_count, MY_COLL_CMP_CONV))
++    return;
++
++  if (collation.collation->mbminlen > 1)
++  {
++    /* UCS2 is not supported */
++    my_printf_error(ER_UNKNOWN_ERROR,
++                    "Character set '%s' is not supported by XPATH",
++                    MYF(0), collation.collation->csname);
++    return;
++  }
++
++  if (!args[1]->const_item())
++  {
++    my_printf_error(ER_UNKNOWN_ERROR,
++                    "Only constant XPATH queries are supported", MYF(0));
++    return;
++  }
++
++  xp= args[1]->val_str(&tmp);
++  my_xpath_init(&xpath);
++  xpath.cs= collation.collation;
++  xpath.debug= 0;
++  xpath.pxml= &pxml;
++
++  rc= my_xpath_parse(&xpath, xp->ptr(), xp->ptr() + xp->length());
++
++  if (!rc)
++  {
++    char context[32];
++    uint clen= xpath.query.end - xpath.lasttok.beg;
++    set_if_bigger(clen, sizeof(context) - 1);
++    memcpy(context, xpath.lasttok.beg, clen);
++    context[clen]= '\0';
++    my_printf_error(ER_UNKNOWN_ERROR, "XPATH syntax error: '%s'", 
++                    MYF(0), context);
++    return;
++  }
++
++  nodeset_func= xpath.item;
++  if (nodeset_func)
++    nodeset_func->fix_fields(current_thd, 0, &nodeset_func);
++  max_length= MAX_BLOB_WIDTH;
++}
++
++
++#define MAX_LEVEL 256
++typedef struct 
++{
++  uint level;
++  String *pxml;         // parsed XML
++  uint pos[MAX_LEVEL];  // Tag position stack
++} MY_XML_USER_DATA;
++
++
++/*
++  Find the parent node
++
++  SYNOPSYS
++    Find the parent node, i.e. a tag or attrubute node on the given level.
++
++  RETURN
++    1 - success
++    0 - failure
++*/
++static uint xml_parent_tag(MY_XML_NODE *items, uint nitems, uint level)
++{
++  if (!nitems)
++    return 0;
++
++  MY_XML_NODE *p, *last= &items[nitems-1];
++  for (p= last; p >= items; p--)
++  {
++    if (p->level == level &&
++        (p->type == MY_XML_NODE_TAG ||
++         p->type == MY_XML_NODE_ATTR))
++    {
++      return p - items;
++    }
++  } 
++  return 0;
++}
++
++
++/*
++  Process tag beginning
++
++  SYNOPSYS
++
++    A call-back function executed when XML parser
++    is entering a tag or an attribue.
++    Appends the new node into data->pxml.
++    Increments data->level.
++
++  RETURN
++    Currently only MY_XML_OK
++*/
++static int xml_enter(MY_XML_PARSER *st,const char *attr, uint len)
++{
++  MY_XML_USER_DATA *data= (MY_XML_USER_DATA*)st->user_data;
++  MY_XML_NODE *nodes= (MY_XML_NODE*) data->pxml->ptr();
++  uint numnodes= data->pxml->length() / sizeof(MY_XML_NODE);
++  uint parent= xml_parent_tag(nodes, numnodes, data->level - 1);
++  MY_XML_NODE node;
++
++  data->pos[data->level]= numnodes;
++  node.level= data->level++;
++  node.type= st->current_node_type; // TAG or ATTR
++  node.beg= attr;
++  node.end= attr + len;
++  node.parent= parent;
++  data->pxml->append((const char*) &node, sizeof(MY_XML_NODE));
++  return MY_XML_OK;
++}
++
++
++/*
++  Process text node
++
++  SYNOPSYS
++
++    A call-back function executed when XML parser
++    is entering into a tag or an attribue textual value.
++    The value is appended into data->pxml.
++
++  RETURN
++    Currently only MY_XML_OK
++*/
++static int xml_value(MY_XML_PARSER *st,const char *attr, uint len)
++{
++  MY_XML_USER_DATA *data= (MY_XML_USER_DATA*)st->user_data;
++  MY_XML_NODE *nodes= (MY_XML_NODE*) data->pxml->ptr();
++  uint numnodes= data->pxml->length() / sizeof(MY_XML_NODE);
++  uint parent= xml_parent_tag(nodes, numnodes, data->level - 1);
++  MY_XML_NODE node;
++  
++  node.level= data->level;
++  node.type= MY_XML_NODE_TEXT;
++  node.beg= attr;
++  node.end= attr + len;
++  node.parent= parent;
++  data->pxml->append((const char*) &node, sizeof(MY_XML_NODE));
++  return MY_XML_OK;
++}
++
++
++/*
++  Leave a tag or an attribute
++
++  SYNOPSYS
++
++    A call-back function executed when XML parser
++    is leaving a tag or an attribue.
++    Decrements data->level.
++
++  RETURN
++    Currently only MY_XML_OK
++*/
++static int xml_leave(MY_XML_PARSER *st,const char *attr, uint len)
++{
++  MY_XML_USER_DATA *data= (MY_XML_USER_DATA*)st->user_data;
++  DBUG_ASSERT(data->level > 0);
++  data->level--;
++
++  MY_XML_NODE *nodes= (MY_XML_NODE*) data->pxml->ptr();
++  nodes+= data->pos[data->level];
++  nodes->tagend= st->cur;
++
++  return MY_XML_OK;
++}
++
++
++/*
++  Parse raw XML
++
++  SYNOPSYS
++    
++
++  RETURN
++    Currently pointer to parsed XML on success
++    0 on parse error
++*/
++String *Item_xml_str_func::parse_xml(String *raw_xml, String *parsed_xml_buf)
++{
++  MY_XML_PARSER p;
++  MY_XML_USER_DATA user_data;
++  int rc;
++
++  parsed_xml_buf->length(0);
++
++  /* Prepare XML parser */
++  my_xml_parser_create(&p);
++  p.flags= MY_XML_FLAG_RELATIVE_NAMES | MY_XML_FLAG_SKIP_TEXT_NORMALIZATION;
++  user_data.level= 0;
++  user_data.pxml= parsed_xml_buf;
++  my_xml_set_enter_handler(&p, xml_enter);
++  my_xml_set_value_handler(&p, xml_value);
++  my_xml_set_leave_handler(&p, xml_leave);
++  my_xml_set_user_data(&p, (void*) &user_data);
++
++  /* Add root node */
++  p.current_node_type= MY_XML_NODE_TAG;
++  xml_enter(&p, raw_xml->ptr(), 0);
++
++  /* Execute XML parser */
++  rc= my_xml_parse(&p, raw_xml->ptr(), raw_xml->length());
++  my_xml_parser_free(&p);
++
++  return rc == MY_XML_OK ? parsed_xml_buf : 0;
++}
++
++
++String *Item_func_xml_extractvalue::val_str(String *str)
++{
++  String *res;
++  if (!nodeset_func ||
++      !(res= args[0]->val_str(str)) || 
++      !parse_xml(res, &pxml))
++  {
++    null_value= 1;
++    return 0;
++  }
++  res= nodeset_func->val_str(&tmp_value);
++  return res;  
++}
++
++
++String *Item_func_xml_update::val_str(String *str)
++{
++  String *res, *nodeset, *rep;
++
++  if (!nodeset_func || 
++      !(res= args[0]->val_str(str)) ||
++      !(rep= args[2]->val_str(&tmp_value3)) ||
++      !parse_xml(res, &pxml) ||
++      !(nodeset= nodeset_func->val_nodeset(&tmp_value2)))
++  {
++    null_value= 1;
++    return 0;
++  }
++
++  MY_XML_NODE *nodebeg= (MY_XML_NODE*) pxml.ptr();
++  MY_XML_NODE *nodeend= (MY_XML_NODE*) pxml.ptr() + pxml.length();
++  MY_XPATH_FLT *fltbeg= (MY_XPATH_FLT*) nodeset->ptr();
++  MY_XPATH_FLT *fltend= (MY_XPATH_FLT*) (nodeset->ptr() + nodeset->length());
++
++  /* Allow replacing of one tag only */
++  if (fltend - fltbeg != 1)
++  {
++    /* TODO: perhaps add a warning that more than one tag selected */
++    return res;
++  }
++
++  nodebeg+= fltbeg->num;
++
++  tmp_value.length(0);
++  tmp_value.set_charset(collation.collation);
++  uint offs= nodebeg->type == MY_XML_NODE_TAG ? 1 : 0;
++  tmp_value.append(res->ptr(), nodebeg->beg - res->ptr() - offs);
++  tmp_value.append(rep->ptr(), rep->length());
++  const char *end= nodebeg->tagend + offs;
++  tmp_value.append(end, res->ptr() + res->length() - end);
++  return &tmp_value;
++}
+diff -Naur mysql.orig/sql/item_xmlfunc.h mysql.xml/sql/item_xmlfunc.h
+--- mysql.orig/sql/item_xmlfunc.h	1970-01-01 01:00:00.000000000 +0100
++++ mysql.xml/sql/item_xmlfunc.h	2005-04-13 07:03:10.000000000 +0200
+@@ -0,0 +1,54 @@
++/* Copyright (C) 2000-2005 MySQL AB
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
++
++
++/* This file defines all XML functions */
++
++
++#ifdef __GNUC__
++#pragma interface			/* gcc class implementation */
++#endif
++
++
++class Item_xml_str_func: public Item_str_func
++{
++protected:
++  String tmp_value, pxml;
++  Item *nodeset_func;
++public:
++  Item_xml_str_func(Item *a, Item *b): Item_str_func(a,b) {}
++  Item_xml_str_func(Item *a, Item *b, Item *c): Item_str_func(a,b,c) {}
++  void fix_length_and_dec();
++  String *parse_xml(String *raw_xml, String *parsed_xml_buf);
++};
++
++
++class Item_func_xml_extractvalue: public Item_xml_str_func
++{
++public:
++  Item_func_xml_extractvalue(Item *a,Item *b) :Item_xml_str_func(a,b) {}
++  String *val_str(String *);
++};
++
++
++class Item_func_xml_update: public Item_xml_str_func
++{
++  String tmp_value2, tmp_value3;
++public:
++  Item_func_xml_update(Item *a,Item *b,Item *c) :Item_xml_str_func(a,b,c) {}
++  String *val_str(String *);
++};
++
+diff -Naur mysql.orig/sql/lex.h mysql.xml/sql/lex.h
+--- mysql.orig/sql/lex.h	2005-05-15 06:16:51.000000000 +0200
++++ mysql.xml/sql/lex.h	2005-05-20 15:19:29.000000000 +0200
+@@ -607,6 +607,7 @@
+   { "EQUALS",		F_SYM(FUNC_ARG2),0,CREATE_FUNC_GEOM(create_func_equals)},
+   { "EXTERIORRING",	F_SYM(FUNC_ARG1),0,CREATE_FUNC_GEOM(create_func_exteriorring)},
+   { "EXTRACT",		SYM(EXTRACT_SYM)},
++  { "EXTRACTVALUE",	F_SYM(FUNC_ARG2),0,CREATE_FUNC(create_func_xml_extractvalue)},
+   { "EXP",		F_SYM(FUNC_ARG1),0,CREATE_FUNC(create_func_exp)},
+   { "EXPORT_SET",	SYM(EXPORT_SET)},
+   { "FIELD",		SYM(FIELD_FUNC)},	/* For compability */
+@@ -759,6 +760,7 @@
+   { "UNHEX",		F_SYM(FUNC_ARG1),0,CREATE_FUNC(create_func_unhex)},
+   { "UNIQUE_USERS",	SYM(UNIQUE_USERS)},
+   { "UNIX_TIMESTAMP",	SYM(UNIX_TIMESTAMP)},
++  { "UPDATEXML",	F_SYM(FUNC_ARG3),0,CREATE_FUNC(create_func_xml_update)},
+   { "UPPER",		F_SYM(FUNC_ARG1),0,CREATE_FUNC(create_func_ucase)},
+   { "UUID",		F_SYM(FUNC_ARG0),0,CREATE_FUNC(create_func_uuid)},
+   { "VARIANCE",		SYM(VARIANCE_SYM)},
+diff -Naur mysql.orig/strings/xml.c mysql.xml/strings/xml.c
+--- mysql.orig/strings/xml.c	2005-05-15 06:16:51.000000000 +0200
++++ mysql.xml/strings/xml.c	2005-05-20 15:19:29.000000000 +0200
+@@ -104,7 +104,8 @@
+     a->end=p->cur;
+     if (a->beg[0]==p->cur[0])p->cur++;
+     a->beg++;
+-    my_xml_norm_text(a);
++    if (!(p->flags & MY_XML_FLAG_SKIP_TEXT_NORMALIZATION))
++      my_xml_norm_text(a);
+     lex=MY_XML_STRING;
+   }
+   else
+@@ -148,7 +149,11 @@
+   memcpy(st->attrend,str,len);
+   st->attrend+=len;
+   st->attrend[0]='\0';
+-  return st->enter ? st->enter(st,st->attr,st->attrend-st->attr) : MY_XML_OK;
++
++  if (st->flags & MY_XML_FLAG_RELATIVE_NAMES)
++    return st->enter ? st->enter(st, str, len) : MY_XML_OK;
++  else
++    return st->enter ? st->enter(st,st->attr,st->attrend-st->attr) : MY_XML_OK;
+ }
+ 
+ 
+@@ -167,7 +172,7 @@
+   char s[32];
+   char g[32];
+   int  rc;
+-  
++
+   /* Find previous '.' or beginning */
+   for( e=p->attrend; (e>p->attr) && (e[0]!='.') ; e--);
+   glen = (e[0]=='.') ? (p->attrend-e-1) : p->attrend-e;
+@@ -179,9 +184,12 @@
+     sprintf(p->errstr,"'</%s>' unexpected ('</%s>' wanted)",s,g);
+     return MY_XML_ERROR;
+   }
+-  
+-  rc = p->leave_xml ? p->leave_xml(p,p->attr,p->attrend-p->attr) : MY_XML_OK;
+-  
++
++  if (p->flags & MY_XML_FLAG_RELATIVE_NAMES)
++    rc= p->leave_xml ? p->leave_xml(p, str, slen) : MY_XML_OK;
++  else
++    rc= p->leave_xml ? p->leave_xml(p,p->attr,p->attrend-p->attr) : MY_XML_OK;
++
+   *e='\0';
+   p->attrend=e;
+   
+@@ -240,6 +248,7 @@
+       
+       if (MY_XML_IDENT==lex)
+       {
++        p->current_node_type= MY_XML_NODE_TAG;
+         if(MY_XML_OK!=my_xml_enter(p,a.beg,a.end-a.beg))
+           return MY_XML_ERROR;
+       }
+@@ -258,6 +267,7 @@
+           lex=my_xml_scan(p,&b);
+           if ( (lex==MY_XML_IDENT) || (lex==MY_XML_STRING) )
+           {
++            p->current_node_type= MY_XML_NODE_ATTR;
+             if((MY_XML_OK!=my_xml_enter(p,a.beg,a.end-a.beg))  ||
+                (MY_XML_OK!=my_xml_value(p,b.beg,b.end-b.beg))  ||
+                (MY_XML_OK!=my_xml_leave(p,a.beg,a.end-a.beg)))
+@@ -272,6 +282,7 @@
+         }
+         else if ( (MY_XML_STRING==lex) || (MY_XML_IDENT==lex) )
+         {
++          p->current_node_type= MY_XML_NODE_ATTR;
+           if((MY_XML_OK!=my_xml_enter(p,a.beg,a.end-a.beg)) ||
+              (MY_XML_OK!=my_xml_leave(p,a.beg,a.end-a.beg)))
+            return MY_XML_ERROR;
+@@ -318,7 +329,8 @@
+       for ( ; (p->cur < p->end) && (p->cur[0]!='<')  ; p->cur++);
+       a.end=p->cur;
+       
+-      my_xml_norm_text(&a);
++      if (!(p->flags & MY_XML_FLAG_SKIP_TEXT_NORMALIZATION))
++        my_xml_norm_text(&a);
+       if (a.beg!=a.end)
+       {
+         my_xml_value(p,a.beg,a.end-a.beg);
