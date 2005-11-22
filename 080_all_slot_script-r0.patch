@@ -1,0 +1,359 @@
+diff -Naur mysql4.old/scripts/Makefile.am mysql4.new/scripts/Makefile.am
+--- mysql4.old/scripts/Makefile.am	2005-09-02 22:38:04.000000000 +0000
++++ mysql4.new/scripts/Makefile.am	2005-11-15 18:20:49.000000000 +0000
+@@ -64,6 +64,16 @@
+ 			mysqlaccess.conf \
+ 			mysqlbug
+
++# list of names to be replaced in the .sh scripts (full list of executables)
++EXTRA_REPLACE_BIN =	mysqld \
++			mysql mysqladmin mysqlcheck mysqlshow mysqldump \
++			mysqlimport mysqltest mysqlbinlog mysqlmanagerc mysqlmanager-pwgen \
++			replace comp_err perror resolveip my_print_defaults resolve_stack_dump \
++			mysql_install mysql_waitpid \
++			isamchk isamlog pack_isam \
++			myisamchk myisamlog myisampack myisam_ftdump \
++			mysqlmanager
++
+ # mysqlbug should be distributed built so that people can report build
+ # failures with it.
+ CLEANFILES =		@server_scripts@ \
+@@ -91,9 +101,18 @@
+
+ SUFFIXES = .sh
+
++# also replace mybin_* with the appropriate binary name
+ .sh:
+ 	@RM@ -f $@ $@-t
++	bin_REPLACE='';\
++	list='$(EXTRA_SCRIPTS) $(EXTRA_REPLACE_BIN)'; \
++	for p in $${list}; do \
++	  f1=$${p/\.sh}; \
++	  f2=`echo "$${p}" | sed 's|^.*/||;$(transform)'`; \
++	  bin_REPLACE="$${bin_REPLACE}s!@mybin_$${f1}@!$${f2}!g;";\
++	done; \
+ 	@SED@ \
++	  -e "$${bin_REPLACE}" \
+ 	  -e 's!@''bindir''@!$(bindir)!g' \
+ 	  -e 's!@''sbindir''@!$(sbindir)!g' \
+ 	  -e 's!@''scriptdir''@!$(bindir)!g' \
+diff -Naur mysql4.old/scripts/msql2mysql.sh mysql4.new/scripts/msql2mysql.sh
+--- mysql4.old/scripts/msql2mysql.sh	2005-09-02 22:38:10.000000000 +0000
++++ mysql4.new/scripts/msql2mysql.sh	2005-11-15 16:53:23.000000000 +0000
+@@ -13,4 +13,4 @@
+ # described in the License.  Among other things, the License requires that
+ # the copyright notice and this notice be preserved on all copies.
+
+-@bindir@/replace msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
++@bindir@/@mybin_replace@ msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
+diff -Naur mysql4.old/scripts/mysql_config.sh mysql4.new/scripts/mysql_config.sh
+--- mysql4.old/scripts/mysql_config.sh	2005-09-02 22:37:59.000000000 +0000
++++ mysql4.new/scripts/mysql_config.sh	2005-11-15 16:56:31.000000000 +0000
+@@ -69,7 +69,7 @@
+
+ me=`get_full_path $0`
+
+-basedir=`echo $me | sed -e 's;/bin/mysql_config;;'`
++basedir=`echo $me | sed -e 's;/bin/@mybin_mysql_config@;;'`
+
+ ldata='@localstatedir@'
+ execdir='@libexecdir@'
+diff -Naur mysql4.old/scripts/mysql_fix_privilege_tables.sh mysql4.new/scripts/mysql_fix_privilege_tables.sh
+--- mysql4.old/scripts/mysql_fix_privilege_tables.sh	2005-09-02 22:38:09.000000000 +0000
++++ mysql4.new/scripts/mysql_fix_privilege_tables.sh	2005-11-15 17:00:07.000000000 +0000
+@@ -74,7 +74,7 @@
+ parse_arguments "$@"
+
+ if test -z "$cmd"; then
+-  cmd="$bindir/mysql --no-defaults --force --user=$user --host=$host"
++  cmd="$bindir/@mybin_mysql@ --no-defaults --force --user=$user --host=$host"
+   if test ! -z "$root_password"; then
+     cmd="$cmd --password=$root_password"
+   fi
+diff -Naur mysql4.old/scripts/mysql_install_db.sh mysql4.new/scripts/mysql_install_db.sh
+--- mysql4.old/scripts/mysql_install_db.sh	2005-09-02 22:38:00.000000000 +0000
++++ mysql4.new/scripts/mysql_install_db.sh	2005-11-15 17:06:13.000000000 +0000
+@@ -61,20 +61,20 @@
+
+ # Get first arguments from the my.cfg file, groups [mysqld] and
+ # [mysql_install_db], and then merge with the command line arguments
+-if test -x ./bin/my_print_defaults
++if test -x ./bin/@mybin_my_print_defaults@
+ then
+-  print_defaults="./bin/my_print_defaults"
+-elif test -x ./extra/my_print_defaults
++  print_defaults="./bin/@mybin_my_print_defaults@"
++elif test -x ./extra/@mybin_my_print_defaults@
+ then
+-  print_defaults="./extra/my_print_defaults"
+-elif test -x @bindir@/my_print_defaults
++  print_defaults="./extra/@mybin_my_print_defaults@"
++elif test -x @bindir@/@mybin_my_print_defaults@
+ then
+-  print_defaults="@bindir@/my_print_defaults"
+-elif test -x @bindir@/mysql_print_defaults
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
++elif test -x @bindir@/@mybin_mysql_print_defaults@
+ then
+-  print_defaults="@bindir@/mysql_print_defaults"
++  print_defaults="@bindir@/@mybin_mysql_print_defaults@"
+ else
+-  print_defaults="my_print_defaults"
++  print_defaults="@mybin_my_print_defaults@"
+ fi
+
+ args=
+@@ -95,10 +95,10 @@
+   pkgdatadir=@pkgdatadir@
+ else
+   bindir="$basedir/bin"
+-if test -x "$basedir/libexec/mysqld"
++if test -x "$basedir/libexec/@mybin_mysqld@"
+ then
+   execdir="$basedir/libexec"
+-elif test -x "$basedir/sbin/mysqld"
++elif test -x "$basedir/sbin/@mybin_mysqld@"
+ then
+   execdir="$basedir/sbin"
+ else
+@@ -107,7 +107,7 @@
+ fi
+
+ mdata=$ldata/mysql
+-mysqld=$execdir/mysqld
++mysqld=$execdir/@mybin_mysqld@
+ mysqld_opt=""
+ scriptdir=$bindir
+
+@@ -137,14 +137,14 @@
+ # Check if hostname is valid
+ if test "$windows" = 0 -a "$in_rpm" = 0 -a $force = 0
+ then
+-  resolved=`$bindir/resolveip $hostname 2>&1`
++  resolved=`$bindir/@mybin_resolveip@ $hostname 2>&1`
+   if [ $? -ne 0 ]
+   then
+-    resolved=`$bindir/resolveip localhost 2>&1`
++    resolved=`$bindir/@mybin_resolveip@ localhost 2>&1`
+     if [ $? -ne 0 ]
+     then
+       echo "Neither host '$hostname' nor 'localhost' could not be looked up with"
+-      echo "$bindir/resolveip"
++      echo "$bindir/@mybin_resolveip@"
+       echo "Please configure the 'hostname' command to return a correct hostname."
+       echo "If you want to solve this at a later stage, restart this script with"
+       echo "the --force option"
+@@ -371,8 +371,8 @@
+   fi
+   echo "PLEASE REMEMBER TO SET A PASSWORD FOR THE MySQL root USER !"
+   echo "To do so, start the server, then issue the following commands:"
+-  echo "$bindir/mysqladmin -u root password 'new-password'"
+-  echo "$bindir/mysqladmin -u root -h $hostname password 'new-password'"
++  echo "$bindir/@mybin_mysqladmin@ -u root password 'new-password'"
++  echo "$bindir/@mybin_mysqladmin@ -u root -h $hostname password 'new-password'"
+   echo "See the manual for more instructions."
+   #
+   # Print message about upgrading unless we have created a new db table.
+@@ -380,14 +380,14 @@
+   then
+     echo
+     echo "NOTE:  If you are upgrading from a MySQL <= 3.22.10 you should run"
+-    echo "the $bindir/mysql_fix_privilege_tables. Otherwise you will not be"
++    echo "the $bindir/@mybin_mysql_fix_privilege_tables@. Otherwise you will not be"
+     echo "able to use the new GRANT command!"
+   fi
+   echo
+   if test "$in_rpm" = "0"
+   then
+     echo "You can start the MySQL daemon with:"
+-    echo "cd @prefix@ ; $bindir/mysqld_safe &"
++    echo "cd @prefix@ ; $bindir/@mybin_mysqld_safe@ &"
+     echo
+     echo "You can test the MySQL daemon with the benchmarks in the 'sql-bench' directory:"
+     echo "cd sql-bench ; perl run-all-tests"
+@@ -405,12 +405,12 @@
+   echo
+   echo "Examine the logs in $ldata for more information."
+   echo "You can also try to start the mysqld daemon with:"
+-  echo "$execdir/mysqld --skip-grant &"
++  echo "$execdir/@mybin_mysqld@ --skip-grant &"
+   echo "You can use the command line tool"
+-  echo "$bindir/mysql to connect to the mysql"
++  echo "$bindir/@mybin_mysql@ to connect to the mysql"
+   echo "database and look at the grant tables:"
+   echo
+-  echo "shell> $bindir/mysql -u root mysql"
++  echo "shell> $bindir/@mybin_mysql@ -u root mysql"
+   echo "mysql> show tables"
+   echo
+   echo "Try 'mysqld --help' if you have problems with paths. Using --log"
+diff -Naur mysql4.old/scripts/mysql_secure_installation.sh mysql4.new/scripts/mysql_secure_installation.sh
+--- mysql4.old/scripts/mysql_secure_installation.sh	2005-09-02 22:37:55.000000000 +0000
++++ mysql4.new/scripts/mysql_secure_installation.sh	2005-11-15 17:10:03.000000000 +0000
+@@ -30,7 +30,7 @@
+
+ do_query() {
+     echo $1 >$command
+-    mysql --defaults-file=$config <$command
++    @mybin_mysql@ --defaults-file=$config <$command
+     return $?
+ }
+
+diff -Naur mysql4.old/scripts/mysqlaccess.sh mysql4.new/scripts/mysqlaccess.sh
+--- mysql4.old/scripts/mysqlaccess.sh	2005-09-02 22:37:59.000000000 +0000
++++ mysql4.new/scripts/mysqlaccess.sh	2005-11-15 17:14:48.000000000 +0000
+@@ -17,7 +17,7 @@
+
+ 	# ****************************
+ 	# information on MySQL
+-	$MYSQL     = '@bindir@/mysql';    # path to mysql executable
++	$MYSQL     = '@bindir@/@mybin_mysql@';    # path to mysql executable
+ 	$SERVER    = '3.21';
+ 	$MYSQL_OPT = ' --batch --unbuffered';
+ 	$ACCESS_DB = 'mysql';		 # name of DB with grant-tables
+@@ -32,7 +32,7 @@
+ 	$ACCESS_U_BCK = 'user_backup';
+ 	$ACCESS_D_BCK = 'db_backup';
+         $DIFF      = '/usr/bin/diff';
+-        $MYSQLDUMP = '@bindir@/mysqldump';
++        $MYSQLDUMP = '@bindir@/@mybin_mysqldump@';
+                                          #path to mysqldump executable
+
+         $MYSQLADMIN= 'http://foobar.com/MySQLadmin';
+diff -Naur mysql4.old/scripts/mysqld_multi.sh mysql4.new/scripts/mysqld_multi.sh
+--- mysql4.old/scripts/mysqld_multi.sh	2005-09-02 22:38:07.000000000 +0000
++++ mysql4.new/scripts/mysqld_multi.sh	2005-11-15 17:17:48.000000000 +0000
+@@ -10,8 +10,8 @@
+ $opt_example       = 0;
+ $opt_help          = 0;
+ $opt_log           = undef();
+-$opt_mysqladmin    = "@bindir@/mysqladmin";
+-$opt_mysqld        = "@libexecdir@/mysqld";
++$opt_mysqladmin    = "@bindir@/@mybin_mysqladmin@";
++$opt_mysqld        = "@libexecdir@/@mybin_mysqld@";
+ $opt_no_log        = 0;
+ $opt_password      = undef();
+ $opt_tcp_ip        = 0;
+@@ -548,7 +548,7 @@
+ #   MY_PWD=`pwd`
+ #   Check if we are starting this relative (for the binary release)
+ #   if test -d $MY_PWD/data/mysql -a -f ./share/mysql/english/errmsg.sys -a \
+-#   -x ./bin/mysqld
++#   -x ./bin/@mybin_mysqld@
+ #   --------------------------------------------------------------------------
+ #   The above test should be successful, or you may encounter problems.
+ # 3.Beware of the dangers starting multiple mysqlds in the same data directory.
+@@ -574,8 +574,8 @@
+ #   give you extra performance in a threaded system!
+ #
+ [mysqld_multi]
+-mysqld     = @bindir@/mysqld_safe
+-mysqladmin = @bindir@/mysqladmin
++mysqld     = @bindir@/@mybin_mysqld_safe@
++mysqladmin = @bindir@/@mybin_mysqladmin@
+ user       = root
+ password   = your_password
+
+diff -Naur mysql4.old/scripts/mysqld_safe.sh mysql4.new/scripts/mysqld_safe.sh
+--- mysql4.old/scripts/mysqld_safe.sh	2005-09-02 22:37:59.000000000 +0000
++++ mysql4.new/scripts/mysqld_safe.sh	2005-11-15 17:22:32.000000000 +0000
+@@ -67,7 +67,7 @@
+ 	then
+ 	  MYSQLD="mysqld-$tmp"
+ 	else
+-	  MYSQLD="mysqld"
++	  MYSQLD="@mybin_mysqld@"
+ 	fi
+ 	;;
+       --nice=*) niceness=`echo "$arg" | sed -e "s;--nice=;;"` ;;
+@@ -87,7 +87,7 @@
+ MY_PWD=`pwd`
+ # Check if we are starting this relative (for the binary release)
+ if test -d $MY_PWD/data/mysql -a -f ./share/mysql/english/errmsg.sys -a \
+- -x ./bin/mysqld
++ -x ./bin/@mybin_mysqld@
+ then
+   MY_BASEDIR_VERSION=$MY_PWD		# Where bin, share and data are
+   ledir=$MY_BASEDIR_VERSION/bin		# Where mysqld is
+@@ -113,11 +113,11 @@
+ niceness=0
+
+ # Use the mysqld-max binary by default if the user doesn't specify a binary
+-if test -x $ledir/mysqld-max
++if test -x $ledir/@mybin_mysqld-max@
+ then
+-  MYSQLD=mysqld-max
++  MYSQLD=@mybin_mysqld-max@
+ else
+-  MYSQLD=mysqld
++  MYSQLD=@mybin_mysqld@
+ fi
+
+ # these rely on $DATADIR by default, so we'll set them later on
+@@ -126,17 +126,17 @@
+
+ # Get first arguments from the my.cnf file, groups [mysqld] and [mysqld_safe]
+ # and then merge with the command line arguments
+-if test -x ./bin/my_print_defaults
++if test -x "./bin/@mybin_my_print_defaults@"
+ then
+-  print_defaults="./bin/my_print_defaults"
+-elif test -x @bindir@/my_print_defaults
++  print_defaults="./bin/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_my_print_defaults@"
+ then
+-  print_defaults="@bindir@/my_print_defaults"
+-elif test -x @bindir@/mysql_print_defaults
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_mysql_print_defaults@"
+ then
+-  print_defaults="@bindir@/mysql_print_defaults"
++  print_defaults="@bindir@/@mybin_mysql_print_defaults@"
+ else
+-  print_defaults="my_print_defaults"
++  print_defaults="@mybin_my_print_defaults@"
+ fi
+
+ args=
+@@ -155,7 +155,7 @@
+   echo "The file $ledir/$MYSQLD doesn't exist or is not executable"
+   echo "Please do a cd to the mysql installation directory and restart"
+   echo "this script from there as follows:"
+-  echo "./bin/mysqld_safe".
++  echo "./bin/@mybin_mysqld_safe@".
+   echo "See http://dev.mysql.com/doc/mysql/en/mysqld_safe.html for more"
+   echo "information"
+   exit 1
+@@ -288,8 +288,8 @@
+ # the manual for details.
+ #
+ # echo "Checking tables in $DATADIR"
+-# $MY_BASEDIR_VERSION/bin/myisamchk --silent --force --fast --medium-check $DATADIR/*/*.MYI
+-# $MY_BASEDIR_VERSION/bin/isamchk --silent --force $DATADIR/*/*.ISM
++# $MY_BASEDIR_VERSION/bin/@mybin_myisamchk@ --silent --force --fast --medium-check $DATADIR/*/*.MYI
++# $MY_BASEDIR_VERSION/bin/@mybin_isamchk@ --silent --force $DATADIR/*/*.ISM
+
+ echo "Starting $MYSQLD daemon with databases from $DATADIR"
+
+diff -Naur mysql4.old/scripts/mysqldumpslow.sh mysql4.new/scripts/mysqldumpslow.sh
+--- mysql4.old/scripts/mysqldumpslow.sh	2005-09-02 22:37:59.000000000 +0000
++++ mysql4.new/scripts/mysqldumpslow.sh	2005-11-15 17:24:20.000000000 +0000
+@@ -32,15 +32,15 @@
+
+
+ unless (@ARGV) {
+-    my $defaults   = `my_print_defaults mysqld`;
++    my $defaults   = `@mybin_my_print_defaults@ mysqld`;
+     my $basedir = ($defaults =~ m/--basedir=(.*)/)[0]
+-	or die "Can't determine basedir from 'my_print_defaults mysqld' output: $defaults";
++	or die "Can't determine basedir from '@mybin_my_print_defaults@ mysqld' output: $defaults";
+     warn "basedir=$basedir\n" if $opt{v};
+
+     my $datadir = ($defaults =~ m/--datadir=(.*)/)[0];
+     if (!$datadir or $opt{i}) {
+ 	# determine the datadir from the instances section of /etc/my.cnf, if any
+-	my $instances  = `my_print_defaults instances`;
++	my $instances  = `@mybin_my_print_defaults@ instances`;
+ 	die "Can't determine datadir from 'my_print_defaults mysqld' output: $defaults"
+ 	    unless $instances;
+ 	my @instances = ($instances =~ m/^--(\w+)-/mg);

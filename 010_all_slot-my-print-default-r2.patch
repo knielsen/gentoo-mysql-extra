@@ -1,0 +1,25 @@
+diff -Naur -Naur mysql-5.0.15/mysys/Makefile.am mysql-5.0.15.new/mysys/Makefile.am
+--- mysql-5.0.15/mysys/Makefile.am	2005-10-17 01:27:43.000000000 +0000
++++ mysql-5.0.15.new/mysys/Makefile.am	2005-11-16 15:27:02.000000000 +0000
+@@ -70,6 +70,7 @@
+ 			-DSHAREDIR="\"$(MYSQLSHAREdir)\"" \
+ 			-DDEFAULT_HOME_ENV=MYSQL_HOME \
+ 			-DDEFAULT_GROUP_SUFFIX_ENV=MYSQL_GROUP_SUFFIX \
++			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
+                         @DEFS@
+
+ libmysys_a_DEPENDENCIES= @THREAD_LOBJECTS@
+diff -Naur -Naur mysql-5.0.15/mysys/default.c mysql-5.0.15.new/mysys/default.c
+--- mysql-5.0.15/mysys/default.c	2005-10-17 01:27:31.000000000 +0000
++++ mysql-5.0.15.new/mysys/default.c	2005-11-16 15:28:43.000000000 +0000
+@@ -984,6 +984,10 @@
+ {
+   const char *env, **ptr= default_directories;
+
++#ifdef DEFAULT_SYSCONFDIR
++    *ptr++= DEFAULT_SYSCONFDIR;
++#endif
++
+ #ifdef __WIN__
+   *ptr++= "C:/";
+

@@ -1,0 +1,65 @@
+@patch 010_all_slot-my-print-default-r1.patch
+@ver 4.01.15.30 to 4.01.99.99
+@@ Move config directory to the gentoo default
+
+@patch 010_all_slot-my-print-default-r2.patch
+@ver 5.00.15.30 to 5.00.99.99
+@@ Move config directory to the gentoo default
+
+@patch 020_all_gentoo-nptl.patch
+@ver 4.00.18.00 to 4.01.11.99
+@ver 5.00.00.00 to 5.00.03.99
+@@ Add support for NPTL
+
+@patch 030_all_thrssl-r0.patch
+@ver 4.00.00.00 to 4.00.99.99
+@@ Link libmysqlclient_r against ssl
+# attempt to get libmysqlclient_r linked against ssl if USE="ssl" enabled
+# i would really prefer to fix this at the Makefile.am level, but can't
+# get the software to autoreconf as distributed - too many missing files
+
+@patch 030_all_thrssl-r1.patch
+@ver 4.01.11.00 to 5.00.04.00
+@@ Link libmysqlclient_r against ssl
+
+@patch 035_x86_asm-pic-fixes-r7.patch
+@ver 4.01.12.00 to 4.01.99.99
+@ver 5.00.12.00 to 5.00.99.99
+@@ remove page relocations
+@@ Most part of the original patch has already been accepted by MysQL,
+@@ here is the remaining.
+@@ _many_ tanks to pageexec@freemail.hu
+
+@patch 040_all_tcpd-vars-fix.patch
+@ver 4.00.14.00 to 4.01.99.99
+
+@patch 080_all_slot_script-r0.patch
+@ver 4.00.26.30 to 4.00.99.99
+@@ add slot MySQL support to scripts utilities
+
+@patch 080_all_slot_script-r1.patch
+@@ add slot MySQL support to scripts utilities
+
+@patch 080_all_slot_script-r2.patch
+@ver 5.00.15.30 to 5.00.15.99
+@@ add slot MySQL support to scripts utilities
+
+@patch 080_all_slot_script-r3.patch
+@ver 5.00.16.00 to 5.00.99.99
+@@ add slot MySQL support to scripts utilities
+
+@patch 090_all_install-db-sh.patch
+@ver 4.00.00.00 to 4.00.99.99
+@@ Change an output message
+
+@patch 110_all_nisam.h.patch
+@ver 4.00.00.00 to 4.00.99.99
+@@ enlarge isam (not myisam) key capacity to 500 bytes
+@@ needed from some external app.
+
+@patch 703_all_test-rpl_rotate_logs.patch
+@ver  5.00.06.00 to 5.01.99.99
+@@ fix for the test suite
+# MySQL Bugs: #9763: Test rpl_rotate_logs fails in default mode and with --force
+# Error: 1201 SQLSTATE: HY000 (ER_MASTER_INFO)
+# Message: Could not initialize master info structure; more error messages can be found in the MySQL
