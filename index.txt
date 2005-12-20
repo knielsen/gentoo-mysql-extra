@@ -25,6 +25,7 @@
 @patch 035_x86_asm-pic-fixes-r7.patch
 @ver 4.01.12.00 to 4.01.99.99
 @ver 5.00.12.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.01.99.99
 @@ remove page relocations
 @@ Most part of the original patch has already been accepted by MysQL,
 @@ here is the remaining.
@@ -45,8 +46,18 @@
 @@ add slot MySQL support to scripts utilities
 
 @patch 080_all_slot_script-r3.patch
-@ver 5.00.16.00 to 5.00.99.99
+@ver 5.00.16.00 to 5.00.16.99
 @@ add slot MySQL support to scripts utilities
+
+@patch 080_all_slot_script-r4.patch
+@ver 5.01.00.00 to 5.01.99.99
+@ver 5.00.17.00 to 5.00.99.99
+@@ add slot MySQL support to scripts utilities
+
+@patch 081_all_slot_manager-r3.patch
+@ver 5.00.00.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.01.99.99
+@@ add slot support for mysqlmanager
 
 @patch 090_all_install-db-sh.patch
 @ver 4.00.00.00 to 4.00.99.99
