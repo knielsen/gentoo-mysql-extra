@@ -39,6 +39,11 @@
 @@ add slot MySQL support to scripts utilities
 
 @patch 080_all_slot_script-r1.patch
+@ver 4.01.15.30 to 4.01.15.99
+@@ add slot MySQL support to scripts utilities
+
+@patch 080_all_slot_script-r5.patch
+@ver 4.01.16.30 to 4.01.99.99
 @@ add slot MySQL support to scripts utilities
 
 @patch 080_all_slot_script-r2.patch

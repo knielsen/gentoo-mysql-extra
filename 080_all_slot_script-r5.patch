@@ -1,6 +1,6 @@
-diff -Naur -Naur mysql-5.0.18.orig/scripts/Makefile.am mysql-5.0.18.new/scripts/Makefile.am
---- mysql-5.0.18.orig/scripts/Makefile.am	2005-12-21 19:39:51.000000000 +0000
-+++ mysql-5.0.18.new/scripts/Makefile.am	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/Makefile.am mysql-4.1.16.new/scripts/Makefile.am
+--- mysql-4.1.16.orig/scripts/Makefile.am	2005-11-30 20:36:23.000000000 +0000
++++ mysql-4.1.16.new/scripts/Makefile.am	2006-01-14 18:32:53.000000000 +0000
 @@ -66,6 +66,32 @@
  			mysqlaccess.conf \
  			mysqlbug
@@ -52,19 +52,19 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/Makefile.am mysql-5.0.18.new/scripts/
  	  -e 's!@''sbindir''@!$(sbindir)!g' \
  	  -e 's!@''scriptdir''@!$(bindir)!g' \
  	  -e 's!@''prefix''@!$(prefix)!g' \
-diff -Naur -Naur mysql-5.0.18.orig/scripts/msql2mysql.sh mysql-5.0.18.new/scripts/msql2mysql.sh
---- mysql-5.0.18.orig/scripts/msql2mysql.sh	2005-12-21 19:40:02.000000000 +0000
-+++ mysql-5.0.18.new/scripts/msql2mysql.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/msql2mysql.sh mysql-4.1.16.new/scripts/msql2mysql.sh
+--- mysql-4.1.16.orig/scripts/msql2mysql.sh	2005-11-30 20:36:34.000000000 +0000
++++ mysql-4.1.16.new/scripts/msql2mysql.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -13,4 +13,4 @@
  # described in the License.  Among other things, the License requires that
  # the copyright notice and this notice be preserved on all copies.
  
 -@bindir@/replace msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
 +@bindir@/@mybin_replace@ msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_config.sh mysql-5.0.18.new/scripts/mysql_config.sh
---- mysql-5.0.18.orig/scripts/mysql_config.sh	2005-12-21 19:39:36.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysql_config.sh	2006-01-15 12:43:37.000000000 +0000
-@@ -77,15 +77,15 @@
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysql_config.sh mysql-4.1.16.new/scripts/mysql_config.sh
+--- mysql-4.1.16.orig/scripts/mysql_config.sh	2005-11-30 20:36:06.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysql_config.sh	2006-01-14 18:32:53.000000000 +0000
+@@ -77,7 +77,7 @@
  
  me=`get_full_path $0`
  
@@ -73,19 +73,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_config.sh mysql-5.0.18.new/scri
  
  ldata='@localstatedir@'
  execdir='@libexecdir@'
- bindir='@bindir@'
- pkglibdir='@pkglibdir@'
--fix_path pkglibdir lib/mysql lib
-+fix_path pkglibdir "lib${pkglibdir##*lib}" lib/mysql lib
- pkgincludedir='@pkgincludedir@'
--fix_path pkgincludedir include/mysql include
-+fix_path pkgincludedir "include${pkgincludedir##*include}" include/mysql include
- version='@VERSION@'
- socket='@MYSQL_UNIX_ADDR@'
- port='@MYSQL_TCP_PORT@'
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_create_system_tables.sh mysql-5.0.18.new/scripts/mysql_create_system_tables.sh
---- mysql-5.0.18.orig/scripts/mysql_create_system_tables.sh	2005-12-21 19:39:52.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysql_create_system_tables.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysql_create_system_tables.sh mysql-4.1.16.new/scripts/mysql_create_system_tables.sh
+--- mysql-4.1.16.orig/scripts/mysql_create_system_tables.sh	2005-11-30 20:36:27.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysql_create_system_tables.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -19,7 +19,7 @@
  new context from the manual (from fill_help_tables.sql).
  
@@ -95,10 +85,10 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_create_system_tables.sh mysql-5
  "
    exit
  fi
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_fix_privilege_tables.sh mysql-5.0.18.new/scripts/mysql_fix_privilege_tables.sh
---- mysql-5.0.18.orig/scripts/mysql_fix_privilege_tables.sh	2005-12-21 19:39:59.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysql_fix_privilege_tables.sh	2006-01-15 12:22:57.000000000 +0000
-@@ -77,17 +77,17 @@
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysql_fix_privilege_tables.sh mysql-4.1.16.new/scripts/mysql_fix_privilege_tables.sh
+--- mysql-4.1.16.orig/scripts/mysql_fix_privilege_tables.sh	2005-11-30 20:36:32.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysql_fix_privilege_tables.sh	2006-01-14 18:32:53.000000000 +0000
+@@ -76,17 +76,17 @@
  # Get first arguments from the my.cfg file, groups [mysqld] and
  # [mysql_install_db], and then merge with the command line arguments
  
@@ -119,9 +109,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_fix_privilege_tables.sh mysql-5
 +parse_arguments `$print_defaults $defaults @mybin_mysql_install_db@ @mybin_mysql_fix_privilege_tables@`
  parse_arguments PICK-ARGS-FROM-ARGV "$@"
  
- if test -z "$password"
-@@ -118,7 +118,7 @@
-   exit 1
+ if test -z "$basedir"
+@@ -119,7 +119,7 @@
+   password=$old_style_password
  fi
  
 -cmd="$bindir/mysql --no-defaults --force --user=$user --host=$host"
@@ -129,18 +119,18 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_fix_privilege_tables.sh mysql-5
  if test ! -z "$password" ; then
    cmd="$cmd --password=$password"
  fi
-@@ -136,7 +136,7 @@
+@@ -137,7 +137,7 @@
  fi
  
  # Find where first mysql_fix_privilege_tables.sql is located
 -for i in $basedir/support-files $basedir/share $basedir/share/mysql \
 +for i in @sharedstatedir@ $basedir/support-files $basedir/share $basedir/share/mysql \
-         $basedir/scripts $pkgdatadir . "$dirname"
+         $basedir/scripts @pkgdatadir@ . ./scripts
  do
    if test -f $i/$file
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_install_db.sh mysql-5.0.18.new/scripts/mysql_install_db.sh
---- mysql-5.0.18.orig/scripts/mysql_install_db.sh	2005-12-21 19:39:42.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysql_install_db.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysql_install_db.sh mysql-4.1.16.new/scripts/mysql_install_db.sh
+--- mysql-4.1.16.orig/scripts/mysql_install_db.sh	2005-11-30 20:36:14.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysql_install_db.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -57,20 +57,20 @@
  
  # Get first arguments from the my.cfg file, groups [mysqld] and
@@ -298,9 +288,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_install_db.sh mysql-5.0.18.new/
 +  echo "And if you do mail us, you MUST use the @scriptdir@/@mybin_mysqlbug@ script!"
    exit 1
  fi
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_secure_installation.sh mysql-5.0.18.new/scripts/mysql_secure_installation.sh
---- mysql-5.0.18.orig/scripts/mysql_secure_installation.sh	2005-12-21 19:40:02.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysql_secure_installation.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysql_secure_installation.sh mysql-4.1.16.new/scripts/mysql_secure_installation.sh
+--- mysql-4.1.16.orig/scripts/mysql_secure_installation.sh	2005-11-30 20:36:34.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysql_secure_installation.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -30,7 +30,7 @@
  
  do_query() {
@@ -310,9 +300,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysql_secure_installation.sh mysql-5.
      return $?
  }
  
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqlaccess.sh mysql-5.0.18.new/scripts/mysqlaccess.sh
---- mysql-5.0.18.orig/scripts/mysqlaccess.sh	2005-12-21 19:39:32.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysqlaccess.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysqlaccess.sh mysql-4.1.16.new/scripts/mysqlaccess.sh
+--- mysql-4.1.16.orig/scripts/mysqlaccess.sh	2005-11-30 20:36:05.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysqlaccess.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -17,7 +17,7 @@
  
  	# ****************************
@@ -331,9 +321,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqlaccess.sh mysql-5.0.18.new/scrip
                                           #path to mysqldump executable
  
          $MYSQLADMIN= 'http://foobar.com/MySQLadmin';
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scripts/mysqld_multi.sh
---- mysql-5.0.18.orig/scripts/mysqld_multi.sh	2005-12-21 19:39:55.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysqld_multi.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysqld_multi.sh mysql-4.1.16.new/scripts/mysqld_multi.sh
+--- mysql-4.1.16.orig/scripts/mysqld_multi.sh	2005-11-30 20:36:28.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysqld_multi.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -10,8 +10,8 @@
  $opt_example       = 0;
  $opt_help          = 0;
@@ -347,19 +337,19 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
  $opt_tcp_ip        = 0;
 @@ -39,11 +39,11 @@
  {
-   my $flag_exit= 0;
+   my ($flag_exit);
  
 -  if (!defined(my_which(my_print_defaults)))
 +  if (!defined(my_which(@mybin_my_print_defaults@)))
    {
      # We can't throw out yet, since --version, --help, or --example may
      # have been given
--    print "WARNING: my_print_defaults command not found.\n";
-+    print "WARNING: @mybin_my_print_defaults@ command not found.\n";
+-    print "WARNING! my_print_defaults command not found!\n";
++    print "WARNING! @mybin_my_print_defaults@ command not found!\n";
      print "Please make sure you have this command available and\n";
      print "in your path. The command is available from the latest\n";
      print "MySQL distribution.\n";
-@@ -74,9 +74,9 @@
+@@ -69,9 +69,9 @@
  	}
        }
      }
@@ -371,19 +361,19 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
      my @defops = `$com`;
      chop @defops;
      splice @ARGV, 0, 0, @defops;
-@@ -113,9 +113,9 @@
-     print "Error with an option, see $my_progname --help for more info.\n";
+@@ -101,9 +101,9 @@
+     print "Error with an option, see $my_progname --help for more info!\n";
      exit(1);
    }
 -  if (!defined(my_which(my_print_defaults)))
 +  if (!defined(my_which(@mybin_my_print_defaults@)))
    {
--    print "ABORT: Can't find command 'my_print_defaults'.\n";
-+    print "ABORT: Can't find command '@mybin_my_print_defaults@'.\n";
+-    print "ABORT: Can't find command 'my_print_defaults'!\n";
++    print "ABORT: Can't find command '@mybin_my_print_defaults@'!\n";
      print "This command is available from the latest MySQL\n";
      print "distribution. Please make sure you have the command\n";
      print "in your PATH.\n";
-@@ -202,7 +202,7 @@
+@@ -165,7 +165,7 @@
  {
    if ($my_print_defaults_exists)
    {
@@ -392,7 +382,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
      chomp @mysqld_opts;
      foreach my $opt (@mysqld_opts)
      {
-@@ -303,7 +303,7 @@
+@@ -266,7 +266,7 @@
    @groups = &find_groups($groupids);
    for ($i = 0; defined($groups[$i]); $i++)
    {
@@ -401,8 +391,8 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
      $com.= defined($opt_config_file) ? " --config-file=$opt_config_file" : "";
      $com.= " $groups[$i]";
      @options = `$com`;
-@@ -330,7 +330,7 @@
- 	$tmp.= " $options[$j]";
+@@ -295,7 +295,7 @@
+ 	$tmp.= " '$options[$j]'";
        }
      }
 -    if ($opt_verbose && $com =~ m/\/safe_mysqld$/ && !$info_sent)
@@ -410,7 +400,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
      {
        print "WARNING: safe_mysqld is being used to start mysqld. In this case you ";
        print "may need to pass\n\"ledir=...\" under groups [mysqldN] to ";
-@@ -401,7 +401,7 @@
+@@ -366,7 +366,7 @@
    my ($i, @groups)= @_;
    my ($mysqladmin_found, $com, $tmp, $j);
  
@@ -419,10 +409,10 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_multi.sh mysql-5.0.18.new/scri
    $com.= defined($opt_config_file) ? " --config-file=$opt_config_file" : "";
    $com.= " $groups[$i]";
    @options = `$com`;
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scripts/mysqld_safe.sh
---- mysql-5.0.18.orig/scripts/mysqld_safe.sh	2005-12-21 19:40:02.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysqld_safe.sh	2006-01-15 12:22:57.000000000 +0000
-@@ -87,7 +87,7 @@
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysqld_safe.sh mysql-4.1.16.new/scripts/mysqld_safe.sh
+--- mysql-4.1.16.orig/scripts/mysqld_safe.sh	2005-11-30 20:36:34.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysqld_safe.sh	2006-01-14 18:36:18.000000000 +0000
+@@ -68,7 +68,7 @@
  	then
  	  MYSQLD="mysqld-$tmp"
  	else
@@ -431,7 +421,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
  	fi
  	;;
        --nice=*) niceness=`echo "$arg" | sed -e "s;--nice=;;"` ;;
-@@ -113,13 +113,13 @@
+@@ -91,13 +91,13 @@
  
  MY_PWD=`pwd`
  # Check for the directories we would expect from a binary release install
@@ -447,7 +437,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
  then
    MY_BASEDIR_VERSION=$MY_PWD		# Where libexec, share and var are
    ledir=$MY_BASEDIR_VERSION/libexec	# Where mysqld is
-@@ -181,17 +181,17 @@
+@@ -137,17 +137,17 @@
  
  # Get first arguments from the my.cnf file, groups [mysqld] and [mysqld_safe]
  # and then merge with the command line arguments
@@ -472,7 +462,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
  fi
  
  args=
-@@ -216,11 +216,11 @@
+@@ -172,11 +172,11 @@
  # Use the mysqld-max binary by default if the user doesn't specify a binary
  if test -z "$MYSQLD"
  then
@@ -487,7 +477,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
    fi
  fi
  
-@@ -229,7 +229,7 @@
+@@ -185,7 +185,7 @@
    echo "The file $ledir/$MYSQLD doesn't exist or is not executable"
    echo "Please do a cd to the mysql installation directory and restart"
    echo "this script from there as follows:"
@@ -496,7 +486,7 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
    echo "See http://dev.mysql.com/doc/mysql/en/mysqld_safe.html for more"
    echo "information"
    exit 1
-@@ -362,8 +362,8 @@
+@@ -318,8 +318,8 @@
  # the manual for details.
  #
  # echo "Checking tables in $DATADIR"
@@ -507,9 +497,9 @@ diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqld_safe.sh mysql-5.0.18.new/scrip
  
  echo "Starting $MYSQLD daemon with databases from $DATADIR"
  
-diff -Naur -Naur mysql-5.0.18.orig/scripts/mysqldumpslow.sh mysql-5.0.18.new/scripts/mysqldumpslow.sh
---- mysql-5.0.18.orig/scripts/mysqldumpslow.sh	2005-12-21 19:40:05.000000000 +0000
-+++ mysql-5.0.18.new/scripts/mysqldumpslow.sh	2006-01-15 12:22:57.000000000 +0000
+diff -Naur -Naur mysql-4.1.16.orig/scripts/mysqldumpslow.sh mysql-4.1.16.new/scripts/mysqldumpslow.sh
+--- mysql-4.1.16.orig/scripts/mysqldumpslow.sh	2005-11-30 20:36:35.000000000 +0000
++++ mysql-4.1.16.new/scripts/mysqldumpslow.sh	2006-01-14 18:32:53.000000000 +0000
 @@ -34,16 +34,16 @@
  $opt{'help'} and usage();
  
