@@ -55,13 +55,13 @@
 @@ add slot MySQL support to scripts utilities
 
 @patch 080_all_slot_script-r4.patch
-@ver 5.01.00.00 to 5.01.99.99
-@ver 5.00.17.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.01.06.99
+@ver 5.00.17.00 to 5.00.18.99
 @@ add slot MySQL support to scripts utilities
 
 @patch 081_all_slot_manager-r3.patch
-@ver 5.00.00.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.01.99.99
+@ver 5.00.00.00 to 5.00.18.99
+@ver 5.01.00.00 to 5.01.06.99
 @@ add slot support for mysqlmanager
 
 @patch 090_all_install-db-sh.patch
