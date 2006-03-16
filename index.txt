@@ -3,8 +3,15 @@
 @@ Move config directory to the gentoo default
 
 @patch 010_all_slot-my-print-default-r2.patch
-@ver 5.00.15.30 to 5.00.99.99
+@ver 5.00.15.30 to 5.00.18.99
 @@ Move config directory to the gentoo default
+
+@patch 010_all_slot-my-print-default-r3.patch
+@ver 5.00.19.00 to 5.01.99.99
+@@ Move config directory to the gentoo default
+@@ upstream http://lists.mysql.com/commits/3885?f=plain
+@@ fix MySQL Bug#15069
+@@ fix gentoo Bug#126054
 
 @patch 020_all_gentoo-nptl.patch
 @ver 4.00.18.00 to 4.01.11.99
@@ -33,36 +40,6 @@
 
 @patch 040_all_tcpd-vars-fix.patch
 @ver 4.00.14.00 to 4.01.99.99
-
-@patch 080_all_slot_script-r0.patch
-@ver 4.00.26.30 to 4.00.99.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 080_all_slot_script-r1.patch
-@ver 4.01.15.30 to 4.01.15.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 080_all_slot_script-r5.patch
-@ver 4.01.16.30 to 4.01.99.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 080_all_slot_script-r2.patch
-@ver 5.00.15.30 to 5.00.15.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 080_all_slot_script-r3.patch
-@ver 5.00.16.00 to 5.00.16.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 080_all_slot_script-r4.patch
-@ver 5.01.00.00 to 5.01.06.99
-@ver 5.00.17.00 to 5.00.18.99
-@@ add slot MySQL support to scripts utilities
-
-@patch 081_all_slot_manager-r3.patch
-@ver 5.00.00.00 to 5.00.18.99
-@ver 5.01.00.00 to 5.01.06.99
-@@ add slot support for mysqlmanager
 
 @patch 090_all_install-db-sh.patch
 @ver 4.00.00.00 to 4.00.99.99
