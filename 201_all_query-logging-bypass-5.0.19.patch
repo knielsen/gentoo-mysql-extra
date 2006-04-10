@@ -1,0 +1,308 @@
+diff -Naur -Naur mysql-5.0.19.orig/include/my_sys.h mysql-5.0.19.new/include/my_sys.h
+--- mysql-5.0.19.orig/include/my_sys.h	2006-03-04 20:35:12.000000000 +0000
++++ mysql-5.0.19.new/include/my_sys.h	2006-04-09 17:55:53.000000000 +0000
+@@ -599,6 +599,11 @@
+ 				    const char *sFile, uint uLine,
+ 				    myf MyFlag);
+ 
++/* implemented in my_memmem.c */
++extern void *my_memmem(const void *haystack, size_t haystacklen,
++    const void *needle, size_t needlelen);
++
++
+ #ifdef __WIN__
+ extern int my_access(const char *path, int amode);
+ extern File my_sopen(const char *path, int oflag, int shflag, int pmode);
+diff -Naur -Naur mysql-5.0.19.orig/mysql-test/t/mysql_client_test.opt mysql-5.0.19.new/mysql-test/t/mysql_client_test.opt
+--- mysql-5.0.19.orig/mysql-test/t/mysql_client_test.opt	1970-01-01 00:00:00.000000000 +0000
++++ mysql-5.0.19.new/mysql-test/t/mysql_client_test.opt	2006-04-09 17:59:17.000000000 +0000
+@@ -0,0 +1 @@
++--log
+diff -Naur -Naur mysql-5.0.19.orig/mysys/Makefile.am mysql-5.0.19.new/mysys/Makefile.am
+--- mysql-5.0.19.orig/mysys/Makefile.am	2006-03-04 20:35:03.000000000 +0000
++++ mysql-5.0.19.new/mysys/Makefile.am	2006-04-09 17:55:53.000000000 +0000
+@@ -55,6 +55,7 @@
+ 			charset.c charset-def.c my_bitmap.c my_bit.c md5.c \
+ 			my_gethostbyname.c rijndael.c my_aes.c sha1.c \
+ 			my_handler.c my_netware.c my_largepage.c \
++			my_memmem.c \
+ 			my_windac.c my_access.c base64.c
+ EXTRA_DIST =		thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
+ 			thr_mutex.c thr_rwlock.c
+diff -Naur -Naur mysql-5.0.19.orig/mysys/Makefile.in mysql-5.0.19.new/mysys/Makefile.in
+--- mysql-5.0.19.orig/mysys/Makefile.in	2006-03-04 20:36:41.000000000 +0000
++++ mysql-5.0.19.new/mysys/Makefile.in	2006-04-09 17:56:54.000000000 +0000
+@@ -514,6 +514,7 @@
+ 			charset.c charset-def.c my_bitmap.c my_bit.c md5.c \
+ 			my_gethostbyname.c rijndael.c my_aes.c sha1.c \
+ 			my_handler.c my_netware.c my_largepage.c \
++			my_memmem.c \
+ 			my_windac.c my_access.c base64.c
+ 
+ EXTRA_DIST = thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
+diff -Naur -Naur mysql-5.0.19.orig/mysys/mf_iocache2.c mysql-5.0.19.new/mysys/mf_iocache2.c
+--- mysql-5.0.19.orig/mysys/mf_iocache2.c	2006-03-04 20:34:51.000000000 +0000
++++ mysql-5.0.19.new/mysys/mf_iocache2.c	2006-04-09 17:55:53.000000000 +0000
+@@ -252,6 +252,10 @@
+ uint my_b_vprintf(IO_CACHE *info, const char* fmt, va_list args)
+ {
+   uint out_length=0;
++  uint minimum_width; /* as yet unimplemented */
++  uint minimum_width_sign;
++  uint precision; /* as yet unimplemented for anything but %b */
++  const char* backtrack;
+ 
+   for (; *fmt ; fmt++)
+   {
+@@ -272,17 +276,53 @@
+       fmt++;
+       /* Found one '%' */
+     }
++    backtrack= fmt;
++
++    minimum_width= 0;
++    precision= 0;
++    minimum_width_sign= 1;
+     /* Skip if max size is used (to be compatible with printf) */
+-    while (my_isdigit(&my_charset_latin1, *fmt) || *fmt == '.' || *fmt == '-')
++    while (*fmt == '-') { fmt++; minimum_width_sign= -1; }
++    if (*fmt == '*') {
++      precision= (int) va_arg(args, int);
++      fmt++;
++    } else {
++      while (my_isdigit(&my_charset_latin1, *fmt)) {
++        minimum_width=(minimum_width * 10) + (*fmt - '0');
++        fmt++;
++      }
++    }
++    minimum_width*= minimum_width_sign;
++
++    if (*fmt == '.') {
+       fmt++;
++      if (*fmt == '*') {
++        precision= (int) va_arg(args, int);
++        fmt++;
++      } else {
++        while (my_isdigit(&my_charset_latin1, *fmt)) {
++          precision=(precision * 10) + (*fmt - '0');
++          fmt++;
++        }
++      }
++    }
++
+     if (*fmt == 's')				/* String parameter */
+     {
+       reg2 char *par = va_arg(args, char *);
+       uint length = (uint) strlen(par);
++      /* TODO: implement minimum width and precision */
+       out_length+=length;
+       if (my_b_write(info, par, length))
+ 	goto err;
+     }
++    else if (*fmt == 'b')				/* Sized buffer parameter, only precision makes sense */
++    {
++      reg2 char *par = va_arg(args, char *);
++      out_length+=precision;
++      if (my_b_write(info, par, precision))
++        goto err;
++    }
+     else if (*fmt == 'd' || *fmt == 'u')	/* Integer parameter */
+     {
+       register int iarg;
+@@ -320,6 +360,9 @@
+       if (my_b_write(info, "%", 1))
+ 	goto err;
+       out_length++;
++      if (my_b_write(info, backtrack, fmt-backtrack))
++        goto err;
++      out_length+= fmt-backtrack;
+     }
+   }
+   return out_length;
+diff -Naur -Naur mysql-5.0.19.orig/mysys/my_memmem.c mysql-5.0.19.new/mysys/my_memmem.c
+--- mysql-5.0.19.orig/mysys/my_memmem.c	1970-01-01 00:00:00.000000000 +0000
++++ mysql-5.0.19.new/mysys/my_memmem.c	2006-04-09 17:56:16.000000000 +0000
+@@ -0,0 +1,21 @@
++#include "my_base.h"
++
++/*
++ *   my_memmem, port of a GNU extension.
++ *
++ *     Returns a pointer to the beginning of the substring, needle, or NULL if the
++ *       substring is not found in haystack.
++ *       */
++void *my_memmem(const void *haystack, size_t haystacklen,
++    const void *needle, size_t needlelen)
++{
++  const void *cursor;
++  const void *end_of_search_beginning = haystack + haystacklen - needlelen;
++
++  for (cursor = haystack; cursor <= end_of_search_beginning; cursor++) {
++    if (memcmp(needle, cursor, needlelen) == 0) {
++      return((void *) cursor);
++    }
++  }
++  return(NULL);
++}
+diff -Naur -Naur mysql-5.0.19.orig/sql/sql_parse.cc mysql-5.0.19.new/sql/sql_parse.cc
+--- mysql-5.0.19.orig/sql/sql_parse.cc	2006-03-04 20:34:48.000000000 +0000
++++ mysql-5.0.19.new/sql/sql_parse.cc	2006-04-09 17:55:53.000000000 +0000
+@@ -1710,7 +1710,7 @@
+     if (alloc_query(thd, packet, packet_length))
+       break;					// fatal error is set
+     char *packet_end= thd->query + thd->query_length;
+-    mysql_log.write(thd,command,"%s",thd->query);
++    mysql_log.write(thd,command, "%.*b", thd->query_length, thd->query);
+     DBUG_PRINT("query",("%-.4096s",thd->query));
+ 
+     if (!(specialflag & SPECIAL_NO_PRIOR))
+diff -Naur -Naur mysql-5.0.19.orig/strings/my_vsnprintf.c mysql-5.0.19.new/strings/my_vsnprintf.c
+--- mysql-5.0.19.orig/strings/my_vsnprintf.c	2006-03-04 20:34:49.000000000 +0000
++++ mysql-5.0.19.new/strings/my_vsnprintf.c	2006-04-09 17:55:53.000000000 +0000
+@@ -27,6 +27,7 @@
+     %#[l]d
+     %#[l]u
+     %#[l]x
++    %#.#b 	Local format; note first # is ignored and second is REQUIRED
+     %#.#s	Note first # is ignored
+     
+   RETURN
+@@ -38,9 +39,18 @@
+   char *start=to, *end=to+n-1;
+   uint length, width, pre_zero, have_long;
+ 
++  const char *backtrack;  
++  /* 
++   For the special case when we discover that we shouldn't have been
++   interpreting a percent-format. 
++
++   This is here so we can be forgiving about our special local formats.
++   */
++
+   for (; *fmt ; fmt++)
+   {
+-    if (fmt[0] != '%')
++    backtrack = fmt;
++    if (*fmt != '%')
+     {
+       if (to == end)			/* End of buffer */
+ 	break;
+@@ -95,6 +105,12 @@
+       to=strnmov(to,par,plen);
+       continue;
+     }
++    else if (*fmt == 'b')				/* Buffer parameter */
++    {
++      reg2 char *par = va_arg(ap, char *);
++      to=memmove(to, par, abs(width));
++      continue;
++    }
+     else if (*fmt == 'd' || *fmt == 'u'|| *fmt== 'x')	/* Integer parameter */
+     {
+       register long larg;
+diff -Naur -Naur mysql-5.0.19.orig/tests/Makefile.am mysql-5.0.19.new/tests/Makefile.am
+--- mysql-5.0.19.orig/tests/Makefile.am	2006-03-04 20:34:53.000000000 +0000
++++ mysql-5.0.19.new/tests/Makefile.am	2006-04-09 17:55:53.000000000 +0000
+@@ -42,7 +42,7 @@
+ LIBS =			@CLIENT_LIBS@
+ LDADD =			@CLIENT_EXTRA_LDFLAGS@ \
+                         $(top_builddir)/libmysql/libmysqlclient.la
+-mysql_client_test_LDADD= $(LDADD) $(CXXLDFLAGS)
++mysql_client_test_LDADD= $(LDADD) $(CXXLDFLAGS) -lmysys -L../mysys
+ mysql_client_test_SOURCES= mysql_client_test.c $(yassl_dummy_link_fix)
+ insert_test_SOURCES=       insert_test.c $(yassl_dummy_link_fix)
+ select_test_SOURCES=       select_test.c $(yassl_dummy_link_fix)
+diff -Naur -Naur mysql-5.0.19.orig/tests/Makefile.in mysql-5.0.19.new/tests/Makefile.in
+--- mysql-5.0.19.orig/tests/Makefile.in	2006-03-04 20:37:01.000000000 +0000
++++ mysql-5.0.19.new/tests/Makefile.in	2006-04-09 17:58:51.000000000 +0000
+@@ -422,7 +422,7 @@
+ LDADD = @CLIENT_EXTRA_LDFLAGS@ \
+                         $(top_builddir)/libmysql/libmysqlclient.la
+ 
+-mysql_client_test_LDADD = $(LDADD) $(CXXLDFLAGS)
++mysql_client_test_LDADD = $(LDADD) $(CXXLDFLAGS) -lmysys -L../mysys
+ mysql_client_test_SOURCES = mysql_client_test.c $(yassl_dummy_link_fix)
+ insert_test_SOURCES = insert_test.c $(yassl_dummy_link_fix)
+ select_test_SOURCES = select_test.c $(yassl_dummy_link_fix)
+diff -Naur -Naur mysql-5.0.19.orig/tests/mysql_client_test.c mysql-5.0.19.new/tests/mysql_client_test.c
+--- mysql-5.0.19.orig/tests/mysql_client_test.c	2006-03-04 20:35:20.000000000 +0000
++++ mysql-5.0.19.new/tests/mysql_client_test.c	2006-04-09 17:55:53.000000000 +0000
+@@ -14823,6 +14823,78 @@
+ }
+ 
+ /*
++  Bug#17667: An attacker has the opportunity to bypass query logging.
++*/
++static void test_bug17667()
++{
++  int rc;
++  myheader("test_bug17667");
++  struct buffer_and_length {
++    const char *buffer;
++    const uint length;
++  } statements[]= {
++    { "drop table if exists bug17667", 29 },
++    { "create table bug17667 (c varchar(20))", 37 },
++    { "insert into bug17667 (c) values ('regular') /* NUL=\0 with comment */", 68 },
++    { "insert into bug17667 (c) values ('NUL=\0 in value')", 50 },
++    { "insert into bug17667 (c) values ('5 NULs=\0\0\0\0\0')", 48 },
++    { "/* NUL=\0 with comment */ insert into bug17667 (c) values ('encore')", 67 },
++    { "drop table bug17667", 19 },
++    { NULL, 0 } };  
++  /* 
++    Note that at this time, the docs say that NUL characters in string literals
++    are illegal.  If we ever begin to disallow them, then this test will 
++    fail.  Note that NULs in comments is a seperate issue, which might still be
++    legal.
++  */
++
++  struct buffer_and_length *statement_cursor;
++  FILE *log_file;
++
++  for (statement_cursor= statements; statement_cursor->buffer != NULL;
++      statement_cursor++) {
++    rc= mysql_real_query(mysql, statement_cursor->buffer,
++        statement_cursor->length);
++    myquery(rc);
++  }
++
++  sleep(1); /* The server may need time to flush the data to the log. */
++  log_file= fopen("var/log/master.log", "r");
++  DIE_UNLESS(log_file != NULL);
++  if (log_file != NULL) {
++
++    for (statement_cursor= statements; statement_cursor->buffer != NULL;
++        statement_cursor++) {
++     char line_buffer[MAX_TEST_QUERY_LENGTH*2]; 
++     /* more than enough room for the query and some marginalia. */
++
++      do {
++        memset(line_buffer, '/', MAX_TEST_QUERY_LENGTH*2);
++
++        DIE_UNLESS(fgets(line_buffer, MAX_TEST_QUERY_LENGTH*2, log_file) !=
++            NULL);
++        /* If we reach EOF before finishing the statement list, then we failed. */
++
++      } while (my_memmem(line_buffer, MAX_TEST_QUERY_LENGTH*2,
++            statement_cursor->buffer, statement_cursor->length) == NULL);
++    }
++
++    printf("success.  All queries found intact in the log.\n");
++
++  } else {
++    fprintf(stderr, "Could not find the log file, var/log/master.log, so "
++        "test_bug17667 is \ninconclusive.  Run test from the "
++        "mysql-test/mysql-test-run* program \nto set up the correct "
++        "environment for this test.\n\n");
++  }
++
++  if (log_file != NULL)
++    fclose(log_file);
++
++}
++
++
++/*
+   Bug#14169: type of group_concat() result changed to blob if tmp_table was used
+ */
+ static void test_bug14169()

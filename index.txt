@@ -1,35 +1,32 @@
-@patch 010_all_slot-my-print-default-r1.patch
-@ver 4.01.15.30 to 4.01.99.99
+@patch 010_all_default-dir-4.1.14.patch
+@ver 4.01.14.00 to 4.01.14.99
 @@ Move config directory to the gentoo default
 
-@patch 010_all_slot-my-print-default-r2.patch
-@ver 5.00.15.30 to 5.00.18.99
+@patch 010_all_default-dir-4.1.18.patch
+@ver 4.01.18.00 to 4.01.18.99
 @@ Move config directory to the gentoo default
 
-@patch 010_all_slot-my-print-default-r3.patch
-@ver 5.00.19.00 to 5.01.99.99
+@patch 010_all_default-dir-5.0.19.patch
+@ver 5.00.19.00 to 5.00.19.99
 @@ Move config directory to the gentoo default
-@@ upstream http://lists.mysql.com/commits/3885?f=plain
-@@ fix MySQL Bug#15069
-@@ fix gentoo Bug#126054
 
-@patch 020_all_gentoo-nptl.patch
+@patch 020_all_gentoo-nptl-4.0.18.patch
 @ver 4.00.18.00 to 4.01.11.99
 @ver 5.00.00.00 to 5.00.03.99
 @@ Add support for NPTL
 
-@patch 030_all_thrssl-r0.patch
+@patch 030_all_thrssl-4.0.patch
 @ver 4.00.00.00 to 4.00.99.99
 @@ Link libmysqlclient_r against ssl
 # attempt to get libmysqlclient_r linked against ssl if USE="ssl" enabled
 # i would really prefer to fix this at the Makefile.am level, but can't
 # get the software to autoreconf as distributed - too many missing files
 
-@patch 030_all_thrssl-r1.patch
+@patch 030_all_thrssl-4.1.patch
 @ver 4.01.11.00 to 5.00.04.00
 @@ Link libmysqlclient_r against ssl
 
-@patch 035_x86_asm-pic-fixes-r7.patch
+@patch 035_x86_asm-pic-fixes-4.1.12.patch
 @ver 4.01.12.00 to 4.01.99.99
 @ver 5.00.12.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.99.99
@@ -38,7 +35,7 @@
 @@ here is the remaining.
 @@ _many_ tanks to pageexec@freemail.hu
 
-@patch 040_all_tcpd-vars-fix.patch
+@patch 040_all_tcpd-vars-fix-4.0.14.patch
 @ver 4.00.14.00 to 4.01.99.99
 
 @patch 090_all_install-db-sh.patch
@@ -49,6 +46,40 @@
 @ver 4.00.00.00 to 4.00.99.99
 @@ enlarge isam (not myisam) key capacity to 500 bytes
 @@ needed from some external app.
+
+@patch 200_all_query-logging-bypass-4.0.26.patch
+@ver 4.00.26.00 to 4.00.99.99
+@@ Fix bug #128713
+
+@patch 200_all_query-logging-bypass-4.1.14.patch
+@ver 4.01.14.00 to 4.01.99.99
+@@ Fix bug #128713
+
+@patch 200_all_query-logging-bypass-5.0.19.patch
+@ver 5.00.19.00 to 5.00.99.99
+@@ Fix bug #128713
+
+@patch 201_all_query-logging-bypass-4.1.14.patch
+@ver 4.01.14.00 to 4.01.14.99
+@@ Fix bug #128713
+@@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
+@@ Thanks to "Raphael Marichez" <falco at falco.bz> to backport it
+
+@patch 201_all_query-logging-bypass-4.1.18.patch
+@ver 4.01.15.00 to 4.01.99.99
+@@ Fix bug #128713
+@@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
+@@ Thanks to "Raphael Marichez" <falco at falco.bz> to backport it
+@@ to 4.1.14, this version drop the changes to mysql_client_test.c
+@@ waiting upstream for next version bump
+
+@patch 201_all_query-logging-bypass-5.0.19.patch
+@ver 5.00.00.00 to 5.00.99.99
+@@ Fix bug #128713
+@@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
+@@ This patch has been MODIFIED from the original MySQL AB patch, adding also
+@@ changes to /*/Makefile.in . The changes however respect the original
+@@ patch changes to the Makefile.am
 
 @patch 703_all_test-rpl_rotate_logs.patch
 @ver  5.00.06.00 to 5.01.99.99
