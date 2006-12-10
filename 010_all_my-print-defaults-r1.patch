@@ -1,0 +1,29 @@
+###MY_VER_RANGE  [5.0.5_beta,5.0.6_beta)
++++ mysql/mysys/default.c	2005-05-09 14:29:29.783506560 +0200
+@@ -844,25 +844,8 @@
+ {
+   const char *env, **ptr= default_directories;
+ 
+-#ifdef __WIN__
+-  *ptr++= "C:/";
++  *ptr++= "/etc/mysql/";
+ 
+-  if (GetWindowsDirectory(system_dir,sizeof(system_dir)))
+-    *ptr++= &system_dir;
+-  /* Only add shared system directory if different from default. */
+-  if (GetSystemWindowsDirectory(shared_system_dir,sizeof(shared_system_dir)) &&
+-      strcmp(system_dir, shared_system_dir))
+-    *ptr++= &shared_system_dir;
+-
+-#elif defined(__NETWARE__)
+-  *ptr++= "sys:/etc/";
+-#else
+-#if defined(__EMX__) || defined(OS2)
+-  if ((env= getenv("ETC")))
+-    *ptr++= env;
+-#endif
+-  *ptr++= "/etc/";
+-#endif
+   if ((env= getenv(STRINGIFY_ARG(DEFAULT_HOME_ENV))))
+     *ptr++= env;
+   *ptr++= "";			/* Place for defaults_extra_file */

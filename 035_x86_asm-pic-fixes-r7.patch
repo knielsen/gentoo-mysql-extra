@@ -1,8 +1,10 @@
+###MY_VER_RANGE [5.0.12_beta,5.0.12_beta]
+
 diff -Naur mysql.old/strings/longlong2str-x86.s mysql.new/strings/longlong2str-x86.s
 --- mysql.old/strings/longlong2str-x86.s	2005-08-27 22:33:11.000000000 +0200
 +++ mysql.new/strings/longlong2str-x86.s	2005-09-05 18:46:04.000000000 +0200
 @@ -222,3 +222,6 @@
-
+ 
  .L10end:
  	.size	 longlong10_to_str,.L10end-longlong10_to_str
 +

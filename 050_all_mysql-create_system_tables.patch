@@ -1,0 +1,12 @@
+###MY_VER_RANGE [5.0_alpha,5.0.10_beta)
+--- mysql.old/scripts/mysql_create_system_tables.sh	2005-04-19 12:08:40.000000000 +0200
++++ mysql-5.0.4-beta/scripts/mysql_create_system_tables.sh	2005-04-19 12:09:18.000000000 +0200
+@@ -714,7 +714,7 @@
+   c_p="$c_p                         'TRADITIONAL',"
+   c_p="$c_p                         'NO_AUTO_CREATE_USER',"
+   c_p="$c_p                         'HIGH_NOT_PRECEDENCE'"
+-  c_p="$c_p                     ) DEFAULT 0 NOT NULL,"
++  c_p="$c_p                     ) DEFAULT '' NOT NULL,"
+   c_p="$c_p   comment           char(64) binary DEFAULT '' NOT NULL,"
+   c_p="$c_p   PRIMARY KEY (db,name,type)"
+   c_p="$c_p ) comment='Stored Procedures';"

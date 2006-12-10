@@ -1,0 +1,11 @@
+###MY_VER_RANGE [5.1.0_alpha,mysql-5.1.0_alpha20050606)
+--- mysql-5.1.0-alpha-nightly-20050531/sql/Makefile.am	2005-05-31 08:39:53.000000000 +0200
++++ mysql-5.1.0-bitvector/sql/Makefile.am	2005-06-02 13:15:49.000000000 +0200
+@@ -91,7 +91,6 @@
+ 			sql_udf.cc sql_analyse.cc sql_analyse.h sql_cache.cc \
+ 			slave.cc sql_repl.cc rpl_filter.cc \
+                         sql_union.cc sql_derived.cc \
+-                        bitvector.cc \
+ 			client.c sql_client.cc mini_client_errors.c pack.c\
+ 			stacktrace.c repl_failsafe.h repl_failsafe.cc \
+ 			sql_olap.cc sql_view.cc \
