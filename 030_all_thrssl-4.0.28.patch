@@ -1,0 +1,11 @@
+--- mysql-4.0.18-bk-20070101/libmysql_r/Makefile.am	2007-01-01 20:46:25.000000000 +0100
++++ mysql-4.0.18-bk-20070101.new/libmysql_r/Makefile.am	2007-01-02 10:16:18.000000000 +0100
+@@ -22,7 +22,7 @@
+ 
+ target = libmysqlclient_r.la
+ target_defs = -DDONT_USE_RAID -DMYSQL_CLIENT @LIB_EXTRA_CCFLAGS@
+-LIBS = @LIBS@ @openssl_libs@
++LIBS = @CLIENT_LIBS@ @openssl_libs@
+ 
+ INCLUDES =	@MT_INCLUDES@ -I$(srcdir)/../include -I../include \
+ 		-I$(srcdir)/.. -I$(top_srcdir) -I.. $(openssl_includes)

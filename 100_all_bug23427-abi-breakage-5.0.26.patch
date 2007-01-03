@@ -1,0 +1,43 @@
+From: Chad&nbsp;MILLERDate: October 20 2006 11:17pm
+Subject: bk commit into 5.0 tree (cmiller:1.2292) BUG#23427
+
+ChangeSet@stripped, 2006-10-20 17:17:24-04:00, cmiller@stripped +2 -0
+  Bug #23427: incompatible ABI change in 5.0.26?
+
+  Revert 1 June change enough to restore ABI compatibility with previous
+  versions.
+
+  include/mysql.h@stripped, 2006-10-20 17:17:22-04:00, cmiller@stripped +0 -6
+  Revert patch that breaks ABI compatibility
+
+  libmysqld/lib_sql.cc@stripped, 2006-10-20 17:17:22-04:00, cmiller@stripped +0 -1
+  Remove useless assignment.
+
+Thanks to Sean Finney for discovering this (Debian MySQL maintainer).
+
+--- 1.162/include/mysql.h	2006-10-20 17:17:28 -04:00
++++ 1.163/include/mysql.h	2006-10-20 17:17:28 -04:00
+@@ -293,12 +293,6 @@ typedef struct st_mysql
+   /* needed for embedded server - no net buffer to store the 'info' */
+   char *info_buffer;
+ #endif
+-  /*
+-    In embedded server it points to the statement that is processed
+-    in the current query. We store some results directly in statement
+-    fields then.
+-  */
+-  struct st_mysql_stmt *current_stmt;
+ } MYSQL;
+ 
+ typedef struct st_mysql_res {
+
+--- 1.114/libmysqld/lib_sql.cc	2006-10-20 17:17:28 -04:00
++++ 1.115/libmysqld/lib_sql.cc	2006-10-20 17:17:28 -04:00
+@@ -100,7 +100,6 @@ emb_advanced_command(MYSQL *mysql, enum 
+   mysql->affected_rows= ~(my_ulonglong) 0;
+   mysql->field_count= 0;
+   net->last_errno= 0;
+-  mysql->current_stmt= stmt;
+ 
+   thd->store_globals();				// Fix if more than one connect
+   /* 

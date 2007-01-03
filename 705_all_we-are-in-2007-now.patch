@@ -1,0 +1,19 @@
+--- mysql.old/mysql-test/r/view.result	2007-01-02 23:27:19.000000000 +0100
++++ mysql/mysql-test/r/view.result	2007-01-02 23:27:58.000000000 +0100
+@@ -2686,12 +2686,12 @@
+ v1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v1` AS select (year(now()) - year(`t1`.`DOB`)) AS `Age` from `t1` having (`Age` < 75)
+ SELECT (year(now())-year(DOB)) AS Age FROM t1 HAVING Age < 75;
+ Age
+-42
+-38
++43
++39
+ SELECT * FROM v1;
+ Age
+-42
+-38
++43
++39
+ DROP VIEW v1;
+ DROP TABLE t1;
+ CREATE TABLE t1 (id int NOT NULL PRIMARY KEY, a char(6) DEFAULT 'xxx');

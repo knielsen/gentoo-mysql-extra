@@ -1,0 +1,5 @@
+--- mysql-test/std_data/bug15328.cnf	1970-01-01 01:00:00.000000000 +0100
++++ mysql-test/std_data/bug15328.cnf	2006-08-02 02:22:46.000000000 +0200
+@@ -0,0 +1,2 @@
++[mysqldump]
++fields-optionally-enclosed-by="

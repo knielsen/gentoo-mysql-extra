@@ -1,0 +1,2434 @@
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/Makefile.am mysql-5.0.34-bk-20070101/scripts/Makefile.am
+--- mysql-5.0.34-bk-20070101.orig/scripts/Makefile.am	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/Makefile.am	2007-01-03 00:48:04.000000000 +0100
+@@ -68,6 +68,32 @@
+ 			mysqlbug \
+ 			make_win_bin_dist
+ 
++sql_libexec_REPLACE =			mysqld
++instance_manager_libexec_REPLACE=	mysqlmanager
++client_bin_REPLACE =			mysql mysqladmin mysqlcheck mysqlshow \
++					mysqldump mysqlimport mysqltest mysqlbinlog \
++					mysqltestmanagerc mysqltestmanager-pwgen
++extra_bin_REPLACE =			replace comp_err perror resolveip my_print_defaults \
++					resolve_stack_dump mysql_waitpid innochecksum
++myisam_bin_REPLACE =			myisamchk myisamlog myisampack myisam_ftdump
++tools_bin_REPLACE =			mysqltestmanager
++cw_cpcd_ndbbin_REPLACE =		ndb_cpcd
++kernel_ndbbin_REPLACE =			ndbd
++mgmsrv_ndbbin_REPLACE =			ndb_mgmd
++sql_bin_REPLACE =			mysql_tzinfo_to_sql
++tests_bin_REPLACE =			mysql_client_test
++ndbtools_bin_REPLACE = 			ndb_test_platform ndb_waiter \
++					ndb_drop_table ndb_delete_all \
++					ndb_desc ndb_drop_index \
++					ndb_show_tables ndb_select_all \
++					ndb_select_count ndb_restore ndb_config
++EXTRA_REPLACE_BIN = 	safe_mysqld mysqlanalyze mysqloptimize mysqlrepair mysqld-max isamchk \
++			$(sql_libexec_REPLACE) $(ndbtools_bin_REPLACE) \
++			$(instance_manager_libexec_REPLACE) $(client_bin_REPLACE) \
++			$(extra_bin_REPLACE) $(myisam_bin_REPLACE) $(tools_bin_REPLACE) \
++			$(cw_cpcd_ndbbin_REPLACE) $(kernel_ndbbin_REPLACE) $(mgmsrv_ndbbin_REPLACE) \
++			$(sql_bin_REPLACE) $(tests_bin_REPLACE)
++
+ dist_pkgdata_DATA =		fill_help_tables.sql mysql_fix_privilege_tables.sql
+ 
+ # mysqlbug should be distributed built so that people can report build
+@@ -103,8 +129,17 @@
+ 
+ .sh:
+ 	@RM@ -f $@ $@-t
++	bin_REPLACE='';\
++	list='$(EXTRA_SCRIPTS) $(EXTRA_REPLACE_BIN)'; \
++	for p in $${list}; do \
++	  f1=$${p/\.sh}; \
++	  f2=`echo "$${p}" | @SED@ -e 's|\.sh$$||' -e 's|^.*/||;$(transform)'`; \
++	  bin_REPLACE="$${bin_REPLACE}s!@mybin_$${f1}@!$${f2}!g;";\
++	done; \
+ 	@SED@ \
++	  -e "$${bin_REPLACE}" \
+ 	  -e 's!@''bindir''@!$(bindir)!g' \
++	  -e 's!@''sharedstatedir''@!$(sharedstatedir)!g' \
+ 	  -e 's!@''sbindir''@!$(sbindir)!g' \
+ 	  -e 's!@''scriptdir''@!$(bindir)!g' \
+ 	  -e 's!@''prefix''@!$(prefix)!g' \
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/Makefile.am.orig mysql-5.0.34-bk-20070101/scripts/Makefile.am.orig
+--- mysql-5.0.34-bk-20070101.orig/scripts/Makefile.am.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/Makefile.am.orig	2007-01-01 19:10:29.000000000 +0100
+@@ -0,0 +1,158 @@
++# Copyright (C) 2000-2006 MySQL AB
++# 
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++# 
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# 
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++## Process this file with automake to create Makefile.in
++
++bin_SCRIPTS =		@server_scripts@ \
++			msql2mysql \
++			mysql_config \
++			mysql_fix_privilege_tables \
++			mysql_fix_extensions \
++			mysql_setpermission \
++			mysql_secure_installation \
++			mysql_zap \
++			mysqlaccess \
++			mysqlbug \
++			mysql_convert_table_format \
++			mysql_find_rows \
++			mysqlhotcopy \
++			mysqldumpslow \
++			mysql_explain_log \
++			mysql_tableinfo \
++			mysql_upgrade_shell \
++			mysqld_multi \
++			mysql_create_system_tables
++
++noinst_SCRIPTS =	make_binary_distribution \
++			make_sharedlib_distribution \
++			make_win_src_distribution
++
++EXTRA_SCRIPTS =		make_binary_distribution.sh \
++			make_sharedlib_distribution.sh \
++			make_win_src_distribution.sh \
++			msql2mysql.sh \
++			mysql_config.sh \
++			mysql_fix_privilege_tables.sh \
++			mysql_fix_extensions.sh \
++			mysql_install_db.sh \
++			mysql_setpermission.sh \
++			mysql_secure_installation.sh \
++			mysql_zap.sh \
++			mysqlaccess.sh \
++			mysqlbug.sh \
++			mysql_convert_table_format.sh \
++			mysql_find_rows.sh \
++			mysqlhotcopy.sh \
++			mysqldumpslow.sh \
++			mysql_explain_log.sh \
++			mysqld_multi.sh \
++			mysql_tableinfo.sh \
++			mysql_upgrade_shell.sh \
++			mysqld_safe.sh \
++			mysql_create_system_tables.sh
++
++EXTRA_DIST =		$(EXTRA_SCRIPTS) \
++			mysqlaccess.conf \
++			mysqlbug \
++			make_win_bin_dist
++
++dist_pkgdata_DATA =		fill_help_tables.sql mysql_fix_privilege_tables.sql
++
++# mysqlbug should be distributed built so that people can report build
++# failures with it.
++CLEANFILES =		@server_scripts@ \
++			make_binary_distribution \
++			make_sharedlib_distribution \
++			msql2mysql \
++			mysql_config \
++			mysql_fix_privilege_tables \
++			mysql_fix_extensions \
++			mysql_setpermission \
++			mysql_secure_installation \
++			mysql_zap \
++			mysqlaccess \
++			mysql_convert_table_format \
++			mysql_find_rows \
++			mysqlhotcopy \
++			mysqldumpslow \
++			mysql_explain_log \
++			mysql_tableinfo \
++			mysql_upgrade_shell \
++			mysqld_multi \
++			make_win_src_distribution \
++			mysql_create_system_tables
++
++DISTCLEANFILES =        mysqlbug
++
++# We want the right version and configure comand line in mysqlbug
++mysqlbug: ${top_builddir}/config.status mysqlbug.sh
++
++SUFFIXES = .sh
++
++.sh:
++	@RM@ -f $@ $@-t
++	@SED@ \
++	  -e 's!@''bindir''@!$(bindir)!g' \
++	  -e 's!@''sbindir''@!$(sbindir)!g' \
++	  -e 's!@''scriptdir''@!$(bindir)!g' \
++	  -e 's!@''prefix''@!$(prefix)!g' \
++	  -e 's!@''datadir''@!$(datadir)!g' \
++	  -e 's!@''localstatedir''@!$(localstatedir)!g' \
++	  -e 's!@''libexecdir''@!$(libexecdir)!g' \
++	  -e 's!@''pkglibdir''@!$(pkglibdir)!g' \
++	  -e 's!@''pkgincludedir''@!$(pkgincludedir)!g' \
++	  -e 's!@''pkgdatadir''@!$(pkgdatadir)!g' \
++	  -e 's!@''sysconfdir''@!$(sysconfdir)!g' \
++	  -e 's!@''CC''@!@CC@!'\
++	  -e 's!@''CXX''@!@CXX@!'\
++	  -e 's!@''GXX''@!@GXX@!'\
++	  -e 's!@''CC_VERSION''@!@CC_VERSION@!'\
++	  -e 's!@''CXX_VERSION''@!@CXX_VERSION@!'\
++	  -e 's!@''PERL''@!@PERL@!' \
++	  -e 's!@''ASFLAGS''@!@SAVE_ASFLAGS@!'\
++	  -e 's!@''CFLAGS''@!@SAVE_CFLAGS@!'\
++	  -e 's!@''CXXFLAGS''@!@SAVE_CXXFLAGS@!'\
++	  -e 's!@''LDFLAGS''@!@SAVE_LDFLAGS@!'\
++	  -e 's!@''CLIENT_LIBS''@!@CLIENT_LIBS@!' \
++	  -e 's!@''ZLIB_LIBS''@!@ZLIB_LIBS@!' \
++	  -e 's!@''LIBS''@!@LIBS@!' \
++	  -e 's!@''WRAPLIBS''@!@WRAPLIBS@!' \
++	  -e 's!@''innodb_system_libs''@!@innodb_system_libs@!' \
++	  -e 's!@''openssl_libs''@!@openssl_libs@!' \
++	  -e 's!@''VERSION''@!@VERSION@!' \
++	  -e 's!@''MYSQL_BASE_VERSION''@!@MYSQL_BASE_VERSION@!' \
++	  -e 's!@''MYSQL_SERVER_SUFFIX''@!@MYSQL_SERVER_SUFFIX@!' \
++	  -e 's!@''COMPILATION_COMMENT''@!@COMPILATION_COMMENT@!' \
++	  -e 's!@''MACHINE_TYPE''@!@MACHINE_TYPE@!' \
++	  -e 's!@''HOSTNAME''@!@HOSTNAME@!' \
++	  -e 's!@''SYSTEM_TYPE''@!@SYSTEM_TYPE@!' \
++	  -e 's!@''CHECK_PID''@!@CHECK_PID@!' \
++	  -e 's!@''FIND_PROC''@!@FIND_PROC@!' \
++	  -e 's!@''MYSQLD_DEFAULT_SWITCHES''@!@MYSQLD_DEFAULT_SWITCHES@!' \
++	  -e 's!@''MYSQL_UNIX_ADDR''@!@MYSQL_UNIX_ADDR@!' \
++	  -e 's!@''MYSQL_TCP_PORT''@!@MYSQL_TCP_PORT@!' \
++	  -e 's!@''TARGET_LINUX''@!@TARGET_LINUX@!' \
++	  -e "s!@""CONF_COMMAND""@!@CONF_COMMAND@!" \
++	  -e 's!@''MYSQLD_USER''@!@MYSQLD_USER@!' \
++	  -e 's!@''STATIC_NSS_FLAGS''@!@STATIC_NSS_FLAGS@!' \
++	  -e 's!@''NON_THREADED_LIBS''@!@NON_THREADED_LIBS@!' \
++	  -e 's!@''ZLIB_DEPS''@!@ZLIB_DEPS@!' \
++	  -e "s!@MAKE@!$(MAKE)!" \
++	$< > $@-t
++	@CHMOD@ +x $@-t
++	@MV@ $@-t $@
++
++# Don't update the files from bitkeeper
++%::SCCS/s.%
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/msql2mysql.sh mysql-5.0.34-bk-20070101/scripts/msql2mysql.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/msql2mysql.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/msql2mysql.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -13,4 +13,4 @@
+ # described in the License.  Among other things, the License requires that
+ # the copyright notice and this notice be preserved on all copies.
+ 
+-@bindir@/replace msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
++@bindir@/@mybin_replace@ msqlConnect mysql_connect msqlListDBs  mysql_list_dbs msqlNumRows mysql_num_rows msqlFetchRow mysql_fetch_row msqlFetchField mysql_fetch_field msqlFreeResult mysql_free_result msqlListFields mysql_list_fields msqlListTables mysql_list_tables msqlErrMsg 'mysql_error(mysql)' msqlStoreResult mysql_store_result msqlQuery mysql_query msqlField mysql_field msqlSelect mysql_select msqlSelectDB mysql_select_db msqlNumFields mysql_num_fields msqlClose mysql_close msqlDataSeek mysql_data_seek m_field MYSQL_FIELD m_result MYSQL_RES m_row MYSQL_ROW msql mysql mSQL mySQL MSQL MYSQL msqlCreateDB mysql_create_db msqlDropDB mysql_drop_db msqlFieldSeek mysql_field_seek -- $*
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_config.sh mysql-5.0.34-bk-20070101/scripts/mysql_config.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_config.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_config.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -76,7 +76,7 @@
+ 
+ me=`get_full_path $0`
+ 
+-basedir=`echo $me | sed -e 's;/bin/mysql_config;;'`
++basedir=`echo $me | sed -e 's;/bin/@mybin_mysql_config@;;'`
+ 
+ ldata='@localstatedir@'
+ execdir='@libexecdir@'
+@@ -85,10 +85,10 @@
+ # If installed, search for the compiled in directory first (might be "lib64")
+ pkglibdir='@pkglibdir@'
+ pkglibdir_rel=`echo $pkglibdir | sed -e "s;^$basedir/;;"`
+-fix_path pkglibdir $pkglibdir_rel lib/mysql lib
++fix_path pkglibdir $pkglibdir_rel "lib${pkglibdir##*lib}" lib/mysql lib
+ 
+ pkgincludedir='@pkgincludedir@'
+-fix_path pkgincludedir include/mysql include
++fix_path pkgincludedir "include${pkgincludedir##*include}" include/mysql include
+ 
+ version='@VERSION@'
+ socket='@MYSQL_UNIX_ADDR@'
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_config.sh.orig mysql-5.0.34-bk-20070101/scripts/mysql_config.sh.orig
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_config.sh.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_config.sh.orig	2007-01-01 19:10:29.000000000 +0100
+@@ -0,0 +1,182 @@
++#!/bin/sh
++# Copyright (C) 2000-2006 MySQL AB
++# 
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++# 
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# 
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++# This script reports various configuration settings that may be needed
++# when using the MySQL client library.
++
++which ()
++{
++  IFS="${IFS=   }"; save_ifs="$IFS"; IFS=':'
++  for file
++  do
++    for dir in $PATH
++    do
++      if test -f $dir/$file
++      then
++        echo "$dir/$file"
++        continue 2
++      fi
++    done
++    echo "which: no $file in ($PATH)"
++    exit 1
++  done
++  IFS="$save_ifs"
++}
++
++#
++# If we can find the given directory relatively to where mysql_config is
++# we should use this instead of the incompiled one.
++# This is to ensure that this script also works with the binary MySQL
++# version
++
++fix_path ()
++{
++  var=$1
++  shift
++  for filename
++  do
++    path=$basedir/$filename
++    if [ -d "$path" ] ;
++    then
++      eval "$var"=$path
++      return
++    fi
++  done
++}
++
++get_full_path ()
++{
++  file=$1
++
++  # if the file is a symlink, try to resolve it
++  if [ -h $file ];
++  then
++    file=`ls -l $file | awk '{ print $NF }'`
++  fi
++
++  case $file in
++    /*) echo "$file";;
++    */*) tmp=`pwd`/$file; echo $tmp | sed -e 's;/\./;/;' ;;
++    *) which $file ;;
++  esac
++}
++
++me=`get_full_path $0`
++
++basedir=`echo $me | sed -e 's;/bin/mysql_config;;'`
++
++ldata='@localstatedir@'
++execdir='@libexecdir@'
++bindir='@bindir@'
++
++# If installed, search for the compiled in directory first (might be "lib64")
++pkglibdir='@pkglibdir@'
++pkglibdir_rel=`echo $pkglibdir | sed -e "s;^$basedir/;;"`
++fix_path pkglibdir $pkglibdir_rel lib/mysql lib
++
++pkgincludedir='@pkgincludedir@'
++fix_path pkgincludedir include/mysql include
++
++version='@VERSION@'
++socket='@MYSQL_UNIX_ADDR@'
++port='@MYSQL_TCP_PORT@'
++ldflags='@LDFLAGS@'
++
++# Create options 
++# We intentionally add a space to the beginning and end of lib strings, simplifies replace later
++libs=" $ldflags -L$pkglibdir -lmysqlclient @ZLIB_DEPS@ @NON_THREADED_LIBS@"
++libs="$libs @openssl_libs@ @STATIC_NSS_FLAGS@ "
++libs_r=" $ldflags -L$pkglibdir -lmysqlclient_r @ZLIB_DEPS@ @LIBS@ @openssl_libs@ "
++embedded_libs=" $ldflags -L$pkglibdir -lmysqld @ZLIB_DEPS@ @LIBS@ @WRAPLIBS@ @innodb_system_libs@ @openssl_libs@ "
++
++cflags="-I$pkgincludedir @CFLAGS@ " #note: end space!
++include="-I$pkgincludedir"
++
++# Remove some options that a client doesn't have to care about
++# FIXME until we have a --cxxflags, we need to remove -Xa
++#       and -xstrconst to make --cflags usable for Sun Forte C++
++for remove in DDBUG_OFF DSAFEMALLOC USAFEMALLOC DSAFE_MUTEX \
++              DPEDANTIC_SAFEMALLOC DUNIV_MUST_NOT_INLINE DFORCE_INIT_OF_VARS \
++              DEXTRA_DEBUG DHAVE_purify O 'O[0-9]' 'xO[0-9]' 'W[-A-Za-z]*' \
++              Xa xstrconst "xc99=none" \
++              unroll2 ip mp restrict
++do
++  # The first option we might strip will always have a space before it because
++  # we set -I$pkgincludedir as the first option
++  cflags=`echo "$cflags"|sed -e "s/ -$remove  */ /g"` 
++done
++cflags=`echo "$cflags"|sed -e 's/ *\$//'` 
++
++# Same for --libs(_r)
++for remove in lmtmalloc static-libcxa i-static
++do
++  # We know the strings starts with a space
++  libs=`echo "$libs"|sed -e "s/ -$remove  */ /g"` 
++  libs_r=`echo "$libs_r"|sed -e "s/ -$remove  */ /g"` 
++  embedded_libs=`echo "$embedded_libs"|sed -e "s/ -$remove  */ /g"` 
++done
++
++# Strip trailing and ending space if any, and '+' (FIXME why?)
++libs=`echo "$libs" | sed -e 's;  \+; ;g' | sed -e 's;^ *;;' | sed -e 's; *\$;;'`
++libs_r=`echo "$libs_r" | sed -e 's;  \+; ;g' | sed -e 's;^ *;;' | sed -e 's; *\$;;'`
++embedded_libs=`echo "$embedded_libs" | sed -e 's;  \+; ;g' | sed -e 's;^ *;;' | sed -e 's; *\$;;'`
++
++usage () {
++        cat <<EOF
++Usage: $0 [OPTIONS]
++Options:
++        --cflags         [$cflags]
++        --include        [$include]
++        --libs           [$libs]
++        --libs_r         [$libs_r]
++        --socket         [$socket]
++        --port           [$port]
++        --version        [$version]
++        --libmysqld-libs [$embedded_libs]
++EOF
++        exit 1
++}
++
++if test $# -le 0; then usage; fi
++
++while test $# -gt 0; do
++        case $1 in
++        --cflags)  echo "$cflags" ;;
++        --include) echo "$include" ;;
++        --libs)    echo "$libs" ;;
++        --libs_r)  echo "$libs_r" ;;
++        --socket)  echo "$socket" ;;
++        --port)    echo "$port" ;;
++        --version) echo "$version" ;;
++        --embedded-libs | --embedded | --libmysqld-libs) echo "$embedded_libs" ;;
++        *)         usage ;;
++        esac
++
++        shift
++done
++
++#echo "ldata: '"$ldata"'"
++#echo "execdir: '"$execdir"'"
++#echo "bindir: '"$bindir"'"
++#echo "pkglibdir: '"$pkglibdir"'"
++#echo "pkgincludedir: '"$pkgincludedir"'"
++#echo "version: '"$version"'"
++#echo "socket: '"$socket"'"
++#echo "port: '"$port"'"
++#echo "ldflags: '"$ldflags"'"
++#echo "client_libs: '"$client_libs"'"
++
++exit 0
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_create_system_tables.sh mysql-5.0.34-bk-20070101/scripts/mysql_create_system_tables.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_create_system_tables.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_create_system_tables.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -31,7 +31,7 @@
+ new context from the manual (from fill_help_tables.sql).
+ 
+ Usage:
+-  mysql_create_system_tables [test|verbose|real] <path to mysql-database directory> <hostname> <windows option>
++  @mybin_mysql_create_system_tables@ [test|verbose|real] <path to mysql-database directory> <hostname> <windows option>
+ "
+   exit
+ fi
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_create_system_tables.sh.orig mysql-5.0.34-bk-20070101/scripts/mysql_create_system_tables.sh.orig
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_create_system_tables.sh.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_create_system_tables.sh.orig	2007-01-01 19:10:29.000000000 +0100
+@@ -0,0 +1,779 @@
++#!/bin/sh
++# Copyright (C) 1997-2003 MySQL AB
++# 
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++# 
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# 
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
++
++# This script writes on stdout SQL commands to generate all not
++# existing MySQL system tables. It also replaces the help tables with
++# new context from the manual (from fill_help_tables.sql).
++
++# $1 - "test" or "real" or "verbose" variant of database
++# $2 - path to mysql-database directory
++# $3 - hostname  
++# $4 - windows option
++
++if test "$1" = ""
++then
++  echo "
++This script writes on stdout SQL commands to generate all not
++existing MySQL system tables. It also replaces the help tables with
++new context from the manual (from fill_help_tables.sql).
++
++Usage:
++  mysql_create_system_tables [test|verbose|real] <path to mysql-database directory> <hostname> <windows option>
++"
++  exit
++fi
++
++mdata=$2
++hostname=$3
++windows=$4
++
++# Initialize variables
++c_d="" i_d=""
++c_h="" i_h=""
++c_u="" i_u=""
++c_f="" i_f=""
++c_t="" c_c=""
++c_ht=""
++c_hc=""
++c_hr="" 
++c_hk="" 
++i_ht=""
++c_tzn="" c_tz="" c_tzt="" c_tztt="" c_tzls=""
++i_tzn="" i_tz="" i_tzt="" i_tztt="" i_tzls=""
++c_p="" c_pp=""
++
++# Check for old tables
++if test ! -f $mdata/db.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing db table" 1>&2; 
++  fi
++
++  # mysqld --bootstrap wants one command/line
++  c_d="$c_d CREATE TABLE db ("
++  c_d="$c_d   Host char(60) binary DEFAULT '' NOT NULL,"
++  c_d="$c_d   Db char(64) binary DEFAULT '' NOT NULL,"
++  c_d="$c_d   User char(16) binary DEFAULT '' NOT NULL,"
++  c_d="$c_d   Select_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Insert_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Update_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Delete_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Create_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Drop_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Grant_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   References_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Index_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Alter_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Create_tmp_table_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Lock_tables_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Create_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Show_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Create_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Alter_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d   Execute_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_d="$c_d PRIMARY KEY Host (Host,Db,User),"
++  c_d="$c_d KEY User (User)"
++  c_d="$c_d ) engine=MyISAM"
++  c_d="$c_d CHARACTER SET utf8 COLLATE utf8_bin"
++  c_d="$c_d comment='Database privileges';"
++  
++  i_d="INSERT INTO db VALUES ('%','test','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N');
++  INSERT INTO db VALUES ('%','test\_%','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N');"
++fi
++
++if test ! -f $mdata/host.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing host table" 1>&2;
++  fi
++
++  c_h="$c_h CREATE TABLE host ("
++  c_h="$c_h  Host char(60) binary DEFAULT '' NOT NULL,"
++  c_h="$c_h  Db char(64) binary DEFAULT '' NOT NULL,"
++  c_h="$c_h  Select_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Insert_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Update_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Delete_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Create_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Drop_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Grant_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  References_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Index_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Alter_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Create_tmp_table_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Lock_tables_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Create_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Show_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Create_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Alter_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  Execute_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_h="$c_h  PRIMARY KEY Host (Host,Db)"
++  c_h="$c_h ) engine=MyISAM"
++  c_h="$c_h CHARACTER SET utf8 COLLATE utf8_bin"
++  c_h="$c_h comment='Host privileges;  Merged with database privileges';"
++fi
++
++if test ! -f $mdata/user.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing user table" 1>&2;
++  fi
++
++  c_u="$c_u CREATE TABLE user ("
++  c_u="$c_u   Host char(60) binary DEFAULT '' NOT NULL,"
++  c_u="$c_u   User char(16) binary DEFAULT '' NOT NULL,"
++  c_u="$c_u   Password char(41) character set latin1 collate latin1_bin DEFAULT '' NOT NULL,"
++  c_u="$c_u   Select_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Insert_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Update_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Delete_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Create_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Drop_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Reload_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Shutdown_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Process_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   File_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Grant_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   References_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Index_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Alter_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Show_db_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Super_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Create_tmp_table_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Lock_tables_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Execute_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Repl_slave_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Repl_client_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Create_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Show_view_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Create_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Alter_routine_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   Create_user_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_u="$c_u   ssl_type enum('','ANY','X509', 'SPECIFIED') COLLATE utf8_general_ci DEFAULT '' NOT NULL,"
++  c_u="$c_u   ssl_cipher BLOB NOT NULL,"
++  c_u="$c_u   x509_issuer BLOB NOT NULL,"
++  c_u="$c_u   x509_subject BLOB NOT NULL,"
++  c_u="$c_u   max_questions int(11) unsigned DEFAULT 0  NOT NULL,"
++  c_u="$c_u   max_updates int(11) unsigned DEFAULT 0  NOT NULL,"
++  c_u="$c_u   max_connections int(11) unsigned DEFAULT 0  NOT NULL,"
++  c_u="$c_u   max_user_connections int(11) unsigned DEFAULT 0  NOT NULL,"
++  c_u="$c_u   PRIMARY KEY Host (Host,User)"
++  c_u="$c_u ) engine=MyISAM"
++  c_u="$c_u CHARACTER SET utf8 COLLATE utf8_bin"
++  c_u="$c_u comment='Users and global privileges';"
++
++  if test "$1" = "test" 
++  then
++    i_u="INSERT INTO user VALUES ('localhost','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0);
++    INSERT INTO user VALUES ('$hostname','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0);
++    REPLACE INTO user VALUES ('127.0.0.1','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0);
++    INSERT INTO user (host,user) values ('localhost','');
++    INSERT INTO user (host,user) values ('$hostname','');"
++  else
++    i_u="INSERT INTO user VALUES ('localhost','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0);"
++    if test "$windows" = "0"
++    then
++      i_u="$i_u
++           INSERT INTO user VALUES ('$hostname','root','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0,0);
++           INSERT INTO user (host,user) values ('$hostname','');
++           INSERT INTO user (host,user) values ('localhost','');"
++    else
++      i_u="$i_u
++	   INSERT INTO user VALUES ('localhost','','','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','Y','','','','',0,0,0);"
++    fi
++  fi 
++fi
++
++if test ! -f $mdata/func.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing func table" 1>&2;
++  fi
++
++  c_f="$c_f CREATE TABLE func ("
++  c_f="$c_f   name char(64) binary DEFAULT '' NOT NULL,"
++  c_f="$c_f   ret tinyint(1) DEFAULT '0' NOT NULL,"
++  c_f="$c_f   dl char(128) DEFAULT '' NOT NULL,"
++  c_f="$c_f   type enum ('function','aggregate') COLLATE utf8_general_ci NOT NULL,"
++  c_f="$c_f   PRIMARY KEY (name)"
++  c_f="$c_f ) engine=MyISAM"
++  c_f="$c_f CHARACTER SET utf8 COLLATE utf8_bin"
++  c_f="$c_f   comment='User defined functions';"
++fi
++
++if test ! -f $mdata/tables_priv.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing tables_priv table" 1>&2;
++  fi
++
++  c_t="$c_t CREATE TABLE tables_priv ("
++  c_t="$c_t   Host char(60) binary DEFAULT '' NOT NULL,"
++  c_t="$c_t   Db char(64) binary DEFAULT '' NOT NULL,"
++  c_t="$c_t   User char(16) binary DEFAULT '' NOT NULL,"
++  c_t="$c_t   Table_name char(64) binary DEFAULT '' NOT NULL,"
++  c_t="$c_t   Grantor char(77) DEFAULT '' NOT NULL,"
++  c_t="$c_t   Timestamp timestamp(14),"
++  c_t="$c_t   Table_priv set('Select','Insert','Update','Delete','Create','Drop','Grant','References','Index','Alter','Create View','Show view') COLLATE utf8_general_ci DEFAULT '' NOT NULL,"
++  c_t="$c_t   Column_priv set('Select','Insert','Update','References') COLLATE utf8_general_ci DEFAULT '' NOT NULL,"
++  c_t="$c_t   PRIMARY KEY (Host,Db,User,Table_name),"
++  c_t="$c_t   KEY Grantor (Grantor)"
++  c_t="$c_t ) engine=MyISAM"
++  c_t="$c_t CHARACTER SET utf8 COLLATE utf8_bin"
++  c_t="$c_t   comment='Table privileges';"
++fi
++
++if test ! -f $mdata/columns_priv.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing columns_priv table" 1>&2;
++  fi
++
++  c_c="$c_c CREATE TABLE columns_priv ("
++  c_c="$c_c   Host char(60) binary DEFAULT '' NOT NULL,"
++  c_c="$c_c   Db char(64) binary DEFAULT '' NOT NULL,"
++  c_c="$c_c   User char(16) binary DEFAULT '' NOT NULL,"
++  c_c="$c_c   Table_name char(64) binary DEFAULT '' NOT NULL,"
++  c_c="$c_c   Column_name char(64) binary DEFAULT '' NOT NULL,"
++  c_c="$c_c   Timestamp timestamp(14),"
++  c_c="$c_c   Column_priv set('Select','Insert','Update','References') COLLATE utf8_general_ci DEFAULT '' NOT NULL,"
++  c_c="$c_c   PRIMARY KEY (Host,Db,User,Table_name,Column_name)"
++  c_c="$c_c ) engine=MyISAM"
++  c_c="$c_c CHARACTER SET utf8 COLLATE utf8_bin"
++  c_c="$c_c   comment='Column privileges';"
++fi
++
++if test ! -f $mdata/procs_priv.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing procs_priv table" 1>&2;
++  fi
++
++  c_pp="$c_pp CREATE TABLE procs_priv ("
++  c_pp="$c_pp   Host char(60) binary DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   Db char(64) binary DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   User char(16) binary DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   Routine_name char(64) binary DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   Routine_type enum('FUNCTION','PROCEDURE') NOT NULL,"
++  c_pp="$c_pp   Grantor char(77) DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   Proc_priv set('Execute','Alter Routine','Grant') COLLATE utf8_general_ci DEFAULT '' NOT NULL,"
++  c_pp="$c_pp   Timestamp timestamp(14),"
++  c_pp="$c_pp   PRIMARY KEY (Host,Db,User,Routine_name,Routine_type),"
++  c_pp="$c_pp   KEY Grantor (Grantor)"
++  c_pp="$c_pp ) engine=MyISAM"
++  c_pp="$c_pp CHARACTER SET utf8 COLLATE utf8_bin"
++  c_pp="$c_pp   comment='Procedure privileges';"
++fi
++
++if test ! -f $mdata/help_topic.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing help_topic table" 1>&2;
++  fi
++
++  c_ht="$c_ht CREATE TABLE help_topic ("
++  c_ht="$c_ht   help_topic_id    int unsigned not null,"
++  c_ht="$c_ht   name             char(64) not null,"
++  c_ht="$c_ht   help_category_id smallint unsigned not null,"
++  c_ht="$c_ht   description      text not null,"
++  c_ht="$c_ht   example          text not null,"
++  c_ht="$c_ht   url              char(128) not null,"
++  c_ht="$c_ht   primary key      (help_topic_id),"
++  c_ht="$c_ht   unique index     (name)"
++  c_ht="$c_ht ) engine=MyISAM"
++  c_ht="$c_ht CHARACTER SET utf8"
++  c_ht="$c_ht   comment='help topics';"
++fi
++
++old_categories="yes"
++		    
++if test ! -f $mdata/help_category.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing help_category table" 1>&2;
++  fi
++  
++  c_hc="$c_hc CREATE TABLE help_category ("
++  c_hc="$c_hc   help_category_id   smallint unsigned not null,"
++  c_hc="$c_hc   name               char(64) not null,"
++  c_hc="$c_hc   parent_category_id smallint unsigned null,"
++  c_hc="$c_hc   url                char(128) not null,"
++  c_hc="$c_hc   primary key        (help_category_id),"
++  c_hc="$c_hc   unique index       (name)"
++  c_hc="$c_hc ) engine=MyISAM"
++  c_hc="$c_hc CHARACTER SET utf8"
++  c_hc="$c_hc   comment='help categories';"
++fi
++
++if test ! -f $mdata/help_keyword.frm
++then
++  if test "$1" = "verbose" ; then
++    echo "Preparing help_keyword table" 1>&2;
++  fi
++
++  c_hk="$c_hk CREATE TABLE help_keyword ("
++  c_hk="$c_hk   help_keyword_id  int unsigned not null,"
++  c_hk="$c_hk   name             char(64) not null,"
++  c_hk="$c_hk   primary key      (help_keyword_id),"
++  c_hk="$c_hk   unique index     (name)"
++  c_hk="$c_hk ) engine=MyISAM"
++  c_hk="$c_hk CHARACTER SET utf8"
++  c_hk="$c_hk   comment='help keywords';"
++fi
++				    
++if test ! -f $mdata/help_relation.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing help_relation table" 1>&2;
++  fi
++
++  c_hr="$c_hr CREATE TABLE help_relation ("
++  c_hr="$c_hr   help_topic_id    int unsigned not null references help_topic,"
++  c_hr="$c_hr   help_keyword_id  int unsigned not null references help_keyword,"
++  c_hr="$c_hr   primary key      (help_keyword_id, help_topic_id)"
++  c_hr="$c_hr ) engine=MyISAM"
++  c_hr="$c_hr CHARACTER SET utf8"
++  c_hr="$c_hr   comment='keyword-topic relation';"
++fi
++
++if test ! -f $mdata/time_zone_name.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing time_zone_name table" 1>&2;
++  fi
++
++  c_tzn="$c_tzn CREATE TABLE time_zone_name ("
++  c_tzn="$c_tzn   Name char(64) NOT NULL,"
++  c_tzn="$c_tzn   Time_zone_id int unsigned NOT NULL,"
++  c_tzn="$c_tzn   PRIMARY KEY Name (Name)"
++  c_tzn="$c_tzn ) engine=MyISAM CHARACTER SET utf8"
++  c_tzn="$c_tzn   comment='Time zone names';"
++  
++  if test "$1" = "test" 
++  then
++    i_tzn="$i_tzn INSERT INTO time_zone_name (Name, Time_Zone_id) VALUES"
++    i_tzn="$i_tzn   ('MET', 1), ('UTC', 2), ('Universal', 2), "
++    i_tzn="$i_tzn   ('Europe/Moscow',3), ('leap/Europe/Moscow',4), "
++    i_tzn="$i_tzn   ('Japan', 5);"
++  fi
++fi
++
++if test ! -f $mdata/time_zone.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing time_zone table" 1>&2;
++  fi
++
++  c_tz="$c_tz CREATE TABLE time_zone ("
++  c_tz="$c_tz   Time_zone_id int unsigned NOT NULL auto_increment,"
++  c_tz="$c_tz   Use_leap_seconds enum('Y','N') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL,"
++  c_tz="$c_tz   PRIMARY KEY TzId (Time_zone_id)"
++  c_tz="$c_tz ) engine=MyISAM CHARACTER SET utf8"
++  c_tz="$c_tz   comment='Time zones';"
++  
++  if test "$1" = "test" 
++  then
++    i_tz="$i_tz INSERT INTO time_zone (Time_zone_id, Use_leap_seconds)" 
++    i_tz="$i_tz   VALUES (1,'N'), (2,'N'), (3,'N'), (4,'Y'), (5,'N');"
++  fi
++fi
++
++if test ! -f $mdata/time_zone_transition.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing time_zone_transition table" 1>&2;
++  fi
++
++  c_tzt="$c_tzt CREATE TABLE time_zone_transition ("
++  c_tzt="$c_tzt   Time_zone_id int unsigned NOT NULL,"
++  c_tzt="$c_tzt   Transition_time bigint signed NOT NULL,"
++  c_tzt="$c_tzt   Transition_type_id int unsigned NOT NULL,"
++  c_tzt="$c_tzt   PRIMARY KEY TzIdTranTime (Time_zone_id, Transition_time)"
++  c_tzt="$c_tzt ) engine=MyISAM CHARACTER SET utf8"
++  c_tzt="$c_tzt   comment='Time zone transitions';"
++  
++  if test "$1" = "test" 
++  then
++    i_tzt="$i_tzt INSERT INTO time_zone_transition"
++    i_tzt="$i_tzt   (Time_zone_id, Transition_time, Transition_type_id)"
++    i_tzt="$i_tzt VALUES"
++    i_tzt="$i_tzt   (1, -1693706400, 0) ,(1, -1680483600, 1)"
++    i_tzt="$i_tzt  ,(1, -1663455600, 2) ,(1, -1650150000, 3)"
++    i_tzt="$i_tzt  ,(1, -1632006000, 2) ,(1, -1618700400, 3)"
++    i_tzt="$i_tzt  ,(1, -938905200, 2) ,(1, -857257200, 3)"
++    i_tzt="$i_tzt  ,(1, -844556400, 2) ,(1, -828226800, 3)"
++    i_tzt="$i_tzt  ,(1, -812502000, 2) ,(1, -796777200, 3)"
++    i_tzt="$i_tzt  ,(1, 228877200, 2) ,(1, 243997200, 3)"
++    i_tzt="$i_tzt  ,(1, 260326800, 2) ,(1, 276051600, 3)"
++    i_tzt="$i_tzt  ,(1, 291776400, 2) ,(1, 307501200, 3)"
++    i_tzt="$i_tzt  ,(1, 323830800, 2) ,(1, 338950800, 3)"
++    i_tzt="$i_tzt  ,(1, 354675600, 2) ,(1, 370400400, 3)"
++    i_tzt="$i_tzt  ,(1, 386125200, 2) ,(1, 401850000, 3)"
++    i_tzt="$i_tzt  ,(1, 417574800, 2) ,(1, 433299600, 3)"
++    i_tzt="$i_tzt  ,(1, 449024400, 2) ,(1, 465354000, 3)"
++    i_tzt="$i_tzt  ,(1, 481078800, 2) ,(1, 496803600, 3)"
++    i_tzt="$i_tzt  ,(1, 512528400, 2) ,(1, 528253200, 3)"
++    i_tzt="$i_tzt  ,(1, 543978000, 2) ,(1, 559702800, 3)"
++    i_tzt="$i_tzt  ,(1, 575427600, 2) ,(1, 591152400, 3)"
++    i_tzt="$i_tzt  ,(1, 606877200, 2) ,(1, 622602000, 3)"
++    i_tzt="$i_tzt  ,(1, 638326800, 2) ,(1, 654656400, 3)"
++    i_tzt="$i_tzt  ,(1, 670381200, 2) ,(1, 686106000, 3)"
++    i_tzt="$i_tzt  ,(1, 701830800, 2) ,(1, 717555600, 3)"
++    i_tzt="$i_tzt  ,(1, 733280400, 2) ,(1, 749005200, 3)"
++    i_tzt="$i_tzt  ,(1, 764730000, 2) ,(1, 780454800, 3)"
++    i_tzt="$i_tzt  ,(1, 796179600, 2) ,(1, 811904400, 3)"
++    i_tzt="$i_tzt  ,(1, 828234000, 2) ,(1, 846378000, 3)"
++    i_tzt="$i_tzt  ,(1, 859683600, 2) ,(1, 877827600, 3)"
++    i_tzt="$i_tzt  ,(1, 891133200, 2) ,(1, 909277200, 3)"
++    i_tzt="$i_tzt  ,(1, 922582800, 2) ,(1, 941331600, 3)"
++    i_tzt="$i_tzt  ,(1, 954032400, 2) ,(1, 972781200, 3)"
++    i_tzt="$i_tzt  ,(1, 985482000, 2) ,(1, 1004230800, 3)"
++    i_tzt="$i_tzt  ,(1, 1017536400, 2) ,(1, 1035680400, 3)"
++    i_tzt="$i_tzt  ,(1, 1048986000, 2) ,(1, 1067130000, 3)"
++    i_tzt="$i_tzt  ,(1, 1080435600, 2) ,(1, 1099184400, 3)"
++    i_tzt="$i_tzt  ,(1, 1111885200, 2) ,(1, 1130634000, 3)"
++    i_tzt="$i_tzt  ,(1, 1143334800, 2) ,(1, 1162083600, 3)"
++    i_tzt="$i_tzt  ,(1, 1174784400, 2) ,(1, 1193533200, 3)"
++    i_tzt="$i_tzt  ,(1, 1206838800, 2) ,(1, 1224982800, 3)"
++    i_tzt="$i_tzt  ,(1, 1238288400, 2) ,(1, 1256432400, 3)"
++    i_tzt="$i_tzt  ,(1, 1269738000, 2) ,(1, 1288486800, 3)"
++    i_tzt="$i_tzt  ,(1, 1301187600, 2) ,(1, 1319936400, 3)"
++    i_tzt="$i_tzt  ,(1, 1332637200, 2) ,(1, 1351386000, 3)"
++    i_tzt="$i_tzt  ,(1, 1364691600, 2) ,(1, 1382835600, 3)"
++    i_tzt="$i_tzt  ,(1, 1396141200, 2) ,(1, 1414285200, 3)"
++    i_tzt="$i_tzt  ,(1, 1427590800, 2) ,(1, 1445734800, 3)"
++    i_tzt="$i_tzt  ,(1, 1459040400, 2) ,(1, 1477789200, 3)"
++    i_tzt="$i_tzt  ,(1, 1490490000, 2) ,(1, 1509238800, 3)"
++    i_tzt="$i_tzt  ,(1, 1521939600, 2) ,(1, 1540688400, 3)"
++    i_tzt="$i_tzt  ,(1, 1553994000, 2) ,(1, 1572138000, 3)"
++    i_tzt="$i_tzt  ,(1, 1585443600, 2) ,(1, 1603587600, 3)"
++    i_tzt="$i_tzt  ,(1, 1616893200, 2) ,(1, 1635642000, 3)"
++    i_tzt="$i_tzt  ,(1, 1648342800, 2) ,(1, 1667091600, 3)"
++    i_tzt="$i_tzt  ,(1, 1679792400, 2) ,(1, 1698541200, 3)"
++    i_tzt="$i_tzt  ,(1, 1711846800, 2) ,(1, 1729990800, 3)"
++    i_tzt="$i_tzt  ,(1, 1743296400, 2) ,(1, 1761440400, 3)"
++    i_tzt="$i_tzt  ,(1, 1774746000, 2) ,(1, 1792890000, 3)"
++    i_tzt="$i_tzt  ,(1, 1806195600, 2) ,(1, 1824944400, 3)"
++    i_tzt="$i_tzt  ,(1, 1837645200, 2) ,(1, 1856394000, 3)"
++    i_tzt="$i_tzt  ,(1, 1869094800, 2) ,(1, 1887843600, 3)"
++    i_tzt="$i_tzt  ,(1, 1901149200, 2) ,(1, 1919293200, 3)"
++    i_tzt="$i_tzt  ,(1, 1932598800, 2) ,(1, 1950742800, 3)"
++    i_tzt="$i_tzt  ,(1, 1964048400, 2) ,(1, 1982797200, 3)"
++    i_tzt="$i_tzt  ,(1, 1995498000, 2) ,(1, 2014246800, 3)"
++    i_tzt="$i_tzt  ,(1, 2026947600, 2) ,(1, 2045696400, 3)"
++    i_tzt="$i_tzt  ,(1, 2058397200, 2) ,(1, 2077146000, 3)"
++    i_tzt="$i_tzt  ,(1, 2090451600, 2) ,(1, 2108595600, 3)"
++    i_tzt="$i_tzt  ,(1, 2121901200, 2) ,(1, 2140045200, 3)"
++    i_tzt="$i_tzt  ,(3, -1688265000, 2) ,(3, -1656819048, 1)"
++    i_tzt="$i_tzt  ,(3, -1641353448, 2) ,(3, -1627965048, 3)"
++    i_tzt="$i_tzt  ,(3, -1618716648, 1) ,(3, -1596429048, 3)"
++    i_tzt="$i_tzt  ,(3, -1593829848, 5) ,(3, -1589860800, 4)"
++    i_tzt="$i_tzt  ,(3, -1542427200, 5) ,(3, -1539493200, 6)"
++    i_tzt="$i_tzt  ,(3, -1525323600, 5) ,(3, -1522728000, 4)"
++    i_tzt="$i_tzt  ,(3, -1491188400, 7) ,(3, -1247536800, 4)"
++    i_tzt="$i_tzt  ,(3, 354920400, 5) ,(3, 370728000, 4)"
++    i_tzt="$i_tzt  ,(3, 386456400, 5) ,(3, 402264000, 4)"
++    i_tzt="$i_tzt  ,(3, 417992400, 5) ,(3, 433800000, 4)"
++    i_tzt="$i_tzt  ,(3, 449614800, 5) ,(3, 465346800, 8)"
++    i_tzt="$i_tzt  ,(3, 481071600, 9) ,(3, 496796400, 8)"
++    i_tzt="$i_tzt  ,(3, 512521200, 9) ,(3, 528246000, 8)"
++    i_tzt="$i_tzt  ,(3, 543970800, 9) ,(3, 559695600, 8)"
++    i_tzt="$i_tzt  ,(3, 575420400, 9) ,(3, 591145200, 8)"
++    i_tzt="$i_tzt  ,(3, 606870000, 9) ,(3, 622594800, 8)"
++    i_tzt="$i_tzt  ,(3, 638319600, 9) ,(3, 654649200, 8)"
++    i_tzt="$i_tzt  ,(3, 670374000, 10) ,(3, 686102400, 11)"
++    i_tzt="$i_tzt  ,(3, 695779200, 8) ,(3, 701812800, 5)"
++    i_tzt="$i_tzt  ,(3, 717534000, 4) ,(3, 733273200, 9)"
++    i_tzt="$i_tzt  ,(3, 748998000, 8) ,(3, 764722800, 9)"
++    i_tzt="$i_tzt  ,(3, 780447600, 8) ,(3, 796172400, 9)"
++    i_tzt="$i_tzt  ,(3, 811897200, 8) ,(3, 828226800, 9)"
++    i_tzt="$i_tzt  ,(3, 846370800, 8) ,(3, 859676400, 9)"
++    i_tzt="$i_tzt  ,(3, 877820400, 8) ,(3, 891126000, 9)"
++    i_tzt="$i_tzt  ,(3, 909270000, 8) ,(3, 922575600, 9)"
++    i_tzt="$i_tzt  ,(3, 941324400, 8) ,(3, 954025200, 9)"
++    i_tzt="$i_tzt  ,(3, 972774000, 8) ,(3, 985474800, 9)"
++    i_tzt="$i_tzt  ,(3, 1004223600, 8) ,(3, 1017529200, 9)"
++    i_tzt="$i_tzt  ,(3, 1035673200, 8) ,(3, 1048978800, 9)"
++    i_tzt="$i_tzt  ,(3, 1067122800, 8) ,(3, 1080428400, 9)"
++    i_tzt="$i_tzt  ,(3, 1099177200, 8) ,(3, 1111878000, 9)"
++    i_tzt="$i_tzt  ,(3, 1130626800, 8) ,(3, 1143327600, 9)"
++    i_tzt="$i_tzt  ,(3, 1162076400, 8) ,(3, 1174777200, 9)"
++    i_tzt="$i_tzt  ,(3, 1193526000, 8) ,(3, 1206831600, 9)"
++    i_tzt="$i_tzt  ,(3, 1224975600, 8) ,(3, 1238281200, 9)"
++    i_tzt="$i_tzt  ,(3, 1256425200, 8) ,(3, 1269730800, 9)"
++    i_tzt="$i_tzt  ,(3, 1288479600, 8) ,(3, 1301180400, 9)"
++    i_tzt="$i_tzt  ,(3, 1319929200, 8) ,(3, 1332630000, 9)"
++    i_tzt="$i_tzt  ,(3, 1351378800, 8) ,(3, 1364684400, 9)"
++    i_tzt="$i_tzt  ,(3, 1382828400, 8) ,(3, 1396134000, 9)"
++    i_tzt="$i_tzt  ,(3, 1414278000, 8) ,(3, 1427583600, 9)"
++    i_tzt="$i_tzt  ,(3, 1445727600, 8) ,(3, 1459033200, 9)"
++    i_tzt="$i_tzt  ,(3, 1477782000, 8) ,(3, 1490482800, 9)"
++    i_tzt="$i_tzt  ,(3, 1509231600, 8) ,(3, 1521932400, 9)"
++    i_tzt="$i_tzt  ,(3, 1540681200, 8) ,(3, 1553986800, 9)"
++    i_tzt="$i_tzt  ,(3, 1572130800, 8) ,(3, 1585436400, 9)"
++    i_tzt="$i_tzt  ,(3, 1603580400, 8) ,(3, 1616886000, 9)"
++    i_tzt="$i_tzt  ,(3, 1635634800, 8) ,(3, 1648335600, 9)"
++    i_tzt="$i_tzt  ,(3, 1667084400, 8) ,(3, 1679785200, 9)"
++    i_tzt="$i_tzt  ,(3, 1698534000, 8) ,(3, 1711839600, 9)"
++    i_tzt="$i_tzt  ,(3, 1729983600, 8) ,(3, 1743289200, 9)"
++    i_tzt="$i_tzt  ,(3, 1761433200, 8) ,(3, 1774738800, 9)"
++    i_tzt="$i_tzt  ,(3, 1792882800, 8) ,(3, 1806188400, 9)"
++    i_tzt="$i_tzt  ,(3, 1824937200, 8) ,(3, 1837638000, 9)"
++    i_tzt="$i_tzt  ,(3, 1856386800, 8) ,(3, 1869087600, 9)"
++    i_tzt="$i_tzt  ,(3, 1887836400, 8) ,(3, 1901142000, 9)"
++    i_tzt="$i_tzt  ,(3, 1919286000, 8) ,(3, 1932591600, 9)"
++    i_tzt="$i_tzt  ,(3, 1950735600, 8) ,(3, 1964041200, 9)"
++    i_tzt="$i_tzt  ,(3, 1982790000, 8) ,(3, 1995490800, 9)"
++    i_tzt="$i_tzt  ,(3, 2014239600, 8) ,(3, 2026940400, 9)"
++    i_tzt="$i_tzt  ,(3, 2045689200, 8) ,(3, 2058390000, 9)"
++    i_tzt="$i_tzt  ,(3, 2077138800, 8) ,(3, 2090444400, 9)"
++    i_tzt="$i_tzt  ,(3, 2108588400, 8) ,(3, 2121894000, 9)"
++    i_tzt="$i_tzt  ,(3, 2140038000, 8)"
++    i_tzt="$i_tzt  ,(4, -1688265000, 2) ,(4, -1656819048, 1)"
++    i_tzt="$i_tzt  ,(4, -1641353448, 2) ,(4, -1627965048, 3)"
++    i_tzt="$i_tzt  ,(4, -1618716648, 1) ,(4, -1596429048, 3)"
++    i_tzt="$i_tzt  ,(4, -1593829848, 5) ,(4, -1589860800, 4)"
++    i_tzt="$i_tzt  ,(4, -1542427200, 5) ,(4, -1539493200, 6)"
++    i_tzt="$i_tzt  ,(4, -1525323600, 5) ,(4, -1522728000, 4)"
++    i_tzt="$i_tzt  ,(4, -1491188400, 7) ,(4, -1247536800, 4)"
++    i_tzt="$i_tzt  ,(4, 354920409, 5) ,(4, 370728010, 4)"
++    i_tzt="$i_tzt  ,(4, 386456410, 5) ,(4, 402264011, 4)"
++    i_tzt="$i_tzt  ,(4, 417992411, 5) ,(4, 433800012, 4)"
++    i_tzt="$i_tzt  ,(4, 449614812, 5) ,(4, 465346812, 8)"
++    i_tzt="$i_tzt  ,(4, 481071612, 9) ,(4, 496796413, 8)"
++    i_tzt="$i_tzt  ,(4, 512521213, 9) ,(4, 528246013, 8)"
++    i_tzt="$i_tzt  ,(4, 543970813, 9) ,(4, 559695613, 8)"
++    i_tzt="$i_tzt  ,(4, 575420414, 9) ,(4, 591145214, 8)"
++    i_tzt="$i_tzt  ,(4, 606870014, 9) ,(4, 622594814, 8)"
++    i_tzt="$i_tzt  ,(4, 638319615, 9) ,(4, 654649215, 8)"
++    i_tzt="$i_tzt  ,(4, 670374016, 10) ,(4, 686102416, 11)"
++    i_tzt="$i_tzt  ,(4, 695779216, 8) ,(4, 701812816, 5)"
++    i_tzt="$i_tzt  ,(4, 717534017, 4) ,(4, 733273217, 9)"
++    i_tzt="$i_tzt  ,(4, 748998018, 8) ,(4, 764722818, 9)"
++    i_tzt="$i_tzt  ,(4, 780447619, 8) ,(4, 796172419, 9)"
++    i_tzt="$i_tzt  ,(4, 811897219, 8) ,(4, 828226820, 9)"
++    i_tzt="$i_tzt  ,(4, 846370820, 8) ,(4, 859676420, 9)"
++    i_tzt="$i_tzt  ,(4, 877820421, 8) ,(4, 891126021, 9)"
++    i_tzt="$i_tzt  ,(4, 909270021, 8) ,(4, 922575622, 9)"
++    i_tzt="$i_tzt  ,(4, 941324422, 8) ,(4, 954025222, 9)"
++    i_tzt="$i_tzt  ,(4, 972774022, 8) ,(4, 985474822, 9)"
++    i_tzt="$i_tzt  ,(4, 1004223622, 8) ,(4, 1017529222, 9)"
++    i_tzt="$i_tzt  ,(4, 1035673222, 8) ,(4, 1048978822, 9)"
++    i_tzt="$i_tzt  ,(4, 1067122822, 8) ,(4, 1080428422, 9)"
++    i_tzt="$i_tzt  ,(4, 1099177222, 8) ,(4, 1111878022, 9)"
++    i_tzt="$i_tzt  ,(4, 1130626822, 8) ,(4, 1143327622, 9)"
++    i_tzt="$i_tzt  ,(4, 1162076422, 8) ,(4, 1174777222, 9)"
++    i_tzt="$i_tzt  ,(4, 1193526022, 8) ,(4, 1206831622, 9)"
++    i_tzt="$i_tzt  ,(4, 1224975622, 8) ,(4, 1238281222, 9)"
++    i_tzt="$i_tzt  ,(4, 1256425222, 8) ,(4, 1269730822, 9)"
++    i_tzt="$i_tzt  ,(4, 1288479622, 8) ,(4, 1301180422, 9)"
++    i_tzt="$i_tzt  ,(4, 1319929222, 8) ,(4, 1332630022, 9)"
++    i_tzt="$i_tzt  ,(4, 1351378822, 8) ,(4, 1364684422, 9)"
++    i_tzt="$i_tzt  ,(4, 1382828422, 8) ,(4, 1396134022, 9)"
++    i_tzt="$i_tzt  ,(4, 1414278022, 8) ,(4, 1427583622, 9)"
++    i_tzt="$i_tzt  ,(4, 1445727622, 8) ,(4, 1459033222, 9)"
++    i_tzt="$i_tzt  ,(4, 1477782022, 8) ,(4, 1490482822, 9)"
++    i_tzt="$i_tzt  ,(4, 1509231622, 8) ,(4, 1521932422, 9)"
++    i_tzt="$i_tzt  ,(4, 1540681222, 8) ,(4, 1553986822, 9)"
++    i_tzt="$i_tzt  ,(4, 1572130822, 8) ,(4, 1585436422, 9)"
++    i_tzt="$i_tzt  ,(4, 1603580422, 8) ,(4, 1616886022, 9)"
++    i_tzt="$i_tzt  ,(4, 1635634822, 8) ,(4, 1648335622, 9)"
++    i_tzt="$i_tzt  ,(4, 1667084422, 8) ,(4, 1679785222, 9)"
++    i_tzt="$i_tzt  ,(4, 1698534022, 8) ,(4, 1711839622, 9)"
++    i_tzt="$i_tzt  ,(4, 1729983622, 8) ,(4, 1743289222, 9)"
++    i_tzt="$i_tzt  ,(4, 1761433222, 8) ,(4, 1774738822, 9)"
++    i_tzt="$i_tzt  ,(4, 1792882822, 8) ,(4, 1806188422, 9)"
++    i_tzt="$i_tzt  ,(4, 1824937222, 8) ,(4, 1837638022, 9)"
++    i_tzt="$i_tzt  ,(4, 1856386822, 8) ,(4, 1869087622, 9)"
++    i_tzt="$i_tzt  ,(4, 1887836422, 8) ,(4, 1901142022, 9)"
++    i_tzt="$i_tzt  ,(4, 1919286022, 8) ,(4, 1932591622, 9)"
++    i_tzt="$i_tzt  ,(4, 1950735622, 8) ,(4, 1964041222, 9)"
++    i_tzt="$i_tzt  ,(4, 1982790022, 8) ,(4, 1995490822, 9)"
++    i_tzt="$i_tzt  ,(4, 2014239622, 8) ,(4, 2026940422, 9)"
++    i_tzt="$i_tzt  ,(4, 2045689222, 8) ,(4, 2058390022, 9)"
++    i_tzt="$i_tzt  ,(4, 2077138822, 8) ,(4, 2090444422, 9)"
++    i_tzt="$i_tzt  ,(4, 2108588422, 8) ,(4, 2121894022, 9)"
++    i_tzt="$i_tzt  ,(4, 2140038022, 8)"
++    i_tzt="$i_tzt  ,(5, -1009875600, 1);"
++  fi
++fi
++
++if test ! -f $mdata/time_zone_transition_type.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing time_zone_transition_type table" 1>&2;
++  fi
++
++  c_tztt="$c_tztt CREATE TABLE time_zone_transition_type ("
++  c_tztt="$c_tztt   Time_zone_id int unsigned NOT NULL,"
++  c_tztt="$c_tztt   Transition_type_id int unsigned NOT NULL,"
++  c_tztt="$c_tztt   Offset int signed DEFAULT 0 NOT NULL,"
++  c_tztt="$c_tztt   Is_DST tinyint unsigned DEFAULT 0 NOT NULL,"
++  c_tztt="$c_tztt   Abbreviation char(8) DEFAULT '' NOT NULL,"
++  c_tztt="$c_tztt   PRIMARY KEY TzIdTrTId (Time_zone_id, Transition_type_id)"
++  c_tztt="$c_tztt ) engine=MyISAM CHARACTER SET utf8"
++  c_tztt="$c_tztt   comment='Time zone transition types';"
++  
++  if test "$1" = "test" 
++  then
++    i_tztt="$i_tztt INSERT INTO time_zone_transition_type (Time_zone_id,"
++    i_tztt="$i_tztt  Transition_type_id, Offset, Is_DST, Abbreviation) VALUES"
++    i_tztt="$i_tztt   (1, 0, 7200, 1, 'MEST') ,(1, 1, 3600, 0, 'MET')"
++    i_tztt="$i_tztt  ,(1, 2, 7200, 1, 'MEST') ,(1, 3, 3600, 0, 'MET')"
++    i_tztt="$i_tztt  ,(2, 0, 0, 0, 'UTC')"
++    i_tztt="$i_tztt  ,(3, 0, 9000, 0, 'MMT') ,(3, 1, 12648, 1, 'MST')"
++    i_tztt="$i_tztt  ,(3, 2, 9048, 0, 'MMT') ,(3, 3, 16248, 1, 'MDST')"
++    i_tztt="$i_tztt  ,(3, 4, 10800, 0, 'MSK') ,(3, 5, 14400, 1, 'MSD')"
++    i_tztt="$i_tztt  ,(3, 6, 18000, 1, 'MSD') ,(3, 7, 7200, 0, 'EET')"
++    i_tztt="$i_tztt  ,(3, 8, 10800, 0, 'MSK') ,(3, 9, 14400, 1, 'MSD')"
++    i_tztt="$i_tztt  ,(3, 10, 10800, 1, 'EEST') ,(3, 11, 7200, 0, 'EET')"
++    i_tztt="$i_tztt  ,(4, 0, 9000, 0, 'MMT') ,(4, 1, 12648, 1, 'MST')"
++    i_tztt="$i_tztt  ,(4, 2, 9048, 0, 'MMT') ,(4, 3, 16248, 1, 'MDST')"
++    i_tztt="$i_tztt  ,(4, 4, 10800, 0, 'MSK') ,(4, 5, 14400, 1, 'MSD')"
++    i_tztt="$i_tztt  ,(4, 6, 18000, 1, 'MSD') ,(4, 7, 7200, 0, 'EET')"
++    i_tztt="$i_tztt  ,(4, 8, 10800, 0, 'MSK') ,(4, 9, 14400, 1, 'MSD')"
++    i_tztt="$i_tztt  ,(4, 10, 10800, 1, 'EEST') ,(4, 11, 7200, 0, 'EET')"
++    i_tztt="$i_tztt  ,(5, 0, 32400, 0, 'CJT') ,(5, 1, 32400, 0, 'JST');"
++  fi
++fi
++
++if test ! -f $mdata/time_zone_leap_second.frm
++then
++  if test "$1" = "verbose" ; then
++   echo "Preparing time_zone_leap_second table" 1>&2;
++  fi
++
++  c_tzls="$c_tzls CREATE TABLE time_zone_leap_second ("
++  c_tzls="$c_tzls   Transition_time bigint signed NOT NULL,"
++  c_tzls="$c_tzls   Correction int signed NOT NULL,"
++  c_tzls="$c_tzls   PRIMARY KEY TranTime (Transition_time)"
++  c_tzls="$c_tzls ) engine=MyISAM CHARACTER SET utf8"
++  c_tzls="$c_tzls   comment='Leap seconds information for time zones';"
++  
++  if test "$1" = "test" 
++  then
++    i_tzls="$i_tzls INSERT INTO time_zone_leap_second "
++    i_tzls="$i_tzls  (Transition_time, Correction) VALUES "
++    i_tzls="$i_tzls  (78796800, 1) ,(94694401, 2) ,(126230402, 3)"
++    i_tzls="$i_tzls ,(157766403, 4) ,(189302404, 5) ,(220924805, 6)"
++    i_tzls="$i_tzls ,(252460806, 7) ,(283996807, 8) ,(315532808, 9)"
++    i_tzls="$i_tzls ,(362793609, 10) ,(394329610, 11) ,(425865611, 12)"
++    i_tzls="$i_tzls ,(489024012, 13) ,(567993613, 14) ,(631152014, 15)"
++    i_tzls="$i_tzls ,(662688015, 16) ,(709948816, 17) ,(741484817, 18)"
++    i_tzls="$i_tzls ,(773020818, 19) ,(820454419, 20) ,(867715220, 21)"
++    i_tzls="$i_tzls ,(915148821, 22);"
++  fi
++fi
++
++if test ! -f $mdata/proc.frm
++then
++  c_p="$c_p CREATE TABLE proc ("
++  c_p="$c_p   db                char(64) collate utf8_bin DEFAULT '' NOT NULL,"
++  c_p="$c_p   name              char(64) DEFAULT '' NOT NULL,"
++  c_p="$c_p   type              enum('FUNCTION','PROCEDURE') NOT NULL,"
++  c_p="$c_p   specific_name     char(64) DEFAULT '' NOT NULL,"
++  c_p="$c_p   language          enum('SQL') DEFAULT 'SQL' NOT NULL,"
++  c_p="$c_p   sql_data_access   enum('CONTAINS_SQL',"
++  c_p="$c_p			     'NO_SQL',"
++  c_p="$c_p			     'READS_SQL_DATA',"
++  c_p="$c_p			     'MODIFIES_SQL_DATA'"
++  c_p="$c_p                     ) DEFAULT 'CONTAINS_SQL' NOT NULL,"
++  c_p="$c_p   is_deterministic  enum('YES','NO') DEFAULT 'NO' NOT NULL,"
++  c_p="$c_p   security_type     enum('INVOKER','DEFINER') DEFAULT 'DEFINER' NOT NULL,"
++  c_p="$c_p   param_list        blob DEFAULT '' NOT NULL,"
++  c_p="$c_p   returns           char(64) DEFAULT '' NOT NULL,"
++  c_p="$c_p   body              longblob DEFAULT '' NOT NULL,"
++  c_p="$c_p   definer           char(77) collate utf8_bin DEFAULT '' NOT NULL,"
++  c_p="$c_p   created           timestamp,"
++  c_p="$c_p   modified          timestamp,"
++  c_p="$c_p   sql_mode          set("
++  c_p="$c_p                         'REAL_AS_FLOAT',"
++  c_p="$c_p                         'PIPES_AS_CONCAT',"
++  c_p="$c_p                         'ANSI_QUOTES',"
++  c_p="$c_p                         'IGNORE_SPACE',"
++  c_p="$c_p                         'NOT_USED',"
++  c_p="$c_p                         'ONLY_FULL_GROUP_BY',"
++  c_p="$c_p                         'NO_UNSIGNED_SUBTRACTION',"
++  c_p="$c_p                         'NO_DIR_IN_CREATE',"
++  c_p="$c_p                         'POSTGRESQL',"
++  c_p="$c_p                         'ORACLE',"
++  c_p="$c_p                         'MSSQL',"
++  c_p="$c_p                         'DB2',"
++  c_p="$c_p                         'MAXDB',"
++  c_p="$c_p                         'NO_KEY_OPTIONS',"
++  c_p="$c_p                         'NO_TABLE_OPTIONS',"
++  c_p="$c_p                         'NO_FIELD_OPTIONS',"
++  c_p="$c_p                         'MYSQL323',"
++  c_p="$c_p                         'MYSQL40',"
++  c_p="$c_p                         'ANSI',"
++  c_p="$c_p                         'NO_AUTO_VALUE_ON_ZERO',"
++  c_p="$c_p                         'NO_BACKSLASH_ESCAPES',"
++  c_p="$c_p                         'STRICT_TRANS_TABLES',"
++  c_p="$c_p                         'STRICT_ALL_TABLES',"
++  c_p="$c_p                         'NO_ZERO_IN_DATE',"
++  c_p="$c_p                         'NO_ZERO_DATE',"
++  c_p="$c_p                         'INVALID_DATES',"
++  c_p="$c_p                         'ERROR_FOR_DIVISION_BY_ZERO',"
++  c_p="$c_p                         'TRADITIONAL',"
++  c_p="$c_p                         'NO_AUTO_CREATE_USER',"
++  c_p="$c_p                         'HIGH_NOT_PRECEDENCE'"
++  c_p="$c_p                     ) DEFAULT '' NOT NULL,"
++  c_p="$c_p   comment           char(64) collate utf8_bin DEFAULT '' NOT NULL,"
++  c_p="$c_p   PRIMARY KEY (db,name,type)"
++  c_p="$c_p ) engine=MyISAM"
++  c_p="$c_p character set utf8"
++  c_p="$c_p comment='Stored Procedures';"
++fi
++
++cat << END_OF_DATA
++use mysql;
++set table_type=myisam;
++$c_d
++$i_d
++
++$c_h
++$i_h
++
++$c_u
++$i_u
++
++$c_f
++$i_f
++
++$c_t
++$c_c
++
++$c_ht
++$c_hc
++$c_hr
++$c_hk
++
++$c_tzn
++$i_tzn
++$c_tz
++$i_tz
++$c_tzt
++$i_tzt
++$c_tztt
++$i_tztt
++$c_tzls
++$i_tzls
++
++$c_p
++$c_pp
++
++END_OF_DATA
++
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_fix_privilege_tables.sh mysql-5.0.34-bk-20070101/scripts/mysql_fix_privilege_tables.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_fix_privilege_tables.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_fix_privilege_tables.sh	2007-01-03 00:50:06.000000000 +0100
+@@ -92,17 +92,17 @@
+ # Get first arguments from the my.cfg file, groups [mysqld] and
+ # [mysql_install_db], and then merge with the command line arguments
+ 
+-print_defaults=my_print_defaults
++print_defaults=@mybin_my_print_defaults@
+ for dir in ./bin @bindir@ @bindir@ extra $print_defaults_bindir/../bin $print_defaults_bindir/../extra
+ do
+-  if test -x $dir/my_print_defaults
++  if test -x $dir/@mybin_my_print_defaults@
+   then
+-    print_defaults="$dir/my_print_defaults"
++    print_defaults="$dir/@mybin_my_print_defaults@"
+     break
+   fi
+ done
+ 
+-parse_arguments `$print_defaults $defaults mysql_install_db mysql_fix_privilege_tables`
++parse_arguments `$print_defaults $defaults @mybin_mysql_install_db@ @mybin_mysql_fix_privilege_tables@`
+ parse_arguments PICK-ARGS-FROM-ARGV "$@"
+ 
+ if test -z "$password"
+@@ -118,7 +118,7 @@
+ then
+   for i in @bindir@ $basedir/bin "$dirname/../client"
+   do
+-    if test -f $i/mysql
++    if test -f $i/@mybin_mysql@
+     then
+       bindir=$i
+       break
+@@ -133,7 +133,7 @@
+   exit 1
+ fi
+ 
+-cmd="$bindir/mysql --no-defaults --force --user=$user --host=$host"
++cmd="$bindir/@mybin_mysql@ --no-defaults --force --user=$user --host=$host"
+ if test ! -z "$port"; then
+   cmd="$cmd --port=$port"
+ fi
+@@ -148,7 +148,7 @@
+ fi
+ 
+ # Find where first mysql_fix_privilege_tables.sql is located
+-for i in $basedir/support-files $basedir/share $basedir/share/mysql \
++for i in @sharedstatedir@ $basedir/support-files $basedir/share $basedir/share/mysql \
+         $basedir/scripts $pkgdatadir . "$dirname"
+ do
+   if test -f $i/$file
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_install_db.sh mysql-5.0.34-bk-20070101/scripts/mysql_install_db.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_install_db.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_install_db.sh	2007-01-03 00:55:51.000000000 +0100
+@@ -70,20 +70,20 @@
+ 
+ # Get first arguments from the my.cfg file, groups [mysqld] and
+ # [mysql_install_db], and then merge with the command line arguments
+-if test -x ./bin/my_print_defaults
++if test -x "./bin/@mybin_my_print_defaults@"
+ then
+-  print_defaults="./bin/my_print_defaults"
+-elif test -x ./extra/my_print_defaults
++  print_defaults="./bin/@mybin_my_print_defaults@"
++elif test -x "./extra/@mybin_my_print_defaults@"
+ then
+-  print_defaults="./extra/my_print_defaults"
+-elif test -x @bindir@/my_print_defaults
++  print_defaults="./extra/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_my_print_defaults@"
+ then
+-  print_defaults="@bindir@/my_print_defaults"
+-elif test -x @bindir@/mysql_print_defaults
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_my_print_defaults@"
+ then
+-  print_defaults="@bindir@/mysql_print_defaults"
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
+ else
+-  print_defaults="my_print_defaults"
++  print_defaults="@mybin_my_print_defaults@"
+ fi
+ 
+ args=
+@@ -108,10 +108,10 @@
+   pkgdatadir=@pkgdatadir@
+ else
+   bindir="$basedir/bin"
+-  if test -x "$basedir/libexec/mysqld"
++  if test -x "$basedir/libexec/@mybin_mysqld@"
+   then
+     execdir="$basedir/libexec"
+-  elif test -x "$basedir/sbin/mysqld"
++  elif test -x "$basedir/sbin/@mybin_mysqld@"
+   then
+     execdir="$basedir/sbin"
+   else
+@@ -124,7 +124,8 @@
+ then
+   fill_help_tables=$srcdir/scripts/fill_help_tables.sql
+ else
+-  for i in $basedir/support-files $basedir/share $basedir/share/mysql \
++  for i in @sharedstatedir@ \
++           $basedir/support-files $basedir/share $basedir/share/mysql \
+            $basedir/scripts `pwd` `pwd`/scripts @pkgdatadir@
+   do
+     if test -f $i/fill_help_tables.sql
+@@ -143,13 +144,13 @@
+ fi
+ 
+ mdata=$ldata/mysql
+-mysqld=$execdir/mysqld
++mysqld=$execdir/@mybin_mysqld@
+ mysqld_opt=""
+ scriptdir=$bindir
+ 
+ if test "$windows" = 1
+ then
+-  mysqld="./sql/mysqld"
++  mysqld="./sql/@mybin_mysqld@"
+   if test -n "$srcdir" -a -f $srcdir/sql/share/english/errmsg.sys
+   then
+     langdir=$srcdir/sql/share/english
+@@ -179,14 +180,14 @@
+ # Check if hostname is valid
+ if test "$windows" = 0 -a "$in_rpm" = 0 -a $force = 0
+ then
+-  resolved=`$bindir/resolveip $hostname 2>&1`
++  resolved=`$bindir/@mybin_resolveip@ $hostname 2>&1`
+   if [ $? -ne 0 ]
+   then
+-    resolved=`$bindir/resolveip localhost 2>&1`
++    resolved=`$bindir/@mybin_resolveip@ localhost 2>&1`
+     if [ $? -ne 0 ]
+     then
+       echo "Neither host '$hostname' nor 'localhost' could be looked up with"
+-      echo "$bindir/resolveip"
++      echo "$bindir/@mybin_resolveip@"
+       echo "Please configure the 'hostname' command to return a correct hostname."
+       echo "If you want to solve this at a later stage, restart this script with"
+       echo "the --force option"
+@@ -194,7 +195,7 @@
+     fi
+     echo "WARNING: The host '$hostname' could not be looked up with resolveip."
+     echo "This probably means that your libc libraries are not 100 % compatible"
+-    echo "with this binary MySQL version. The MySQL daemon, mysqld, should work"
++    echo "with this binary MySQL version. The MySQL daemon, @mybin_mysqld@, should work"
+     echo "normally with the exception that host name resolving will not work."
+     echo "This means that you should use IP addresses instead of hostnames"
+     echo "when specifying MySQL privileges !"
+@@ -239,7 +240,7 @@
+ mysqld_install_cmd_line="$mysqld $defaults $mysqld_opt --bootstrap \
+ --skip-grant-tables --basedir=$basedir --datadir=$ldata --skip-innodb \
+ --skip-bdb --skip-ndbcluster $args --max_allowed_packet=8M --net_buffer_length=16K"
+-if $scriptdir/mysql_create_system_tables $create_option $mdata $hostname $windows \
++if $scriptdir/@mybin_mysql_create_system_tables@ $create_option $mdata $hostname $windows \
+    | eval "$mysqld_install_cmd_line" 
+ then
+   if test -n "$fill_help_tables"
+@@ -269,8 +270,8 @@
+   then
+   echo "PLEASE REMEMBER TO SET A PASSWORD FOR THE MySQL root USER !"
+   echo "To do so, start the server, then issue the following commands:"
+-  echo "$bindir/mysqladmin -u root password 'new-password'"
+-  echo "$bindir/mysqladmin -u root -h $hostname password 'new-password'"
++  echo "$bindir/@mybin_mysqladmin@ -u root password 'new-password'"
++  echo "$bindir/@mybin_mysqladmin@ -u root -h $hostname password 'new-password'"
+   echo "See the manual for more instructions."
+   #
+   # Print message about upgrading unless we have created a new db table.
+@@ -278,14 +279,14 @@
+   then
+     echo
+     echo "NOTE:  If you are upgrading from a MySQL <= 3.22.10 you should run"
+-    echo "the $bindir/mysql_fix_privilege_tables. Otherwise you will not be"
++    echo "the $bindir/@mybin_mysql_fix_privilege_tables@. Otherwise you will not be"
+     echo "able to use the new GRANT command!"
+   fi
+   echo
+   if test "$in_rpm" = "0"
+   then
+     echo "You can start the MySQL daemon with:"
+-    echo "cd @prefix@ ; $bindir/mysqld_safe &"
++    echo "cd @prefix@ ; $bindir/@mybin_mysqld_safe@ &"
+     echo
+     echo "You can test the MySQL daemon with the benchmarks in the 'sql-bench' directory:"
+     echo "cd sql-bench ; perl run-all-tests"
+@@ -305,13 +306,13 @@
+   echo "You can also try to start the mysqld daemon with:"
+   echo "$mysqld --skip-grant &"
+   echo "You can use the command line tool"
+-  echo "$bindir/mysql to connect to the mysql"
++  echo "$bindir/@mybin_mysql@ to connect to the mysql"
+   echo "database and look at the grant tables:"
+   echo
+-  echo "shell> $bindir/mysql -u root mysql"
++  echo "shell> $bindir/@mybin_mysql@ -u root mysql"
+   echo "mysql> show tables"
+   echo
+-  echo "Try 'mysqld --help' if you have problems with paths. Using --log"
++  echo "Try '@mybin_mysqld@ --help' if you have problems with paths. Using --log"
+   echo "gives you a log in $ldata that may be helpful."
+   echo
+   echo "The latest information about MySQL is available on the web at"
+@@ -320,6 +321,6 @@
+   echo "and the manual section that describes problems on your OS."
+   echo "Another information source is the MySQL email archive."
+   echo "Please check all of the above before mailing us!"
+-  echo "And if you do mail us, you MUST use the @scriptdir@/mysqlbug script!"
++  echo "And if you do mail us, you MUST use the @scriptdir@/@mybin_mysqlbug@ script!"
+   exit 1
+ fi
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_secure_installation.sh mysql-5.0.34-bk-20070101/scripts/mysql_secure_installation.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_secure_installation.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_secure_installation.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -29,7 +29,7 @@
+ 
+ do_query() {
+     echo $1 >$command
+-    mysql --defaults-file=$config <$command
++    @mybin_mysql@ --defaults-file=$config <$command
+     return $?
+ }
+ 
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysql_secure_installation.sh.orig mysql-5.0.34-bk-20070101/scripts/mysql_secure_installation.sh.orig
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysql_secure_installation.sh.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysql_secure_installation.sh.orig	2007-01-01 19:10:29.000000000 +0100
+@@ -0,0 +1,311 @@
++#!/bin/sh
++
++# Copyright (C) 2002 MySQL AB and Jeremy Cole
++# 
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; version 2 of the License.
++# 
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++# 
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++config=".my.cnf.$$"
++command=".mysql.$$"
++
++trap "interrupt" 2
++
++rootpass=""
++
++prepare() {
++    touch $config $command
++    chmod 600 $config $command
++}
++
++do_query() {
++    echo $1 >$command
++    mysql --defaults-file=$config <$command
++    return $?
++}
++
++make_config() {
++    echo "# mysql_secure_installation config file" >$config
++    echo "[mysql]" >>$config
++    echo "user=root" >>$config
++    echo "password=$rootpass" >>$config
++}
++
++get_root_password() {
++    status=1
++    while [ $status -eq 1 ]; do
++	stty -echo
++	echo -n "Enter current password for root (enter for none): "
++	read password
++	echo
++	stty echo
++	if [ "x$password" = "x" ]; then
++	    hadpass=0
++	else
++	    hadpass=1
++	fi
++	rootpass=$password
++	make_config
++	do_query ""
++	status=$?
++    done
++    echo "OK, successfully used password, moving on..."
++    echo
++}
++
++set_root_password() {
++    stty -echo
++    echo -n "New password: "
++    read password1
++    echo
++    echo -n "Re-enter new password: "
++    read password2
++    echo
++    stty echo
++
++    if [ "$password1" != "$password2" ]; then
++	echo "Sorry, passwords do not match."
++	echo
++	return 1
++    fi
++
++    if [ "$password1" = "" ]; then
++	echo "Sorry, you can't use an empty password here."
++	echo
++	return 1
++    fi
++
++    do_query "UPDATE mysql.user SET Password=PASSWORD('$password1') WHERE User='root';"
++    if [ $? -eq 0 ]; then
++	echo "Password updated successfully!"
++	echo "Reloading privilege tables.."
++	if ! reload_privilege_tables; then
++	    exit 1
++	fi
++	echo
++	rootpass=$password1
++	make_config
++    else
++	echo "Password update failed!"
++	exit 1
++    fi
++
++    return 0
++}
++
++remove_anonymous_users() {
++    do_query "DELETE FROM mysql.user WHERE User='';"
++    if [ $? -eq 0 ]; then
++	echo " ... Success!"
++    else
++	echo " ... Failed!"
++	exit 1
++    fi
++
++    return 0
++}
++
++remove_remote_root() {
++    do_query "DELETE FROM mysql.user WHERE User='root' AND Host!='localhost';"
++    if [ $? -eq 0 ]; then
++	echo " ... Success!"
++    else
++	echo " ... Failed!"
++    fi
++}
++
++remove_test_database() {
++    echo " - Dropping test database..."
++    do_query "DROP DATABASE test;"
++    if [ $? -eq 0 ]; then
++	echo " ... Success!"
++    else
++	echo " ... Failed!  Not critical, keep moving..."
++    fi
++
++    echo " - Removing privileges on test database..."
++    do_query "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
++    if [ $? -eq 0 ]; then
++	echo " ... Success!"
++    else
++	echo " ... Failed!  Not critical, keep moving..."
++    fi
++
++    return 0
++}
++
++reload_privilege_tables() {
++    do_query "FLUSH PRIVILEGES;"
++    if [ $? -eq 0 ]; then
++	echo " ... Success!"
++	return 0
++    else
++	echo " ... Failed!"
++	return 1
++    fi
++}
++
++interrupt() {
++    echo
++    echo "Aborting!"
++    echo
++    cleanup
++    stty echo
++    exit 1
++}
++
++cleanup() {
++    echo "Cleaning up..."
++    rm -f $config $command
++}
++
++
++# The actual script starts here
++
++prepare
++
++echo
++echo
++echo
++echo
++echo "NOTE: RUNNING ALL PARTS OF THIS SCRIPT IS RECOMMENDED FOR ALL MySQL"
++echo "      SERVERS IN PRODUCTION USE!  PLEASE READ EACH STEP CAREFULLY!"
++echo
++echo
++
++echo "In order to log into MySQL to secure it, we'll need the current"
++echo "password for the root user.  If you've just installed MySQL, and"
++echo "you haven't set the root password yet, the password will be blank,"
++echo "so you should just press enter here."
++echo
++
++get_root_password
++
++
++#
++# Set the root password
++#
++
++echo "Setting the root password ensures that nobody can log into the MySQL"
++echo "root user without the proper authorisation."
++echo
++
++if [ $hadpass -eq 0 ]; then
++    echo -n "Set root password? [Y/n] "
++else
++    echo "You already have a root password set, so you can safely answer 'n'."
++    echo
++    echo -n "Change the root password? [Y/n] "
++fi
++
++read reply
++if [ "$reply" = "n" ]; then
++    echo " ... skipping."
++else
++    status=1
++    while [ $status -eq 1 ]; do
++	set_root_password
++	status=$?
++    done
++fi
++echo
++
++
++#
++# Remove anonymous users
++#
++
++echo "By default, a MySQL installation has an anonymous user, allowing anyone"
++echo "to log into MySQL without having to have a user account created for"
++echo "them.  This is intended only for testing, and to make the installation"
++echo "go a bit smoother.  You should remove them before moving into a"
++echo "production environment."
++echo
++
++echo -n "Remove anonymous users? [Y/n] "
++
++read reply
++if [ "$reply" = "n" ]; then
++    echo " ... skipping."
++else
++    remove_anonymous_users
++fi
++echo
++
++
++#
++# Disallow remote root login
++#
++
++echo "Normally, root should only be allowed to connect from 'localhost'.  This"
++echo "ensures that someone cannot guess at the root password from the network."
++echo
++
++echo -n "Disallow root login remotely? [Y/n] "
++read reply
++if [ "$reply" = "n" ]; then
++    echo " ... skipping."
++else
++    remove_remote_root
++fi
++echo
++
++
++#
++# Remove test database
++#
++
++echo "By default, MySQL comes with a database named 'test' that anyone can"
++echo "access.  This is also intended only for testing, and should be removed"
++echo "before moving into a production environment."
++echo
++
++echo -n "Remove test database and access to it? [Y/n] "
++read reply
++if [ "$reply" = "n" ]; then
++    echo " ... skipping."
++else
++    remove_test_database
++fi
++echo
++
++
++#
++# Reload privilege tables
++#
++
++echo "Reloading the privilege tables will ensure that all changes made so far"
++echo "will take effect immediately."
++echo
++
++echo -n "Reload privilege tables now? [Y/n] "
++read reply
++if [ "$reply" = "n" ]; then
++    echo " ... skipping."
++else
++    reload_privilege_tables
++fi
++echo
++
++cleanup
++
++echo
++echo
++echo
++echo "All done!  If you've completed all of the above steps, your MySQL"
++echo "installation should now be secure."
++echo
++echo "Thanks for using MySQL!"
++echo
++echo
++
++
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysqlaccess.sh mysql-5.0.34-bk-20070101/scripts/mysqlaccess.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysqlaccess.sh	2007-01-01 19:10:29.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysqlaccess.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -17,7 +17,7 @@
+ 
+ 	# ****************************
+ 	# information on MySQL
+-	$MYSQL     = '@bindir@/mysql';    # path to mysql executable
++	$MYSQL     = '@bindir@/@mybin_mysql@';    # path to mysql executable
+ 	$SERVER    = '3.21';
+ 	$MYSQL_OPT = ' --batch --unbuffered';
+ 	$ACCESS_DB = 'mysql';		 # name of DB with grant-tables
+@@ -32,7 +32,7 @@
+ 	$ACCESS_U_BCK = 'user_backup';   
+ 	$ACCESS_D_BCK = 'db_backup';     
+         $DIFF      = '/usr/bin/diff'; 
+-        $MYSQLDUMP = '@bindir@/mysqldump';
++        $MYSQLDUMP = '@bindir@/@mybin_mysqldump@';
+                                          #path to mysqldump executable
+ 
+         $MYSQLADMIN= 'http://foobar.com/MySQLadmin';
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysqld_multi.sh mysql-5.0.34-bk-20070101/scripts/mysqld_multi.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysqld_multi.sh	2007-01-01 19:10:30.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysqld_multi.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -10,8 +10,8 @@
+ $opt_example       = 0;
+ $opt_help          = 0;
+ $opt_log           = undef();
+-$opt_mysqladmin    = "@bindir@/mysqladmin";
+-$opt_mysqld        = "@libexecdir@/mysqld";
++$opt_mysqladmin    = "@bindir@/@mybin_mysqladmin@";
++$opt_mysqld        = "@libexecdir@/@mybin_mysqld@";
+ $opt_no_log        = 0;
+ $opt_password      = undef();
+ $opt_tcp_ip        = 0;
+@@ -39,11 +39,11 @@
+ {
+   my $flag_exit= 0;
+ 
+-  if (!defined(my_which(my_print_defaults)))
++  if (!defined(my_which(@mybin_my_print_defaults@)))
+   {
+     # We can't throw out yet, since --version, --help, or --example may
+     # have been given
+-    print "WARNING: my_print_defaults command not found.\n";
++    print "WARNING: @mybin_my_print_defaults@ command not found.\n";
+     print "Please make sure you have this command available and\n";
+     print "in your path. The command is available from the latest\n";
+     print "MySQL distribution.\n";
+@@ -74,9 +74,9 @@
+ 	}
+       }
+     }
+-    my $com= "my_print_defaults ";
++    my $com= "@mybin_my_print_defaults@ ";
+     $com.= "--config-file=$opt_config_file " if (defined($opt_config_file));
+-    $com.= "mysqld_multi";
++    $com.= "@mybin_mysqld_multi@";
+     my @defops = `$com`;
+     chop @defops;
+     splice @ARGV, 0, 0, @defops;
+@@ -113,9 +113,9 @@
+     print "Error with an option, see $my_progname --help for more info.\n";
+     exit(1);
+   }
+-  if (!defined(my_which(my_print_defaults)))
++  if (!defined(my_which(@mybin_my_print_defaults@)))
+   {
+-    print "ABORT: Can't find command 'my_print_defaults'.\n";
++    print "ABORT: Can't find command '@mybin_my_print_defaults@'.\n";
+     print "This command is available from the latest MySQL\n";
+     print "distribution. Please make sure you have the command\n";
+     print "in your PATH.\n";
+@@ -202,7 +202,7 @@
+ {
+   if ($my_print_defaults_exists)
+   {
+-    @mysqld_opts= `my_print_defaults mysqld`;
++    @mysqld_opts= `@mybin_my_print_defaults@ mysqld`;
+     chomp @mysqld_opts;
+     foreach my $opt (@mysqld_opts)
+     {
+@@ -303,7 +303,7 @@
+   @groups = &find_groups($groupids);
+   for ($i = 0; defined($groups[$i]); $i++)
+   {
+-    $com = "my_print_defaults";
++    $com = "@mybin_my_print_defaults@";
+     $com.= defined($opt_config_file) ? " --config-file=$opt_config_file" : "";
+     $com.= " $groups[$i]";
+     @options = `$com`;
+@@ -330,7 +330,7 @@
+ 	$tmp.= " $options[$j]";
+       }
+     }
+-    if ($opt_verbose && $com =~ m/\/safe_mysqld$/ && !$info_sent)
++    if ($opt_verbose && $com =~ m/\/@mybin_safe_mysqld@$/ && !$info_sent)
+     {
+       print "WARNING: safe_mysqld is being used to start mysqld. In this case you ";
+       print "may need to pass\n\"ledir=...\" under groups [mysqldN] to ";
+@@ -401,7 +401,7 @@
+   my ($i, @groups)= @_;
+   my ($mysqladmin_found, $com, $tmp, $j);
+ 
+-  $com = "my_print_defaults";
++  $com = "@mybin_my_print_defaults@";
+   $com.= defined($opt_config_file) ? " --config-file=$opt_config_file" : "";
+   $com.= " $groups[$i]";
+   @options = `$com`;
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysqld_safe.sh mysql-5.0.34-bk-20070101/scripts/mysqld_safe.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysqld_safe.sh	2007-01-01 19:10:30.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysqld_safe.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -87,7 +87,7 @@
+ 	then
+ 	  MYSQLD="mysqld-$tmp"
+ 	else
+-	  MYSQLD="mysqld"
++	  MYSQLD="@mybin_mysqld@"
+ 	fi
+ 	;;
+       --nice=*) niceness=`echo "$arg" | sed -e "s;--nice=;;"` ;;
+@@ -113,13 +113,13 @@
+ 
+ MY_PWD=`pwd`
+ # Check for the directories we would expect from a binary release install
+-if test -f ./share/mysql/english/errmsg.sys -a -x ./bin/mysqld
++if test -f ./share/mysql/english/errmsg.sys -a -x ./bin/@mybin_mysqld@
+ then
+   MY_BASEDIR_VERSION=$MY_PWD		# Where bin, share and data are
+   ledir=$MY_BASEDIR_VERSION/bin		# Where mysqld is
+ # Check for the directories we would expect from a source install
+ elif test -f ./share/mysql/english/errmsg.sys -a \
+- -x ./libexec/mysqld
++ -x ./libexec/@mybin_mysqld@
+ then
+   MY_BASEDIR_VERSION=$MY_PWD		# Where libexec, share and var are
+   ledir=$MY_BASEDIR_VERSION/libexec	# Where mysqld is
+@@ -181,17 +181,17 @@
+ 
+ # Get first arguments from the my.cnf file, groups [mysqld] and [mysqld_safe]
+ # and then merge with the command line arguments
+-if test -x ./bin/my_print_defaults
++if test -x "./bin/@mybin_my_print_defaults@"
+ then
+-  print_defaults="./bin/my_print_defaults"
+-elif test -x @bindir@/my_print_defaults
++  print_defaults="./bin/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_my_print_defaults@"
+ then
+-  print_defaults="@bindir@/my_print_defaults"
+-elif test -x @bindir@/mysql_print_defaults
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
++elif test -x "@bindir@/@mybin_my_print_defaults@"
+ then
+-  print_defaults="@bindir@/mysql_print_defaults"
++  print_defaults="@bindir@/@mybin_my_print_defaults@"
+ else
+-  print_defaults="my_print_defaults"
++  print_defaults="@mybin_my_print_defaults@"
+ fi
+ 
+ args=
+@@ -216,11 +216,11 @@
+ # Use the mysqld-max binary by default if the user doesn't specify a binary
+ if test -z "$MYSQLD"
+ then
+-  if test -x $ledir/mysqld-max
++  if test -x $ledir/@mybin_mysqld-max@
+   then
+-    MYSQLD=mysqld-max
++    MYSQLD=@mybin_mysqld-max@
+   else
+-    MYSQLD=mysqld
++    MYSQLD=@mybin_mysqld@
+   fi
+ fi
+ 
+@@ -229,7 +229,7 @@
+   echo "The file $ledir/$MYSQLD doesn't exist or is not executable"
+   echo "Please do a cd to the mysql installation directory and restart"
+   echo "this script from there as follows:"
+-  echo "./bin/mysqld_safe".
++  echo "./bin/@mybin_mysqld_safe@".
+   echo "See http://dev.mysql.com/doc/mysql/en/mysqld_safe.html for more"
+   echo "information"
+   exit 1
+@@ -365,8 +365,8 @@
+ # the manual for details.
+ #
+ # echo "Checking tables in $DATADIR"
+-# $MY_BASEDIR_VERSION/bin/myisamchk --silent --force --fast --medium-check $DATADIR/*/*.MYI
+-# $MY_BASEDIR_VERSION/bin/isamchk --silent --force $DATADIR/*/*.ISM
++# $MY_BASEDIR_VERSION/bin/@mybin_myisamchk@ --silent --force --fast --medium-check $DATADIR/*/*.MYI
++# $MY_BASEDIR_VERSION/bin/@mybin_isamchk@ --silent --force $DATADIR/*/*.ISM
+ 
+ echo "Starting $MYSQLD daemon with databases from $DATADIR"
+ 
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysqld_safe.sh.orig mysql-5.0.34-bk-20070101/scripts/mysqld_safe.sh.orig
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysqld_safe.sh.orig	1970-01-01 01:00:00.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysqld_safe.sh.orig	2007-01-01 19:10:30.000000000 +0100
+@@ -0,0 +1,429 @@
++#!/bin/sh
++# Copyright Abandoned 1996 TCX DataKonsult AB & Monty Program KB & Detron HB
++# This file is public domain and comes with NO WARRANTY of any kind
++#
++# scripts to start the MySQL daemon and restart it if it dies unexpectedly
++#
++# This should be executed in the MySQL base directory if you are using a
++# binary installation that has other paths than you are using.
++#
++# mysql.server works by first doing a cd to the base directory and from there
++# executing mysqld_safe
++
++KILL_MYSQLD=1;
++MYSQLD=
++
++trap '' 1 2 3 15			# we shouldn't let anyone kill us
++
++umask 007
++
++defaults=
++case "$1" in
++    --no-defaults|--defaults-file=*|--defaults-extra-file=*)
++      defaults="$1"; shift
++      ;;
++esac
++
++usage () {
++        cat <<EOF
++Usage: $0 [OPTIONS]
++  --no-defaults              Don't read the system defaults file
++  --defaults-file=FILE       Use the specified defaults file
++  --defaults-extra-file=FILE Also use defaults from the specified file
++  --ledir=DIRECTORY          Look for mysqld in the specified directory
++  --log-error=FILE           Log errors to the specified log file
++  --open-files-limit=LIMIT   Limit the number of open files
++  --core-file-size=LIMIT     Limit core files to the specified size
++  --timezone=TZ              Set the system timezone
++  --mysqld=FILE              Use the specified file as mysqld
++  --mysqld-version=VERSION   Use "mysqld-VERSION" as mysqld
++  --nice=NICE                Set the scheduling priority of mysqld
++  --skip-kill-mysqld         Don't try to kill stray mysqld processes
++
++All other options are passed to the mysqld program.
++
++EOF
++        exit 1
++}
++
++
++parse_arguments() {
++  # We only need to pass arguments through to the server if we don't
++  # handle them here.  So, we collect unrecognized options (passed on
++  # the command line) into the args variable.
++  pick_args=
++  if test "$1" = PICK-ARGS-FROM-ARGV
++  then
++    pick_args=1
++    shift
++  fi
++
++  for arg do
++    case "$arg" in
++      --skip-kill-mysqld*)
++        KILL_MYSQLD=0;
++        ;;
++      # these get passed explicitly to mysqld
++      --basedir=*) MY_BASEDIR_VERSION=`echo "$arg" | sed -e "s;--basedir=;;"` ;;
++      --datadir=*) DATADIR=`echo "$arg" | sed -e "s;--datadir=;;"` ;;
++      --pid-file=*) pid_file=`echo "$arg" | sed -e "s;--pid-file=;;"` ;;
++      --user=*) user=`echo "$arg" | sed -e "s;--[^=]*=;;"` ; SET_USER=1 ;;
++
++      # these two might have been set in a [mysqld_safe] section of my.cnf
++      # they are added to mysqld command line to override settings from my.cnf
++      --socket=*)  mysql_unix_port=`echo "$arg" | sed -e "s;--socket=;;"` ;;
++      --port=*)    mysql_tcp_port=`echo "$arg" | sed -e "s;--port=;;"` ;;
++
++      # mysqld_safe-specific options - must be set in my.cnf ([mysqld_safe])!
++      --ledir=*)   ledir=`echo "$arg" | sed -e "s;--ledir=;;"` ;;
++      --log-error=*) err_log=`echo "$arg" | sed -e "s;--log-error=;;"` ;;
++      --open-files-limit=*) open_files=`echo "$arg" | sed -e "s;--open-files-limit=;;"` ;;
++      --core-file-size=*) core_file_size=`echo "$arg" | sed -e "s;--core-file-size=;;"` ;;
++      --timezone=*) TZ=`echo "$arg" | sed -e "s;--timezone=;;"` ; export TZ; ;;
++      --mysqld=*)   MYSQLD=`echo "$arg" | sed -e "s;--mysqld=;;"` ;;
++      --mysqld-version=*)
++	tmp=`echo "$arg" | sed -e "s;--mysqld-version=;;"`
++	if test -n "$tmp"
++	then
++	  MYSQLD="mysqld-$tmp"
++	else
++	  MYSQLD="mysqld"
++	fi
++	;;
++      --nice=*) niceness=`echo "$arg" | sed -e "s;--nice=;;"` ;;
++      --help)
++        usage
++        ;;
++      *)
++        if test -n "$pick_args"
++        then
++          # This sed command makes sure that any special chars are quoted,
++          # so the arg gets passed exactly to the server.
++          args="$args "`echo "$arg" | sed -e 's,\([^a-zA-Z0-9_.-]\),\\\\\1,g'`
++        fi
++        ;;
++    esac
++  done
++}
++
++
++#
++# First, try to find BASEDIR and ledir (where mysqld is)
++# 
++
++MY_PWD=`pwd`
++# Check for the directories we would expect from a binary release install
++if test -f ./share/mysql/english/errmsg.sys -a -x ./bin/mysqld
++then
++  MY_BASEDIR_VERSION=$MY_PWD		# Where bin, share and data are
++  ledir=$MY_BASEDIR_VERSION/bin		# Where mysqld is
++# Check for the directories we would expect from a source install
++elif test -f ./share/mysql/english/errmsg.sys -a \
++ -x ./libexec/mysqld
++then
++  MY_BASEDIR_VERSION=$MY_PWD		# Where libexec, share and var are
++  ledir=$MY_BASEDIR_VERSION/libexec	# Where mysqld is
++# Since we didn't find anything, used the compiled-in defaults
++else
++  MY_BASEDIR_VERSION=@prefix@
++  ledir=@libexecdir@
++fi
++
++#
++# Second, try to find the data directory
++#
++
++# Try where the binary installs put it
++if test -d $MY_BASEDIR_VERSION/data/mysql
++then
++  DATADIR=$MY_BASEDIR_VERSION/data
++  if test -z "$defaults" -a -r "$DATADIR/my.cnf"
++  then
++    defaults="--defaults-extra-file=$DATADIR/my.cnf"
++  fi
++# Next try where the source installs put it
++elif test -d $MY_BASEDIR_VERSION/var/mysql
++then
++  DATADIR=$MY_BASEDIR_VERSION/var
++# Or just give up and use our compiled-in default
++else
++  DATADIR=@localstatedir@
++fi
++
++if test -z "$MYSQL_HOME"
++then 
++  if test -r "$MY_BASEDIR_VERSION/my.cnf" && test -r "$DATADIR/my.cnf"
++  then
++    echo "WARNING: Found two instances of my.cnf -"
++    echo "$MY_BASEDIR_VERSION/my.cnf and"
++    echo "$DATADIR/my.cnf"
++    echo "IGNORING $DATADIR/my.cnf"
++    echo
++    MYSQL_HOME=$MY_BASEDIR_VERSION
++  elif test -r "$DATADIR/my.cnf"
++  then
++    echo "WARNING: Found $DATADIR/my.cnf"
++    echo "Datadir is deprecated place for my.cnf, please move it to $MY_BASEDIR_VERSION"
++    echo
++    MYSQL_HOME=$DATADIR
++  else
++    MYSQL_HOME=$MY_BASEDIR_VERSION
++  fi
++fi
++export MYSQL_HOME
++
++user=@MYSQLD_USER@
++niceness=0
++
++# these rely on $DATADIR by default, so we'll set them later on
++pid_file=
++err_log=
++
++# Get first arguments from the my.cnf file, groups [mysqld] and [mysqld_safe]
++# and then merge with the command line arguments
++if test -x ./bin/my_print_defaults
++then
++  print_defaults="./bin/my_print_defaults"
++elif test -x @bindir@/my_print_defaults
++then
++  print_defaults="@bindir@/my_print_defaults"
++elif test -x @bindir@/mysql_print_defaults
++then
++  print_defaults="@bindir@/mysql_print_defaults"
++else
++  print_defaults="my_print_defaults"
++fi
++
++args=
++SET_USER=2
++parse_arguments `$print_defaults $defaults --loose-verbose mysqld server`
++if test $SET_USER -eq 2
++then
++  SET_USER=0
++fi
++parse_arguments `$print_defaults $defaults --loose-verbose mysqld_safe safe_mysqld`
++parse_arguments PICK-ARGS-FROM-ARGV "$@"
++safe_mysql_unix_port=${mysql_unix_port:-${MYSQL_UNIX_PORT:-@MYSQL_UNIX_ADDR@}}
++
++# Make sure that directory for $safe_mysql_unix_port exists
++mysql_unix_port_dir=`dirname $safe_mysql_unix_port`
++if [ ! -d $mysql_unix_port_dir ]
++then
++  mkdir $mysql_unix_port_dir
++  chown $user $mysql_unix_port_dir
++fi
++
++# Use the mysqld-max binary by default if the user doesn't specify a binary
++if test -z "$MYSQLD"
++then
++  if test -x $ledir/mysqld-max
++  then
++    MYSQLD=mysqld-max
++  else
++    MYSQLD=mysqld
++  fi
++fi
++
++if test ! -x $ledir/$MYSQLD
++then
++  echo "The file $ledir/$MYSQLD doesn't exist or is not executable"
++  echo "Please do a cd to the mysql installation directory and restart"
++  echo "this script from there as follows:"
++  echo "./bin/mysqld_safe".
++  echo "See http://dev.mysql.com/doc/mysql/en/mysqld_safe.html for more"
++  echo "information"
++  exit 1
++fi
++
++if test -z "$pid_file"
++then
++  pid_file=$DATADIR/`@HOSTNAME@`.pid
++else
++  case "$pid_file" in
++    /* ) ;;
++    * )  pid_file="$DATADIR/$pid_file" ;;
++  esac
++fi
++test -z "$err_log"  && err_log=$DATADIR/`@HOSTNAME@`.err
++
++if test -n "$mysql_unix_port"
++then
++  args="--socket=$mysql_unix_port $args"
++fi
++if test -n "$mysql_tcp_port"
++then
++  args="--port=$mysql_tcp_port $args"
++fi
++
++if test $niceness -eq 0
++then
++  NOHUP_NICENESS="nohup"
++else
++  NOHUP_NICENESS="nohup nice -$niceness"
++fi
++
++# Using nice with no args to get the niceness level is GNU-specific.
++# This check could be extended for other operating systems (e.g.,
++# BSD could use "nohup sh -c 'ps -o nice -p $$' | tail -1").
++# But, it also seems that GNU nohup is the only one which messes
++# with the priority, so this is okay.
++if nohup nice > /dev/null 2>&1
++then
++    normal_niceness=`nice`
++    nohup_niceness=`nohup nice`
++
++    numeric_nice_values=1
++    for val in $normal_niceness $nohup_niceness
++    do
++        case "$val" in
++            -[0-9] | -[0-9][0-9] | -[0-9][0-9][0-9] | \
++             [0-9] |  [0-9][0-9] |  [0-9][0-9][0-9] )
++                ;;
++            * )
++                numeric_nice_values=0 ;;
++        esac
++    done
++
++    if test $numeric_nice_values -eq 1
++    then
++        nice_value_diff=`expr $nohup_niceness - $normal_niceness`
++        if test $? -eq 0 && test $nice_value_diff -gt 0 && \
++            nice --$nice_value_diff echo testing > /dev/null 2>&1
++        then
++            # nohup increases the priority (bad), and we are permitted
++            # to lower the priority with respect to the value the user
++            # might have been given
++            niceness=`expr $niceness - $nice_value_diff`
++            NOHUP_NICENESS="nice -$niceness nohup"
++        fi
++    fi
++else
++    if nohup echo testing > /dev/null 2>&1
++    then
++        :
++    else
++        # nohup doesn't work on this system
++        NOHUP_NICENESS=""
++    fi
++fi
++
++USER_OPTION=""
++if test -w / -o "$USER" = "root"
++then
++  if test "$user" != "root" -o $SET_USER = 1
++  then
++    USER_OPTION="--user=$user"
++  fi
++  # If we are root, change the err log to the right user.
++  touch $err_log; chown $user $err_log
++  if test -n "$open_files"
++  then
++    ulimit -n $open_files
++    args="--open-files-limit=$open_files $args"
++  fi
++fi
++
++# Try to set the core file size (even if we aren't root) because many systems
++# don't specify a hard limit on core file size.
++if test -n "$core_file_size"
++then
++  ulimit -c $core_file_size
++fi
++
++#
++# If there exists an old pid file, check if the daemon is already running
++# Note: The switches to 'ps' may depend on your operating system
++if test -f $pid_file
++then
++  PID=`cat $pid_file`
++  if @CHECK_PID@
++  then
++    if @FIND_PROC@
++    then    # The pid contains a mysqld process
++      echo "A mysqld process already exists"
++      echo "A mysqld process already exists at " `date` >> $err_log
++      exit 1
++    fi
++  fi
++  rm -f $pid_file
++  if test -f $pid_file
++  then
++    echo "Fatal error: Can't remove the pid file: $pid_file"
++    echo "Fatal error: Can't remove the pid file: $pid_file at " `date` >> $err_log
++    echo "Please remove it manually and start $0 again"
++    echo "mysqld daemon not started"
++    exit 1
++  fi
++fi
++
++#
++# Uncomment the following lines if you want all tables to be automatically
++# checked and repaired during startup. You should add sensible key_buffer
++# and sort_buffer values to my.cnf to improve check performance or require
++# less disk space.
++# Alternatively, you can start mysqld with the "myisam-recover" option. See
++# the manual for details.
++#
++# echo "Checking tables in $DATADIR"
++# $MY_BASEDIR_VERSION/bin/myisamchk --silent --force --fast --medium-check $DATADIR/*/*.MYI
++# $MY_BASEDIR_VERSION/bin/isamchk --silent --force $DATADIR/*/*.ISM
++
++echo "Starting $MYSQLD daemon with databases from $DATADIR"
++
++# Does this work on all systems?
++#if type ulimit | grep "shell builtin" > /dev/null
++#then
++#  ulimit -n 256 > /dev/null 2>&1		# Fix for BSD and FreeBSD systems
++#fi
++
++echo "`date +'%y%m%d %H:%M:%S  mysqld started'`" >> $err_log
++while true
++do
++  rm -f $safe_mysql_unix_port $pid_file	# Some extra safety
++  if test -z "$args"
++  then
++    $NOHUP_NICENESS $ledir/$MYSQLD $defaults --basedir=$MY_BASEDIR_VERSION --datadir=$DATADIR $USER_OPTION --pid-file=$pid_file @MYSQLD_DEFAULT_SWITCHES@ >> $err_log 2>&1
++  else
++    eval "$NOHUP_NICENESS $ledir/$MYSQLD $defaults --basedir=$MY_BASEDIR_VERSION --datadir=$DATADIR $USER_OPTION --pid-file=$pid_file @MYSQLD_DEFAULT_SWITCHES@ $args >> $err_log 2>&1"
++  fi
++  if test ! -f $pid_file		# This is removed if normal shutdown
++  then
++    echo "STOPPING server from pid file $pid_file"
++    break
++  fi
++
++  if @TARGET_LINUX@ && test $KILL_MYSQLD -eq 1
++  then
++    # Test if one process was hanging.
++    # This is only a fix for Linux (running as base 3 mysqld processes)
++    # but should work for the rest of the servers.
++    # The only thing is ps x => redhat 5 gives warnings when using ps -x.
++    # kill -9 is used or the process won't react on the kill.
++    numofproces=`ps xaww | grep -v "grep" | grep "$ledir/$MYSQLD\>" | grep -c "pid-file=$pid_file"`
++
++    echo -e "\nNumber of processes running now: $numofproces" | tee -a $err_log
++    I=1
++    while test "$I" -le "$numofproces"
++    do 
++      PROC=`ps xaww | grep "$ledir/$MYSQLD\>" | grep -v "grep" | grep "pid-file=$pid_file" | sed -n '$p'` 
++
++      for T in $PROC
++      do
++        break
++      done
++      #    echo "TEST $I - $T **"
++      if kill -9 $T
++      then
++        echo "$MYSQLD process hanging, pid $T - killed" | tee -a $err_log
++      else 
++        break
++      fi
++      I=`expr $I + 1`
++    done
++  fi
++  echo "`date +'%y%m%d %H:%M:%S'`  mysqld restarted" | tee -a $err_log
++done
++
++echo "`date +'%y%m%d %H:%M:%S'`  mysqld ended" | tee -a $err_log
++echo "" | tee -a $err_log
++
+diff -Naur mysql-5.0.34-bk-20070101.orig/scripts/mysqldumpslow.sh mysql-5.0.34-bk-20070101/scripts/mysqldumpslow.sh
+--- mysql-5.0.34-bk-20070101.orig/scripts/mysqldumpslow.sh	2007-01-01 19:10:30.000000000 +0100
++++ mysql-5.0.34-bk-20070101/scripts/mysqldumpslow.sh	2007-01-03 00:48:04.000000000 +0100
+@@ -34,16 +34,16 @@
+ $opt{'help'} and usage();
+ 
+ unless (@ARGV) {
+-    my $defaults   = `my_print_defaults mysqld`;
++    my $defaults   = `@mybin_my_print_defaults@ mysqld`;
+     my $basedir = ($defaults =~ m/--basedir=(.*)/)[0]
+-	or die "Can't determine basedir from 'my_print_defaults mysqld' output: $defaults";
++	or die "Can't determine basedir from '@mybin_my_print_defaults@ mysqld' output: $defaults";
+     warn "basedir=$basedir\n" if $opt{v};
+ 
+     my $datadir = ($defaults =~ m/--datadir=(.*)/)[0];
+     if (!$datadir or $opt{i}) {
+ 	# determine the datadir from the instances section of /etc/my.cnf, if any
+-	my $instances  = `my_print_defaults instances`;
+-	die "Can't determine datadir from 'my_print_defaults mysqld' output: $defaults"
++	my $instances  = `@mybin_my_print_defaults@ instances`;
++	die "Can't determine datadir from '@mybin_my_print_defaults@ mysqld' output: $defaults"
+ 	    unless $instances;
+ 	my @instances = ($instances =~ m/^--(\w+)-/mg);
+ 	die "No -i 'instance_name' specified to select among known instances: @instances.\n"
+@@ -51,7 +51,7 @@
+ 	die "Instance '$opt{i}' is unknown (known instances: @instances)\n"
+ 	    unless grep { $_ eq $opt{i} } @instances;
+ 	$datadir = ($instances =~ m/--$opt{i}-datadir=(.*)/)[0]
+-	    or die "Can't determine --$opt{i}-datadir from 'my_print_defaults instances' output: $instances";
++	    or die "Can't determine --$opt{i}-datadir from '@mybin_my_print_defaults@ instances' output: $instances";
+ 	warn "datadir=$datadir\n" if $opt{v};
+     }
+ 

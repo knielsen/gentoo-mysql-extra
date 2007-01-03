@@ -1,0 +1,11 @@
+--- mysql/mysql-test/t/rpl000015.test	2007-01-01 20:44:14.000000000 +0100
++++ mysql.new/mysql-test/t/rpl000015.test	2007-01-02 10:58:38.000000000 +0100
+@@ -12,7 +12,7 @@
+ 
+ change master to master_host='127.0.0.1';
+ # The following needs to be cleaned up when change master is fixed
+---replace_result $MASTER_MYPORT MASTER_PORT $MYSQL_TCP_PORT MASTER_PORT
++--replace_result $MASTER_MYPORT MASTER_PORT $MYSQL_TCP_PORT MASTER_PORT 3306 MASTER_PORT
+ --replace_column 1 # 8 # 9 # 23 # 33 #
+ show slave status;
+ --replace_result $MASTER_MYPORT MASTER_PORT

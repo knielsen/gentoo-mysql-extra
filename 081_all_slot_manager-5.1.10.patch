@@ -1,0 +1,21 @@
+diff -Naur mysql-5.1.10-beta-nightly-20060410.a/server-tools/instance-manager/Makefile.am mysql-5.1.10-beta-nightly-20060410.b/server-tools/instance-manager/Makefile.am
+--- mysql-5.1.10-beta-nightly-20060410.a/server-tools/instance-manager/Makefile.am	2006-04-10 04:27:45.000000000 +0000
++++ mysql-5.1.10-beta-nightly-20060410.b/server-tools/instance-manager/Makefile.am	2006-04-12 17:21:28.000000000 +0000
+@@ -28,12 +28,12 @@
+ noinst_LIBRARIES=   libnet.a
+ 
+ liboptions_la_CXXFLAGS= $(CXXFLAGS) \
+-	-DDEFAULT_PID_FILE_NAME="$(localstatedir)/mysqlmanager.pid" \
+-	-DDEFAULT_LOG_FILE_NAME="$(localstatedir)/mysqlmanager.log" \
+-	-DDEFAULT_SOCKET_FILE_NAME="/tmp/mysqlmanager.sock" \
++	-DDEFAULT_PID_FILE_NAME="$(localstatedir)/mysqlmanager@GENTOO_EXT@.pid" \
++	-DDEFAULT_LOG_FILE_NAME="$(localstatedir)/mysqlmanager@GENTOO_EXT@.log" \
++	-DDEFAULT_SOCKET_FILE_NAME="/@GENTOO_SOCK_PATH@/mysqlmanager@GENTOO_EXT@.sock" \
+ 	-DDEFAULT_PASSWORD_FILE_NAME="/etc/mysqlmanager.passwd" \
+-	-DDEFAULT_MYSQLD_PATH="$(libexecdir)/mysqld$(EXEEXT)" \
+-	-DDEFAULT_CONFIG_FILE="/etc/my.cnf" \
++	-DDEFAULT_MYSQLD_PATH="$(libexecdir)/mysqld@GENTOO_EXT@$(EXEEXT)" \
++	-DDEFAULT_CONFIG_FILE="/etc/mysql@GENTOO_EXT@/my.cnf" \
+ 	-DPROTOCOL_VERSION=@PROTOCOL_VERSION@
+ 
+ liboptions_la_SOURCES= options.h options.cc priv.h priv.cc

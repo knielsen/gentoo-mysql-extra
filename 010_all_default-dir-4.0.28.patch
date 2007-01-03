@@ -1,0 +1,11 @@
+--- mysql-4.0.18-bk-20070101/mysys/default.c	2007-01-01 21:19:15.000000000 +0100
++++ mysql-4.0.18-bk-20070101.orig/mysys/default.c	2007-01-01 20:46:31.000000000 +0100
+@@ -48,7 +48,7 @@
+ #elif defined(__NETWARE__)
+ "sys:/etc/",
+ #else
+-"/etc/",
++"/etc/mysql/",
+ #endif
+ #ifdef DATADIR
+ DATADIR,
