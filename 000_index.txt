@@ -160,7 +160,7 @@
 @@ add slot MySQL support to scripts utilities
 
 @patch 080_all_slot_script-5.1.15.patch
-@ver 5.01.15.00 to 5.01.99.99
+@ver 5.01.15.00 to 5.02.99.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
@@ -175,7 +175,7 @@
 @@ add slot support for mysqlmanager
 
 @patch 081_all_slot_manager-5.1.10.patch
-@ver 5.01.09.00 to 5.01.99.99
+@ver 5.01.09.00 to 5.02.09.99
 @pn mysql-slotted
 @@ add slot support for mysqlmanager
 
@@ -187,12 +187,20 @@
 @@ Fix MySQL bug #23427
 
 @patch 101_all_bootstrap_no_plugin.patch
-@ver 5.01.13.00 to 5.01.99.99
+@ver 5.01.13.00 to 5.02.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ prevent loading of modules from plugin table when in bootstrap mode
 @@ Thanks solar, bug #158777
+
+@patch 105_all_mysql_config_cleanup.patch
+@ver 4.01.22.00 to 4.01.99.99
+@ver 5.00.26.00 to 9.99.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
 @patch 200_all_query-logging-bypass-4.1.19.patch
 @ver 4.01.14.00 to 4.01.99.99
@@ -263,14 +271,14 @@
 
 @patch 703_all_test-rpl_rotate_logs-5.0.21.patch
 @ver 5.00.26.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.01.99.99
+@ver 5.01.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 
 @patch 704_all_disable_mybug_9735_test.patch
 @ver 5.00.26.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.01.99.99
+@ver 5.01.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
