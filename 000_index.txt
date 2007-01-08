@@ -287,7 +287,7 @@
 @@ failure.
 
 @patch 705_all_we-are-in-2007-now.patch
-@ver 5.00.26.00 to 5.00.30.99
+@ver 5.00.26.00 to 5.00.32.99
 @ver 5.01.14.00 to 5.01.14.99
 @pn mysql
 @pn mysql-community
