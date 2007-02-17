@@ -262,7 +262,15 @@
 @@ normalize port 3306 in tests
 
 @patch 702_all_trigger-rename-fail-as-root-5.0.26.patch
-@ver 5.00.26.00 to 5.00.99.99
+@ver 5.00.26.00 to 5.00.33.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ portage normally ran as root, MySQL tests are designed to be used
+@@ with lower priviledges
+
+@patch 702_all_trigger-rename-fail-as-root-5.0.34.patch
+@ver 5.00.34.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
