@@ -1,0 +1,26 @@
+diff -Nuar --exclude '*~' mysql.old/libmysqld/sql_parse.cc mysql/libmysqld/sql_parse.cc
+--- mysql.old/libmysqld/sql_parse.cc	2007-03-20 11:12:46.000000000 -0800
++++ mysql/libmysqld/sql_parse.cc	2007-04-15 01:25:22.240914696 -0700
+@@ -5405,9 +5405,7 @@
+ {
+   uint found=0;
+   ulong found_access=0;
+-#ifndef EMBEDDED_LIBRARY
+   TABLE_LIST *org_tables= tables;
+-#endif
+   TABLE_LIST *first_not_own_table= thd->lex->first_not_own_table();
+   Security_context *sctx= thd->security_ctx, *backup_ctx= thd->security_ctx;
+   /*
+diff -Nuar --exclude '*~' mysql.old/sql/sql_parse.cc mysql/sql/sql_parse.cc
+--- mysql.old/sql/sql_parse.cc	2007-03-20 11:12:46.000000000 -0800
++++ mysql/sql/sql_parse.cc	2007-04-15 01:25:15.065857026 -0700
+@@ -5405,9 +5405,7 @@
+ {
+   uint found=0;
+   ulong found_access=0;
+-#ifndef EMBEDDED_LIBRARY
+   TABLE_LIST *org_tables= tables;
+-#endif
+   TABLE_LIST *first_not_own_table= thd->lex->first_not_own_table();
+   Security_context *sctx= thd->security_ctx, *backup_ctx= thd->security_ctx;
+   /*

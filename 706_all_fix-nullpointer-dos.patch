@@ -1,0 +1,27 @@
+Gentoo bug #171934
+MySQL bug #27513
+
+diff -Naur mysql-5.0.38/libmysqld/item_cmpfunc.cc mysql-5.0.38-patched/libmysqld/item_cmpfunc.cc
+--- mysql-5.0.38/libmysqld/item_cmpfunc.cc	2007-03-20 20:12:46.000000000 +0100
++++ mysql-5.0.38-patched/libmysqld/item_cmpfunc.cc	2007-04-12 20:41:32.000000000 +0200
+@@ -2423,7 +2423,7 @@
+   dec->len= DECIMAL_BUFF_LENGTH;
+   dec->fix_buffer_pointer();
+   my_decimal *res= item->val_decimal(dec);
+-  if (res != dec)
++  if (!item->null_value && res != dec)
+     my_decimal2decimal(res, dec);
+ }
+ 
+diff -Naur mysql-5.0.38/sql/item_cmpfunc.cc mysql-5.0.38-patched/sql/item_cmpfunc.cc
+--- mysql-5.0.38/sql/item_cmpfunc.cc	2007-03-20 20:12:46.000000000 +0100
++++ mysql-5.0.38-patched/sql/item_cmpfunc.cc	2007-04-12 20:41:36.000000000 +0200
+@@ -2423,7 +2423,7 @@
+   dec->len= DECIMAL_BUFF_LENGTH;
+   dec->fix_buffer_pointer();
+   my_decimal *res= item->val_decimal(dec);
+-  if (res != dec)
++  if (!item->null_value && res != dec)
+     my_decimal2decimal(res, dec);
+ }
+ 

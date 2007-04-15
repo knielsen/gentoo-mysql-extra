@@ -1,0 +1,71 @@
+From: kgeorge
+Date: April 3 2007 5:01pm
+Subject: bk commit into 5.0 tree (gkodinov:1.2432) BUG#27513
+
+Below is the list of changes that have just been committed into a local
+5.0 repository of kgeorge. When kgeorge does a push these changes will
+be propagated to the main repository and, within 24 hours after the
+push, to the public repository.
+For information on how to access the public repository
+see http://dev.mysql.com/doc/mysql/en/installing-source-tree.html
+
+ChangeSet@stripped, 2007-04-03 18:00:57+03:00, gkodinov@stripped +2 -0
+  Bug #27513: test case added to make sure this 
+  crash bug doesn't reappear.
+
+  mysql-test/r/errors.result@stripped, 2007-04-03 18:00:55+03:00, gkodinov@stripped +18 -0
+    Bug #27513: test case
+
+  mysql-test/t/errors.test@stripped, 2007-04-03 18:00:55+03:00, gkodinov@stripped +11 -0
+    Bug #27513: test case
+
+# This is a BitKeeper patch.  What follows are the unified diffs for the
+# set of deltas contained in the patch.  The rest of the patch, the part
+# that BitKeeper cares about, is below these diffs.
+# User:	gkodinov
+# Host:	magare.gmz
+# Root:	/home/kgeorge/mysql/work/B27513-5.0-opt
+
+--- 1.9/mysql-test/r/errors.result	2005-08-12 18:04:47 +03:00
++++ 1.10/mysql-test/r/errors.result	2007-04-03 18:00:55 +03:00
+@@ -28,3 +28,21 @@ ERROR 42000: Display width out of range 
+ set sql_mode='traditional';
+ create table t1 (a varchar(66000));
+ ERROR 42000: Column length too big for column 'a' (max = 65535); use BLOB or TEXT instead
++CREATE TABLE t1 (a INT);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++a
++Warnings:
++Error	1365	Division by 0
++INSERT INTO t1 VALUES(1);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++a
++1
++Warnings:
++Error	1365	Division by 0
++INSERT INTO t1 VALUES(2),(3);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++a
++1
++Warnings:
++Error	1365	Division by 0
++DROP TABLE t1;
+
+--- 1.15/mysql-test/t/errors.test	2005-08-12 18:04:48 +03:00
++++ 1.16/mysql-test/t/errors.test	2007-04-03 18:00:55 +03:00
+@@ -41,4 +41,15 @@ set sql_mode='traditional';
+ --error 1074
+ create table t1 (a varchar(66000));
+ 
++#
++# Bug #27513: mysql 5.0.x + NULL pointer DoS
++#
++CREATE TABLE t1 (a INT);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++INSERT INTO t1 VALUES(1);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++INSERT INTO t1 VALUES(2),(3);
++SELECT a FROM t1 WHERE a IN(1, (SELECT IF(1=0,1,2/0)));
++DROP TABLE t1;
++
+ # End of 5.0 tests

@@ -219,6 +219,13 @@
 @@ Fix bug #128713
 @@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
 
+@patch 202_all_embedded-library-compile-5.0.38.patch
+@ver 5.00.38.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Compile fix for USE=embedded
+
 @patch 400_all_mysqld-safe-sh-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
 @pn mysql
@@ -270,7 +277,7 @@
 @@ with lower priviledges
 
 @patch 702_all_trigger-rename-fail-as-root-5.0.34.patch
-@ver 5.00.34.00 to 5.00.99.99
+@ver 5.00.34.00 to 5.00.34.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -302,3 +309,18 @@
 @pn mysql-slotted
 @@ the view.test is year dependant
 
+@patch 706_all_fix-nullpointer-dos.patch
+@ver 5.00.26.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.02.09.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Fix gentoo bug 171934
+
+@patch 707_all_fix-nullpointer-dos-testcase.patch
+@ver 5.00.26.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.02.09.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Testcase for fix to gentoo bug 171934 (upstream bug #27513)
