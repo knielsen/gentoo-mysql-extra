@@ -1,0 +1,127 @@
+Gentoo-Bug: 160284
+MySQL-Bug: 27383
+Upstream-fix: http://lists.mysql.com/commits/29168
+
+--- libmysql/libmysql-old.c	2007-06-21 11:59:51.000000000 +0000
++++ libmysql/libmysql.c	2007-06-21 11:54:31.000000000 +0000
+@@ -3670,28 +3670,28 @@
+       (See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=323 for details)
+       AFAIU it does not guarantee to work.
+     */
+-    float data;
++    volatile float data;
+     if (is_unsigned)
+       data= (float) ulonglong2double(value);
+     else
+       data= (float) value;
+     floatstore(buffer, data);
+     *param->error= is_unsigned ?
+-                   ((ulonglong) value) != ((ulonglong) (*(float*) buffer)) :
+-                   ((longlong) value) != ((longlong) (*(float*) buffer));
++                   ((ulonglong) value) != ((ulonglong) data) :
++                   ((longlong) value) != ((longlong) data);
+     break;
+   }
+   case MYSQL_TYPE_DOUBLE:
+   {
+-    double data;
++    volatile double data;
+     if (is_unsigned)
+       data= ulonglong2double(value);
+     else
+       data= (double)value;
+     doublestore(buffer, data);
+     *param->error= is_unsigned ?
+-                   ((ulonglong) value) != ((ulonglong) (*(double*) buffer)) :
+-                   ((longlong) value) != ((longlong) (*(double*) buffer));
++                   ((ulonglong) value) != ((ulonglong) data) :
++                   ((longlong) value) != ((longlong) data);
+     break;
+   }
+   case MYSQL_TYPE_TIME:
+@@ -3754,60 +3754,65 @@
+       Sic: AFAIU it does not guarantee to work.
+     */
+     if (param->is_unsigned)
+-      *buffer= (uint8) value;
++    {
++      volatile uint8 data= (uint8) value;
++      *buffer= data;
++      *param->error= val64 != data;
++    }
+     else
+-      *buffer= (int8) value;
+-    *param->error= val64 != (param->is_unsigned ? (double)((uint8) *buffer) :
+-                                                  (double)((int8) *buffer));
++    {
++      volatile int8 data= (int8) value;
++      *buffer= data;
++      *param->error= val64 != data;
++    }
+     break;
+   case MYSQL_TYPE_SHORT:
+     if (param->is_unsigned)
+     {
+-      ushort data= (ushort) value;
++      volatile ushort data= (ushort) value;
+       shortstore(buffer, data);
++      *param->error= val64 != (double) data;
+     }
+     else
+     {
+-      short data= (short) value;
++      volatile short data= (short) value;
+       shortstore(buffer, data);
++      *param->error= val64 != (double) data;
+     }
+-    *param->error= val64 != (param->is_unsigned ? (double) (*(ushort*) buffer):
+-                                                  (double) (*(short*) buffer));
+     break;
+   case MYSQL_TYPE_LONG:
+     if (param->is_unsigned)
+     {
+-      uint32 data= (uint32) value;
++      volatile uint32 data= (uint32) value;
+       longstore(buffer, data);
++      *param->error= val64 != (double) data;
+     }
+     else
+     {
+-      int32 data= (int32) value;
++      volatile int32 data= (int32) value;
+       longstore(buffer, data);
++      *param->error= val64 != (double) data;
+     }
+-    *param->error= val64 != (param->is_unsigned ? (double) (*(uint32*) buffer):
+-                                                  (double) (*(int32*) buffer));
+-      break;
++    break;
+   case MYSQL_TYPE_LONGLONG:
+     if (param->is_unsigned)
+     {
+-      ulonglong data= (ulonglong) value;
++      volatile ulonglong data= (ulonglong) value;
+       longlongstore(buffer, data);
++      *param->error= val64 != ulonglong2double(data);
+     }
+     else
+     {
+-      longlong data= (longlong) value;
++      volatile longlong data= (longlong) value;
+       longlongstore(buffer, data);
++      *param->error= val64 != (double) data;
+     }
+-    *param->error= val64 != (param->is_unsigned ?
+-                             ulonglong2double(*(ulonglong*) buffer) :
+-                             (double) (*(longlong*) buffer));
+     break;
+   case MYSQL_TYPE_FLOAT:
+   {
+-    float data= (float) value;
++    volatile float data= (float) value;
+     floatstore(buffer, data);
+-    *param->error= (*(float*) buffer) != value;
++    *param->error= data != value;
+     break;
+   }
+   case MYSQL_TYPE_DOUBLE:
