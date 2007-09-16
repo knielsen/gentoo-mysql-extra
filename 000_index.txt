@@ -286,7 +286,8 @@
 
 @patch 703_all_test-rpl_rotate_logs-5.0.21.patch
 @ver 5.00.26.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.02.09.99
+@ver 5.01.00.00 to 5.01.15.99
+@ver 5.02.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -311,7 +312,8 @@
 
 @patch 706_all_fix-nullpointer-dos.patch
 @ver 5.00.26.00 to 5.00.39.99
-@ver 5.01.00.00 to 5.02.09.99
+@ver 5.01.00.00 to 5.01.15.99
+@ver 5.02.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -319,15 +321,17 @@
 
 @patch 707_all_fix-nullpointer-dos-testcase.patch
 @ver 5.00.26.00 to 5.00.39.99
-@ver 5.01.00.00 to 5.02.09.99
+@ver 5.01.00.00 to 5.01.15.99
+@ver 5.02.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Testcase for fix to gentoo bug 171934 (upstream bug #27513)
 
 @patch 708_all_mysql_client_test-fix-pointer-aliasing-mysqlbug27383.patch
-@ver 5.00.42.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.02.09.99
+@ver 5.00.42.00 to 5.00.44.99
+@ver 5.01.00.00 to 5.01.15.99
+@ver 5.02.00.00 to 5.02.09.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
