@@ -287,14 +287,14 @@
 @patch 703_all_test-rpl_rotate_logs-5.0.21.patch
 @ver 5.00.26.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.15.99
-@ver 5.02.00.00 to 5.02.09.99
+@ver 5.02.00.00 to 5.02.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 
 @patch 704_all_disable_mybug_9735_test.patch
 @ver 5.00.26.00 to 5.00.99.99
-@ver 5.01.00.00 to 5.02.09.99
+@ver 5.01.00.00 to 5.02.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -313,7 +313,7 @@
 @patch 706_all_fix-nullpointer-dos.patch
 @ver 5.00.26.00 to 5.00.39.99
 @ver 5.01.00.00 to 5.01.15.99
-@ver 5.02.00.00 to 5.02.09.99
+@ver 5.02.00.00 to 5.02.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -322,7 +322,7 @@
 @patch 707_all_fix-nullpointer-dos-testcase.patch
 @ver 5.00.26.00 to 5.00.39.99
 @ver 5.01.00.00 to 5.01.15.99
-@ver 5.02.00.00 to 5.02.09.99
+@ver 5.02.00.00 to 5.02.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -336,3 +336,31 @@
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix for pointer aliasing that breaks mysql_client_test (upstream bug #27393)
+
+@patch 709_all_innodb_spatial_crash_mybug_32125_5.0.patch
+@ver 5.00.42.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Fix for InnoDB 'CONTAINS' DoS (gentoo bug #198988, upstream bug #32125)
+
+@patch 709_all_innodb_spatial_crash_mybug_32125_5.1.patch
+@ver 5.01.22.00 to 5.01.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Fix for InnoDB 'CONTAINS' DoS (gentoo bug #198988, upstream bug #32125)
+
+@patch 710_all_respect_tmpdir_filesort_mybug_30287_5.0.patch
+@ver 5.00.44.00 to 5.00.47.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Fix for TMPDIR not being used during filesot (upstream bug #30287)
+
+@patch 710_all_respect_tmpdir_filesort_mybug_30287_5.1.patch
+@ver 5.01.20.00 to 5.01.22.00
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Fix for TMPDIR not being used during filesot (upstream bug #30287)
