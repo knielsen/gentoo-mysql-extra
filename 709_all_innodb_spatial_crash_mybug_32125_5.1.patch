@@ -1,6 +1,6 @@
-diff -ur innobase.orig/handler/ha_innodb.cc innobase/handler/ha_innodb.cc
---- innobase.orig/handler/ha_innodb.cc	2007-10-11 14:41:50.000000000 +0300
-+++ innobase/handler/ha_innodb.cc	2007-11-14 14:43:52.000000000 +0200
+diff -ur storage/innobase.orig/handler/ha_innodb.cc storage/innobase/handler/ha_innodb.cc
+--- storage/innobase.orig/handler/ha_innodb.cc	2007-10-11 14:41:50.000000000 +0300
++++ storage/innobase/handler/ha_innodb.cc	2007-11-14 14:43:52.000000000 +0200
 @@ -678,6 +678,9 @@
  		return(HA_ERR_RECORD_FILE_FULL);
  #endif
@@ -77,9 +77,9 @@ diff -ur innobase.orig/handler/ha_innodb.cc innobase/handler/ha_innodb.cc
  	dtuple_free_for_mysql(heap1);
  	dtuple_free_for_mysql(heap2);
  
-diff -ur innobase.orig/include/page0cur.h innobase/include/page0cur.h
---- innobase.orig/include/page0cur.h	2007-06-22 10:31:32.000000000 +0300
-+++ innobase/include/page0cur.h	2007-11-14 14:43:52.000000000 +0200
+diff -ur storage/innobase.orig/include/page0cur.h storage/innobase/include/page0cur.h
+--- storage/innobase.orig/include/page0cur.h	2007-06-22 10:31:32.000000000 +0300
++++ storage/innobase/include/page0cur.h	2007-11-14 14:43:52.000000000 +0200
 @@ -22,6 +22,7 @@
  
  /* Page cursor search modes; the values must be in this order! */
