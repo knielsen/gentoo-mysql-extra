@@ -1,0 +1,74 @@
+From: kent
+Date: December 22 2007 4:08am
+Subject: bk commit into 5.0 tree (kent:1.2586) BUG#33050
+
+Below is the list of changes that have just been committed into a local
+5.0 repository of kent. When kent does a push these changes will
+be propagated to the main repository and, within 24 hours after the
+push, to the public repository.
+For information on how to access the public repository
+see http://dev.mysql.com/doc/mysql/en/installing-source-tree.html
+
+ChangeSet@stripped, 2007-12-22 04:08:48+01:00, kent@stripped +1 -0
+  viossl.c:
+    In OpenSSL the connection type, "accept" or "connect",
+    must be set before starting the handshake (bug#33050)
+
+  vio/viossl.c@stripped, 2007-12-22 04:06:54+01:00, kent@stripped +22 -7
+    In OpenSSL the connection type, "accept" or "connect",
+    must be set before starting the handshake (bug#33050)
+
+diff -Nrup a/vio/viossl.c b/vio/viossl.c
+--- a/vio/viossl.c	2007-08-28 11:34:42 +02:00
++++ b/vio/viossl.c	2007-12-22 04:06:54 +01:00
+@@ -172,14 +172,9 @@ void vio_ssl_delete(Vio *vio)
+   vio_delete(vio);
+ }
+ 
+-int sslaccept(struct st_VioSSLFd *ptr, Vio *vio, long timeout)
+-{
+-  DBUG_ENTER("sslaccept");
+-  DBUG_RETURN(sslconnect(ptr, vio, timeout));
+-}
+-
++#define VIO_SSL_ACCEPT_MODE 1
+ 
+-int sslconnect(struct st_VioSSLFd *ptr, Vio *vio, long timeout)
++static int ssl_connect_accept(struct st_VioSSLFd *ptr, Vio *vio, long timeout, int mode)
+ {
+   SSL *ssl;
+   my_bool unused;
+@@ -204,6 +199,12 @@ int sslconnect(struct st_VioSSLFd *ptr, 
+   SSL_SESSION_set_timeout(SSL_get_session(ssl), timeout);
+   SSL_set_fd(ssl, vio->sd);
+ 
++  /* OpenSSL wants to know what mode, yaSSL seems to know */
++  if (mode == VIO_SSL_ACCEPT_MODE)
++    SSL_set_accept_state(ssl);
++  else
++    SSL_set_connect_state(ssl);
++
+   /*
+     SSL_do_handshake will select between SSL_connect
+     or SSL_accept depending on server or client side
+@@ -256,6 +257,20 @@ int sslconnect(struct st_VioSSLFd *ptr, 
+ #endif
+ 
+   DBUG_RETURN(0);
++}
++
++
++int sslaccept(struct st_VioSSLFd *ptr, Vio *vio, long timeout)
++{
++  DBUG_ENTER("sslaccept");
++  DBUG_RETURN(ssl_connect_accept(ptr, vio, timeout, VIO_SSL_ACCEPT_MODE));
++}
++
++
++int sslconnect(struct st_VioSSLFd *ptr, Vio *vio, long timeout)
++{
++  DBUG_ENTER("sslaccept");
++  DBUG_RETURN(ssl_connect_accept(ptr, vio, timeout, 0));
+ }
+ 
+ 

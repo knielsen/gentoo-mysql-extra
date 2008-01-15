@@ -338,7 +338,7 @@
 @@ Fix for pointer aliasing that breaks mysql_client_test (upstream bug #27393)
 
 @patch 709_all_innodb_spatial_crash_mybug_32125_5.0.patch
-@ver 5.00.42.00 to 5.00.99.99
+@ver 5.00.42.00 to 5.00.53.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -366,9 +366,59 @@
 @@ Fix for TMPDIR not being used during filesot (upstream bug #30287)
 
 @patch 711_all_mysql_gcc-4.2.patch
-@ver 5.00.42.00 to 5.00.99.99
+@ver 5.00.42.00 to 5.00.51.99
 @ver 5.01.21.99 to 5.01.22.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
+
+@patch 711_all_mysql_gcc-4.2_5.0.54.patch
+@ver 5.00.54.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
+
+@patch 712_all_openssl_handshake_mybug_33050.patch
+@ver 5.00.50.00 to 5.00.54.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Set the connection type for OpenSSL to not break the handshake (upstream bug 33050)
+
+@patch 713_all_mysqldump-hang-33057_5.0.52.patch
+@ver 5.00.52.00 to 5.00.54.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Avoid hang during mysqldump
+
+@patch 714_all_no-atomic-configure.patch
+@ver 5.00.50.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ No atomic garbage in configure.in
+
+@patch 715_all_mysql_config_libdir.patch
+@ver 5.00.50.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Do not muck with libdir in mysql_config
+
+@patch 716_all_flush_priveleges_in_tests.patch
+@ver 5.00.50.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ Flush privileges during some tests to avoid false positives
+
+@patch 717_all_safe_s390x_stack_size.patch
+@ver 5.00.50.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ s390x needs a sane stack size
+
