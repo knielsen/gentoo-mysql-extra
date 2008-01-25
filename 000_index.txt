@@ -422,3 +422,8 @@
 @pn mysql-slotted
 @@ s390x needs a sane stack size
 
+@patch 718_all_mysqlclient_perfomance_fix.patch
+@ver 5.00.51.00 to 5.00.55.99
+@pn mysql
+@pn mysql-community
+@@ Fix performance of regression of mysql client when loading large dumps (upstream bug 33057)
