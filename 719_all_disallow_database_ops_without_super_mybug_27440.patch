@@ -1,0 +1,210 @@
+http://lists.mysql.com/commits/39534?f=plain
+
+From: kpetterssonDate: December 7 2007 3:39pm
+Subject: bk commit into 5.0 tree (thek:1.2589) BUG#27440
+
+Below is the list of changes that have just been committed into a local
+5.0 repository of thek. When thek does a push these changes will
+be propagated to the main repository and, within 24 hours after the
+push, to the public repository.
+For information on how to access the public repository
+see http://dev.mysql.com/doc/mysql/en/installing-source-tree.html
+
+ChangeSet@stripped, 2007-12-07 15:39:41+01:00, thek@adventure.(none) +3 -0
+  Bug #27440 read_only allows create and drop database
+  
+  When read_only option was enabled, a user without SUPER privilege could
+  perform CREATE DATABASE and DROP DATABASE operations.
+  
+  This patch adds a check to make sure this isn't possible. It also attempts to 
+  simplify the logic used to determine if relevant tables are updated,
+  making it more human readable.
+
+  mysql-test/r/read_only.result@stripped, 2007-12-07 15:39:40+01:00, thek@adventure.(none) +31 -0
+    Updated result file
+
+  mysql-test/t/read_only.test@stripped, 2007-12-07 15:39:40+01:00, thek@adventure.(none) +34 -0
+    A test case is added which shows that it is not possible to drop or create a
+    database in read-only mode despite having the GRANT permissions to do so,
+    SUPER user excepted. 
+
+  sql/sql_parse.cc@stripped, 2007-12-07 15:39:40+01:00, thek@adventure.(none) +69 -8
+    - Simplified complex predicate by grouping it in a read friendly way.
+    - Added predicate to fail on database updates while running in read-only
+      mode.
+
+diff -Nrup a/mysql-test/r/read_only.result b/mysql-test/r/read_only.result
+--- a/mysql-test/r/read_only.result	2006-11-20 15:35:19 +01:00
++++ b/mysql-test/r/read_only.result	2007-12-07 15:39:40 +01:00
+@@ -46,4 +46,35 @@ Warnings:
+ Note	1051	Unknown table 'ttt'
+ drop table t1,t2;
+ drop user test@localhost;
++#
++# Bug #27440 read_only allows create and drop database
++#
++drop database if exists mysqltest_db1;
++drop database if exists mysqltest_db2;
++delete from mysql.user where User like 'mysqltest_%';
++delete from mysql.db where User like 'mysqltest_%';
++delete from mysql.tables_priv where User like 'mysqltest_%';
++delete from mysql.columns_priv where User like 'mysqltest_%';
++flush privileges;
++grant all on mysqltest_db2.* to `mysqltest_u1`@`%`;
++create database mysqltest_db1;
++grant all on mysqltest_db1.* to `mysqltest_u1`@`%`;
++flush privileges;
++show grants for current_user();
++Grants for mysqltest_u1@%
++GRANT USAGE ON *.* TO 'mysqltest_u1'@'%'
++GRANT ALL PRIVILEGES ON `mysqltest_db2`.* TO 'mysqltest_u1'@'%'
++GRANT ALL PRIVILEGES ON `mysqltest_db1`.* TO 'mysqltest_u1'@'%'
++create database mysqltest_db2;
++ERROR HY000: The MySQL server is running with the --read-only option so it cannot execute this statement
++show databases like '%mysqltest_db2%';
++Database (%mysqltest_db2%)
++drop database mysqltest_db1;
++ERROR HY000: The MySQL server is running with the --read-only option so it cannot execute this statement
++delete from mysql.user where User like 'mysqltest_%';
++delete from mysql.db where User like 'mysqltest_%';
++delete from mysql.tables_priv where User like 'mysqltest_%';
++delete from mysql.columns_priv where User like 'mysqltest_%';
++flush privileges;
++drop database mysqltest_db1;
+ set global read_only=0;
+diff -Nrup a/mysql-test/t/read_only.test b/mysql-test/t/read_only.test
+--- a/mysql-test/t/read_only.test	2006-11-20 15:35:19 +01:00
++++ b/mysql-test/t/read_only.test	2007-12-07 15:39:40 +01:00
+@@ -117,4 +117,38 @@ connection default;
+ drop table t1,t2;
+ drop user test@localhost;
+ 
++--echo #
++--echo # Bug #27440 read_only allows create and drop database
++--echo #
++--disable_warnings
++drop database if exists mysqltest_db1;
++drop database if exists mysqltest_db2;
++--enable_warnings
++
++delete from mysql.user where User like 'mysqltest_%';
++delete from mysql.db where User like 'mysqltest_%';
++delete from mysql.tables_priv where User like 'mysqltest_%';
++delete from mysql.columns_priv where User like 'mysqltest_%';
++flush privileges;
++
++grant all on mysqltest_db2.* to `mysqltest_u1`@`%`;
++create database mysqltest_db1;
++grant all on mysqltest_db1.* to `mysqltest_u1`@`%`;
++flush privileges;
++connect (con_bug27440,127.0.0.1,mysqltest_u1,,test,$MASTER_MYPORT,);
++connection con_bug27440;
++show grants for current_user();
++--error ER_OPTION_PREVENTS_STATEMENT
++create database mysqltest_db2;
++show databases like '%mysqltest_db2%';
++--error ER_OPTION_PREVENTS_STATEMENT
++drop database mysqltest_db1;
++disconnect con_bug27440;
++connection default;
++delete from mysql.user where User like 'mysqltest_%';
++delete from mysql.db where User like 'mysqltest_%';
++delete from mysql.tables_priv where User like 'mysqltest_%';
++delete from mysql.columns_priv where User like 'mysqltest_%';
++flush privileges;
++drop database mysqltest_db1;
+ set global read_only=0;
+diff -Nrup a/sql/sql_parse.cc b/sql/sql_parse.cc
+--- a/sql/sql_parse.cc	2007-11-22 13:18:18 +01:00
++++ b/sql/sql_parse.cc	2007-12-07 15:39:40 +01:00
+@@ -1597,6 +1597,74 @@ static bool do_command(THD *thd)
+ #endif  /* EMBEDDED_LIBRARY */
+ 
+ 
++/**
++  @brief Determine if an attempt to update a non-temporary table while the
++    read-only option was enabled has been made.
++
++  This is a helper function to mysql_execute_command.
++
++  @note SQLCOM_MULTI_UPDATE is an exception and delt with elsewhere.
++
++  @see mysql_execute_command
++  @returns Status code
++    @retval TRUE The statement should be denied.
++    @retval FALSE The statement isn't updating any relevant tables.
++*/
++
++static my_bool deny_updates_if_read_only_option(THD *thd,
++                                                TABLE_LIST *all_tables)
++{
++  DBUG_ENTER("deny_updates_if_read_only_option");
++
++  if (!opt_readonly)
++    DBUG_RETURN(FALSE);
++
++  LEX *lex= thd->lex;
++
++  const my_bool user_is_super=
++    ((ulong)(thd->security_ctx->master_access & SUPER_ACL) ==
++     (ulong)SUPER_ACL);
++
++  if (user_is_super)
++    DBUG_RETURN(FALSE);
++
++  if (!uc_update_queries[lex->sql_command])
++    DBUG_RETURN(FALSE);
++
++  /* Multi update is an exception and is dealt with later. */
++  if (lex->sql_command == SQLCOM_UPDATE_MULTI)
++    DBUG_RETURN(FALSE);
++
++  const my_bool create_temp_tables= 
++    (lex->sql_command == SQLCOM_CREATE_TABLE) &&
++    (lex->create_info.options & HA_LEX_CREATE_TMP_TABLE);
++
++  const my_bool drop_temp_tables= 
++    (lex->sql_command == SQLCOM_DROP_TABLE) &&
++    lex->drop_temporary;
++
++  const my_bool update_real_tables=
++    some_non_temp_table_to_be_updated(thd, all_tables) &&
++    !(create_temp_tables || drop_temp_tables);
++
++
++  const my_bool create_or_drop_databases=
++    (lex->sql_command == SQLCOM_CREATE_DB) ||
++    (lex->sql_command == SQLCOM_DROP_DB);
++
++  if (update_real_tables || create_or_drop_databases)
++  {
++      /*
++        An attempt was made to modify one or more non-temporary tables.
++      */
++      DBUG_RETURN(TRUE);
++  }
++
++
++  /* Assuming that only temporary tables are modified. */
++  DBUG_RETURN(FALSE);
++}
++
+ /*
+    Perform one connection-level (COM_XXXX) command.
+ 
+@@ -2590,14 +2658,7 @@ mysql_execute_command(THD *thd)
+       When option readonly is set deny operations which change non-temporary
+       tables. Except for the replication thread and the 'super' users.
+     */
+-    if (opt_readonly &&
+-        !(thd->security_ctx->master_access & SUPER_ACL) &&
+-        uc_update_queries[lex->sql_command] &&
+-        !((lex->sql_command == SQLCOM_CREATE_TABLE) &&
+-          (lex->create_info.options & HA_LEX_CREATE_TMP_TABLE)) &&
+-        !((lex->sql_command == SQLCOM_DROP_TABLE) && lex->drop_temporary) &&
+-        ((lex->sql_command != SQLCOM_UPDATE_MULTI) &&
+-          some_non_temp_table_to_be_updated(thd, all_tables)))
++    if (deny_updates_if_read_only_option(thd, all_tables))
+     {
+       my_error(ER_OPTION_PREVENTS_STATEMENT, MYF(0), "--read-only");
+       DBUG_RETURN(-1);
