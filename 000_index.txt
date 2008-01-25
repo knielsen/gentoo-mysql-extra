@@ -422,7 +422,7 @@
 @pn mysql-slotted
 @@ s390x needs a sane stack size
 
-@patch 718_all_mysqlclient_perfomance_fix.patch
+@patch 718_all_mysqlclient_perfomance_fix_mybug_33057.patch
 @ver 5.00.51.00 to 5.00.55.99
 @pn mysql
 @pn mysql-community
