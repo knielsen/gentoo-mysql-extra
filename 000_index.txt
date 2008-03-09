@@ -380,12 +380,12 @@
 @pn mysql-slotted
 @@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
 
-@patch 711_all_mysql_gcc-4.2_5.0.56.patch
-@ver 5.00.56.00 to 5.00.99.99
-@pn mysql
-@pn mysql-community
-@pn mysql-slotted
-@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
+#@patch 711_all_mysql_gcc-4.2_5.0.56.patch
+#@ver 5.00.56.00 to 5.00.99.99
+#@pn mysql
+#@pn mysql-community
+#@pn mysql-slotted
+#@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
 
 @patch 712_all_openssl_handshake_mybug_33050.patch
 @ver 5.00.50.00 to 5.00.54.99
