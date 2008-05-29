@@ -1,5 +1,5 @@
 #!/bin/sh
 DATE=$(date +%Y%m%d -u)
 TAG=mysql-extras-$DATE
-git tag mysql-extras-$DATE
-git archive --prefix=$tag $tag | bzip2 >../${tag}.tar.bz2
+git tag $TAG
+git archive --prefix="${TAG}/" $TAG | bzip2 >../${TAG}.tar.bz2
