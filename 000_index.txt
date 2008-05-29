@@ -196,7 +196,16 @@
 
 @patch 105_all_mysql_config_cleanup.patch
 @ver 4.01.22.00 to 4.01.99.99
-@ver 5.00.26.00 to 5.01.21.99
+@ver 5.00.26.00 to 5.00.56.00
+@ver 5.01.21.99 to 5.01.99.99
+@pn mysql
+@pn mysql-community
+@pn mysql-slotted
+@@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
+
+@patch 105_all_mysql_config_cleanup-5.0.60.patch
+@ver 5.00.60.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.01.21.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -431,3 +440,11 @@
 @pn mysql
 @pn mysql-community
 @@ Fix for read_only allowing create/drop database without SUPER (upstream bug 27440)
+
+@patch 720_all_libtool_2_2_4.patch
+@ver 5.00.50.00 to 5.00.99.99
+@ver 5.01.21.00 to 5.01.22.99
+@pn mysql
+@pn mysql-community
+@@ automake is more strict with libtool-2.2.4
+@@ Gentoo bug 220549

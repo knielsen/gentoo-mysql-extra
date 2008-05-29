@@ -1,0 +1,13 @@
+--- mysql/innobase/configure.in.or	2008-05-06 15:06:42.000000000 +0300
++++ mysql/innobase/configure.in	2008-05-06 15:06:47.000000000 +0300
+@@ -1,6 +1,10 @@
+ # Process this file with autoconf to produce a configure script
+ AC_INIT
+ AC_CANONICAL_SYSTEM
++
++AC_CONFIG_AUX_DIR(.)
++AC_CONFIG_MACRO_DIR(.)
++ 
+ AM_MAINTAINER_MODE
+ AM_CONFIG_HEADER(ib_config.h)
+ AM_INIT_AUTOMAKE(ib, 0.90)
