@@ -16,7 +16,7 @@ diff -Nuar mysql.orig/scripts/mysql_config.sh mysql/scripts/mysql_config.sh
 -              Xa xstrconst "xc99=none" AC99 \
 -              unroll2 ip mp restrict
 +tmpcflags=""
-+for i in $cflags
++for f in $cflags
  do
 -  # The first option we might strip will always have a space before it because
 -  # we set -I$pkgincludedir as the first option
