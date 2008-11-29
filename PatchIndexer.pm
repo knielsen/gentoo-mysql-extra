@@ -107,6 +107,7 @@ sub printIndex {
 		}
 		$os .= "\n";
 	}
+	chomp $os;
 	return $os;
 }
 
