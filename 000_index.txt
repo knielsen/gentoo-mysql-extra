@@ -447,3 +447,15 @@
 @pn mysql-community
 @@ automake is more strict with libtool-2.2.4
 @@ Gentoo bug 220549
+
+@patch 721_all_encode_html_entities-5.0.70.patch
+@ver 5.00.45.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Fix CVE-2008-4456 XSS in command line client (Gentoo #240407, MySQL #27884)
+
+@patch 721_all_encode_html_entities_testcase-5.0.72.patch
+@ver 5.00.72.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Testcase for CVE-2008-4456

@@ -1,6 +1,9 @@
 When using the commandline client and --html, HTML entities are not encoded,
 leading to a potential XSS.
 
+The testcase portion of this patch is disabled, as it does not apply to 5.0.72.
+You can find an updated testcase in 721_all_encode_html_entities_testcase-5.0.70.patch.
+
 Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
 X-Patch-URL: http://bugs.mysql.com/file.php?id=9232
 MySQL-Bug: 27884
@@ -37,29 +40,29 @@ Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=240407
      }
      (void) tee_fputs("</TR>", PAGER);
 
-=== modified file 'mysql-test/r/mysql.result'
---- mysql-test/r/mysql.result	2007-09-20 09:10:05 +0000
-+++ mysql-test/r/mysql.result	2008-05-01 19:23:01 +0000
-@@ -180,3 +180,5 @@
- 1
- End of 5.0 tests
- WARNING: --server-arg option not supported in this configuration.
-+<TABLE BORDER=1><TR><TH>&lt;</TH></TR><TR><TD>&lt; &amp; &gt;</TD></TR></TABLE>
-+End of 5.1 tests
-
-=== modified file 'mysql-test/t/mysql.test'
---- mysql-test/t/mysql.test	2007-09-04 22:50:09 +0000
-+++ mysql-test/t/mysql.test	2008-05-01 19:22:54 +0000
-@@ -290,3 +290,11 @@
- --disable_query_log
- --exec $MYSQL --server-arg=no-defaults test -e "quit"
- --enable_query_log
-+
-+#
-+# Bug #27884: mysql --html does not quote HTML special characters in output
-+# 
-+--exec $MYSQL --html test -e "select '< & >' as \`<\`"
-+
-+--echo
-+--echo End of 5.1 tests
-
+#=== modified file 'mysql-test/r/mysql.result'
+#--- mysql-test/r/mysql.result	2007-09-20 09:10:05 +0000
+#+++ mysql-test/r/mysql.result	2008-05-01 19:23:01 +0000
+#@@ -180,3 +180,5 @@
+# 1
+# End of 5.0 tests
+# WARNING: --server-arg option not supported in this configuration.
+#+<TABLE BORDER=1><TR><TH>&lt;</TH></TR><TR><TD>&lt; &amp; &gt;</TD></TR></TABLE>
+#+End of 5.1 tests
+#
+#=== modified file 'mysql-test/t/mysql.test'
+#--- mysql-test/t/mysql.test	2007-09-04 22:50:09 +0000
+#+++ mysql-test/t/mysql.test	2008-05-01 19:22:54 +0000
+#@@ -290,3 +290,11 @@
+# --disable_query_log
+# --exec $MYSQL --server-arg=no-defaults test -e "quit"
+# --enable_query_log
+#+
+#+#
+#+# Bug #27884: mysql --html does not quote HTML special characters in output
+#+# 
+#+--exec $MYSQL --html test -e "select '< & >' as \`<\`"
+#+
+#+--echo
+#+--echo End of 5.1 tests
+#
