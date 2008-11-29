@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 package PatchIndexer;
-#use Data::Dumper;
+use Data::Dumper;
 use Clone qw(clone);
 use warnings;
 use strict;
@@ -8,7 +8,7 @@ use strict;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK);
 require Exporter;
 @ISA = qw(Exporter AutoLoader);
-@EXPORT = qw( parseIndex printIndex );
+@EXPORT = qw( parseIndex printIndex selectPatches );
 
 sub parseIndex {
 	my $fh = shift;
@@ -108,4 +108,80 @@ sub printIndex {
 		$os .= "\n";
 	}
 	return $os;
+}
+
+sub selectPatches {
+	my (@index, $pn, $pv, @newindex);
+
+	$_ = shift;
+	@index = @{ $_ };
+
+	$pn = shift;
+	{ 
+		$_ = shift;
+		my @_pv = split /\./, $_;
+		until($#_pv >= 3) { push @_pv, 0; };
+		$pv = join('.', @_pv);
+	}
+
+	printf "PN: %s\n", $pn;
+	printf "PV: %s\n", $pv;
+	INDEX: foreach my $i (@index) {
+		my ($match_pn, $match_pv);
+		$match_pn = $match_pv = 0;
+		TESTPN: foreach my $testpn ( @{ $i->{pn} } ) {
+			printf("testing pn='%s' against '%s' ", $pn, $testpn);
+			if("$pn" eq "$testpn") {
+				printf("PASS\n");
+				$match_pn = 1;
+				last TESTPN;
+			} else {
+				printf("FAIL\n");
+			}
+		}
+		TESTPV: foreach my $testpv ( @{ $i->{ver} } ) {
+			my @v = @$testpv;
+			printf("testing pv='%s' against '%s'-'%s' ", $pv, $v[0], $v[1]);
+			if(pvGte($pv,$v[0]) and pvLte($pv,$v[1])) {
+				printf("PASS\n");
+				$match_pv = 1;
+				last TESTPV;
+			} else {
+				printf("FAIL\n");
+			}
+		}
+		if($match_pn == 1 and $match_pv == 1) {
+			printf "match on %s\n", $i->{patch};
+			push @newindex, $i;
+		} else {
+			printf "no match on %s\n", $i->{patch};
+		}
+	}
+	return @newindex;
+}
+
+sub pvCmp {
+	my (@v1, @v2);
+	@v1 = split(/\./, shift);
+	@v2 = split(/\./, shift);
+	for(my $i = 0; $i < 4; $i++) {
+		if($v1[$i] > $v2[$i]) {
+			return 1;
+		} elsif($v1[$i] < $v2[$i]) {
+			return -1;
+		}
+	}
+	return 0;
+}
+sub pvGt {
+	return pvCmp(shift, shift) > 0;
+}
+sub pvLt {
+	return pvCmp(shift, shift) < 0;
+}
+sub pvGte {
+	return pvCmp(shift, shift) >= 0;
+}
+sub pvLte {
+	return pvCmp(shift, shift) <= 0;
 }
