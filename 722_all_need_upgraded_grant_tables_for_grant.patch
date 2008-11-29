@@ -1,0 +1,66 @@
+Gentoo-Bug: 229329
+Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=229329
+Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
+
+From: Date: October 24 2007 10:29am
+Subject: bk commit into 5.0 tree (thek:1.2537) BUG#16470
+List-Archive: http://lists.mysql.com/commits/36237
+X-Bug: 16470
+Message-Id: <20071024082927.B3B745301F4@Adventure>
+
+Below is the list of changes that have just been committed into a local
+5.0 repository of thek. When thek does a push these changes will
+be propagated to the main repository and, within 24 hours after the
+push, to the public repository.
+For information on how to access the public repository
+see http://dev.mysql.com/doc/mysql/en/installing-source-tree.html
+
+ChangeSet@stripped, 2007-10-24 10:29:24+02:00, thek@adventure.(none) +1 -0
+  Bug #16470 crash on grant if old grant tables
+  
+  If a user upgraded the server without running mysql_upgrade, and later tried
+  to run a GRANT command on grant tables like tables_priv, the server would
+  crash.
+  
+  This patch fixes this problem by checking if the grant tables were properly
+  initialized before attempt to store any new grants.
+
+  sql/sql_acl.cc@stripped, 2007-10-24 10:29:21+02:00, thek@adventure.(none) +3 -6
+    If grant_reload fails, don't try to store new GRANTs because the grant tables
+    weren't properly initialized.
+
+diff -Nrup a/sql/sql_acl.cc b/sql/sql_acl.cc
+--- a/sql/sql_acl.cc	2007-06-20 14:24:27 +02:00
++++ b/sql/sql_acl.cc	2007-10-24 10:29:21 +02:00
+@@ -2780,7 +2780,7 @@ bool mysql_table_grant(THD *thd, TABLE_L
+              "--skip-grant-tables");	/* purecov: inspected */
+     DBUG_RETURN(TRUE);				/* purecov: inspected */
+   }
+-  if (rights & ~TABLE_ACLS)
++  if ((rights & ~TABLE_ACLS) || !grant_option)
+   {
+     my_message(ER_ILLEGAL_GRANT_FOR_TABLE, ER(ER_ILLEGAL_GRANT_FOR_TABLE),
+                MYF(0));
+@@ -3328,20 +3328,17 @@ void  grant_free(void)
+ my_bool grant_init()
+ {
+   THD  *thd;
+-  my_bool return_val;
+   DBUG_ENTER("grant_init");
+ 
+   if (!(thd= new THD))
+     DBUG_RETURN(1);				/* purecov: deadcode */
+   thd->thread_stack= (char*) &thd;
+   thd->store_globals();
+-  return_val=  grant_reload(thd);
++  grant_option= !grant_reload(thd);
+   delete thd;
+   /* Remember that we don't have a THD */
+   my_pthread_setspecific_ptr(THR_THD,  0);
+-  /* Set the grant option flag so we will check grants */
+-  grant_option= TRUE;
+-  DBUG_RETURN(return_val);
++  DBUG_RETURN(!grant_option);
+ }
+ 
+ 

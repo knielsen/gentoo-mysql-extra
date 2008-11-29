@@ -459,3 +459,9 @@
 @pn mysql
 @pn mysql-community
 @@ Testcase for CVE-2008-4456
+
+@patch 722_all_need_upgraded_grant_tables_for_grant.patch
+@ver 5.00.18.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Do not crash on old grant tables when GRANT is called (Gentoo #229329, MySQL #16470)
