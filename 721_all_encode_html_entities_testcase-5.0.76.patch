@@ -1,0 +1,34 @@
+When using the commandline client and --html, HTML entities are not encoded,
+leading to a potential XSS.
+
+This is the testcase portion from the original patch, ported to 5.0.72.
+
+Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
+X-Patch-URL: http://bugs.mysql.com/file.php?id=9232
+MySQL-Bug: 27884
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=27884
+Gentoo-Bug: 240407
+Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=240407
+
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysql-test/r/mysql.result mysql/mysql-test/r/mysql.result
+--- mysql.orig/mysql-test/r/mysql.result	2009-01-15 10:45:22.000000000 -0800
++++ mysql/mysql-test/r/mysql.result	2009-02-10 19:27:04.046576272 -0800
+@@ -186,4 +186,5 @@
+ 2
+ 2
+ 2
++<TABLE BORDER=1><TR><TH>&lt;</TH></TR><TR><TD>&lt; &amp; &gt;</TD></TR></TABLE>
+ End of 5.0 tests
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysql-test/t/mysql.test mysql/mysql-test/t/mysql.test
+--- mysql.orig/mysql-test/t/mysql.test	2009-01-15 10:44:56.000000000 -0800
++++ mysql/mysql-test/t/mysql.test	2009-02-10 19:26:33.346202977 -0800
+@@ -309,4 +309,9 @@
+ --exec $MYSQL -c < $MYSQLTEST_VARDIR/tmp/bug38158.sql 2>&1
+ remove_file $MYSQLTEST_VARDIR/tmp/bug38158.sql;
+ 
++#
++# Bug #27884: mysql --html does not quote HTML special characters in output
++# 
++--exec $MYSQL --html test -e "select '< & >' as \`<\`"
++
+ --echo End of 5.0 tests
