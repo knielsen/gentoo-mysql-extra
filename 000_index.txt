@@ -471,3 +471,9 @@
 @pn mysql
 @pn mysql-community
 @@ Do not crash on old grant tables when GRANT is called (Gentoo #229329, MySQL #16470)
+
+@patch 723_all_avoid_bus_error_5.0.76.patch
+@ver 5.00.72.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Prevent SIGBUS on Sparc with NDB

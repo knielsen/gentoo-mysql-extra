@@ -1,0 +1,28 @@
+memcpy ia64 fix causes problems for sparc.
+
+Signed-off-by: Friedrich Oslage <bluebird@gentoo.org>
+X-Patch-URL: http://bugs.gentoo.org/attachment.cgi?id=175233&action=view
+Gentoo-Bug: 250880
+Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=250880
+
+--- ndb/src/kernel/blocks/dbacc/DbaccMain.cpp
++++ ndb/src/kernel/blocks/dbacc/DbaccMain.cpp
+@@ -11667,12 +11667,15 @@
+   default:
+     tmp = 0;
+   }
++#if !defined(__sparc__)
+   memcpy(signal->theData, &tmp, 8); /* must be memcpy, gives strange results on
+ 				     * ithanium gcc (GCC) 3.4.1 smp linux 2.4
+ 				     * otherwise
+ 				     */
+-  //  Uint32 * src = (Uint32*)&tmp;
+-  //  signal->theData[0] = src[0];
+-  //  signal->theData[1] = src[1];
++#elif
++  Uint32 * src = (Uint32*)&tmp;
++  signal->theData[0] = src[0];
++  signal->theData[1] = src[1];
++#endif
+ }
+ 
