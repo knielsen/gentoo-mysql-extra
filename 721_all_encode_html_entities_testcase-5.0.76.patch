@@ -22,7 +22,7 @@ diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysql-test/r/mysql.re
 diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysql-test/t/mysql.test mysql/mysql-test/t/mysql.test
 --- mysql.orig/mysql-test/t/mysql.test	2009-01-15 10:44:56.000000000 -0800
 +++ mysql/mysql-test/t/mysql.test	2009-02-10 19:26:33.346202977 -0800
-@@ -309,4 +309,9 @@
+@@ -309,4 +309,10 @@
  --exec $MYSQL -c < $MYSQLTEST_VARDIR/tmp/bug38158.sql 2>&1
  remove_file $MYSQLTEST_VARDIR/tmp/bug38158.sql;
  
@@ -31,4 +31,5 @@ diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysql-test/t/mysql.te
 +# 
 +--exec $MYSQL --html test -e "select '< & >' as \`<\`"
 +
++--echo
  --echo End of 5.0 tests
