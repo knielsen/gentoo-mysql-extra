@@ -504,10 +504,11 @@
 @pn mysql-community
 @@ Percona 5.0.75-b12: Cluster of past InnoDB IO patches
 
-@patch 1006_all_mirror_binlog-percona-5.0.75-b12.patch
-@ver 5.00.75.00 to 5.00.99.99
-@pn mysql-community
-@@ Percona 5.0.75-b12: Mirroring binary logs on slave
+# Disabled, broken.
+#@patch 1006_all_mirror_binlog-percona-5.0.75-b12.patch
+#@ver 5.00.75.00 to 5.00.99.99
+#@pn mysql-community
+#@@ Percona 5.0.75-b12: Mirroring binary logs on slave
 
 @patch 1007_all_mysqld_safe_syslog-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
