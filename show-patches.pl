@@ -4,6 +4,12 @@ use warnings;
 use strict;
 use lib ".";
 use PatchIndexer;
+use Carp;
+
+unless($ARGV[0] and length($ARGV[0]) > 0 and $ARGV[1] and length($ARGV[1]) > 0) {
+	printf STDERR "Must give PN and PV arguments\n";
+	exit 1;
+}
 
 # Show patches for a given PN/PV
 my $PN = $ARGV[0];
