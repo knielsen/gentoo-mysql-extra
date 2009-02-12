@@ -125,37 +125,37 @@ sub selectPatches {
 		$pv = join('.', @_pv);
 	}
 
-	printf "PN: %s\n", $pn;
-	printf "PV: %s\n", $pv;
+	#printf "PN: %s\n", $pn;
+	#printf "PV: %s\n", $pv;
 	INDEX: foreach my $i (@index) {
 		my ($match_pn, $match_pv);
 		$match_pn = $match_pv = 0;
 		TESTPN: foreach my $testpn ( @{ $i->{pn} } ) {
-			printf("testing pn='%s' against '%s' ", $pn, $testpn);
+			#printf("testing pn='%s' against '%s' ", $pn, $testpn);
 			if("$pn" eq "$testpn") {
-				printf("PASS\n");
+				#printf("PASS\n");
 				$match_pn = 1;
 				last TESTPN;
 			} else {
-				printf("FAIL\n");
+				#printf("FAIL\n");
 			}
 		}
 		TESTPV: foreach my $testpv ( @{ $i->{ver} } ) {
 			my @v = @$testpv;
-			printf("testing pv='%s' against '%s'-'%s' ", $pv, $v[0], $v[1]);
+			#printf("testing pv='%s' against '%s'-'%s' ", $pv, $v[0], $v[1]);
 			if(pvGte($pv,$v[0]) and pvLte($pv,$v[1])) {
-				printf("PASS\n");
+				#printf("PASS\n");
 				$match_pv = 1;
 				last TESTPV;
 			} else {
-				printf("FAIL\n");
+				#printf("FAIL\n");
 			}
 		}
 		if($match_pn == 1 and $match_pv == 1) {
-			printf "match on %s\n", $i->{patch};
+			#printf "match on %s\n", $i->{patch};
 			push @newindex, $i;
 		} else {
-			printf "no match on %s\n", $i->{patch};
+			#printf "no match on %s\n", $i->{patch};
 		}
 	}
 	return @newindex;
