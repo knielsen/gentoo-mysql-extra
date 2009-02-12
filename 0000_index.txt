@@ -478,92 +478,92 @@
 @pn mysql-community
 @@ Prevent SIGBUS on Sparc with NDB
 
-@patch 1001_show_patches-percona-5.0.75-b12.patch
+@patch 1001_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Patch listing in build data
 
-@patch 1002_microslow_innodb-percona-5.0.75-b12.patch
+@patch 1002_all_microslow_innodb-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Extended statistics in slow.log
 
-@patch 1003_userstatv2-percona-5.0.75-b12.patch
+@patch 1003_all_userstatv2-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: SHOW USER/TABLE/INDEX statistics
 # Respin?
 
-@patch 1004_microsec_process-percona-5.0.75-b12.patch
+@patch 1004_all_microsec_process-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
-@patch 1005_innodb_io_patches-percona-5.0.75-b12.patch
+@patch 1005_all_innodb_io_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Cluster of past InnoDB IO patches
 
-@patch 1006_mirror_binlog-percona-5.0.75-b12.patch
+@patch 1006_all_mirror_binlog-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Mirroring binary logs on slave
 
-@patch 1007_mysqld_safe_syslog-percona-5.0.75-b12.patch
+@patch 1007_all_mysqld_safe_syslog-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: allows redirect output of error.log to syslog-ng
 
-@patch 1008_innodb_locks_held-percona-5.0.75-b12.patch
+@patch 1008_all_innodb_locks_held-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Add locks held, remove locked records in SHOW INNODB STATUS
 
-@patch 1009_innodb_show_bp-percona-5.0.75-b12.patch
+@patch 1009_all_innodb_show_bp-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: show innodb buffer pool content
 
-@patch 1010_innodb_show_hashed_memory-percona-5.0.75-b12.patch
+@patch 1010_all_innodb_show_hashed_memory-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
-@patch 1011_innodb_check_fragmentation-percona-5.0.75-b12.patch
+@patch 1011_all_innodb_check_fragmentation-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Session status to check fragmentation of the last InnoDB scan
 
-@patch 1012_innodb_io_pattern-percona-5.0.75-b12.patch
+@patch 1012_all_innodb_io_pattern-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Information schema table of InnoDB IO counts for each datafile pages
 
-@patch 1013_innodb_fsync_source-percona-5.0.75-b12.patch
+@patch 1013_all_innodb_fsync_source-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: Information of fsync callers in InnoDB
 
-@patch 1100_split_buf_pool_mutex_fixed_optimistic_safe-percona-5.0.75-b12.patch
+@patch 1100_all_split_buf_pool_mutex_fixed_optimistic_safe-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Percona 5.0.75-b12: InnoDB patch to fix buffer pool scalability
 
-@patch 1101_innodb_rw_lock-percona-5.0.75-b12.patch
+@patch 1101_all_innodb_rw_lock-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
