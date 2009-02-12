@@ -8,7 +8,7 @@ use PatchIndexer;
 # Regenerate the index to stdout
 
 my ($FH, $index);
-open $FH,'<',"000_index.txt";
+open $FH,'<',"0000_index.txt";
 my @index = parseIndex($FH);
 #print Dumper(@index);
 print printIndex(\@index);

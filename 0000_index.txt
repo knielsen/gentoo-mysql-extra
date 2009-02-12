@@ -1,32 +1,32 @@
-@patch 010_all_mysql-4.0-my-print-defaults.patch
+@patch 0010_all_mysql-4.0-my-print-defaults.patch
 @ver 4.00.00.00 to 4.00.26.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ /etc => /etc/mysql
 
-@patch 010_all_default-dir-4.0.27.patch
+@patch 0010_all_default-dir-4.0.27.patch
 @ver 4.00.27.00 to 4.00.27.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ /etc => /etc/mysql
 
-@patch 010_all_default-dir-4.0.28.patch
+@patch 0010_all_default-dir-4.0.28.patch
 @ver 4.00.28.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ /etc => /etc/mysql
 
-@patch 010_all_default-dir-4.1.15.patch
+@patch 0010_all_default-dir-4.1.15.patch
 @ver 4.01.15.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Move config directory to the gentoo default
 
-@patch 010_all_default-dir-5.0.19.patch
+@patch 0010_all_default-dir-5.0.19.patch
 @ver 5.00.19.00 to 5.00.19.99
 @ver 5.01.07.00 to 5.01.09.99
 @pn mysql
@@ -36,7 +36,7 @@
 @@ fix MySQL Bug#15069
 @@ does not fix gentoo Bug#126054
 
-@patch 020_all_gentoo-nptl-4.0.18.patch
+@patch 0020_all_gentoo-nptl-4.0.18.patch
 @ver 4.00.18.00 to 4.00.27.99
 @ver 4.01.00.00 to 4.01.11.99
 @ver 5.00.00.00 to 5.00.03.99
@@ -45,7 +45,7 @@
 @pn mysql-slotted
 @@ Add support for NPTL
 
-@patch 030_all_thrssl-4.0.patch
+@patch 0030_all_thrssl-4.0.patch
 @ver 4.00.00.00 to 4.00.27.99
 @pn mysql
 @pn mysql-community
@@ -55,7 +55,7 @@
 # i would really prefer to fix this at the Makefile.am level, but can't
 # get the software to autoreconf as distributed - too many missing files
 
-@patch 030_all_thrssl-4.0.28.patch
+@patch 0030_all_thrssl-4.0.28.patch
 @ver 4.00.28.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
@@ -65,7 +65,7 @@
 # i would really prefer to fix this at the Makefile.am level, but can't
 # get the software to autoreconf as distributed - too many missing files
 
-@patch 030_all_thrssl-4.1.21.patch
+@patch 0030_all_thrssl-4.1.21.patch
 @ver 4.01.21.00 to 4.01.22.99
 @ver 5.00.00.00 to 5.00.04.00
 @pn mysql
@@ -73,14 +73,14 @@
 @pn mysql-slotted
 @@ Link libmysqlclient_r against ssl
 
-@patch 030_all_thrssl-4.1.23.patch
+@patch 0030_all_thrssl-4.1.23.patch
 @ver 4.01.23.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Link libmysqlclient_r against ssl
 
-@patch 035_x86_asm-pic-fixes-4.0.27.patch
+@patch 0035_x86_asm-pic-fixes-4.0.27.patch
 @ver 4.00.25.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
@@ -88,7 +88,7 @@
 @@ remove page relocations
 @@ _many_ thanks to pageexec@freemail.hu
 
-@patch 035_x86_asm-pic-fixes-4.1.12.patch
+@patch 0035_x86_asm-pic-fixes-4.1.12.patch
 @ver 4.01.12.00 to 4.01.99.99
 @ver 5.00.12.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.10.99
@@ -100,93 +100,93 @@
 @@ here is the remaining.
 @@ _many_ thanks to pageexec@freemail.hu
 
-@patch 040_all_tcpd-vars-fix-4.0.14.patch
+@patch 0040_all_tcpd-vars-fix-4.0.14.patch
 @ver 4.00.14.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 
-@patch 060_all_nisam_maykeylen-4.0.27.patch
+@patch 0060_all_nisam_maykeylen-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Enlarge max key lenght
 
-@patch 080_all_slot_script-4.0.patch
+@patch 0080_all_slot_script-4.0.patch
 @ver 4.00.26.00 to 4.00.99.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-4.1.16.patch
+@patch 0080_all_slot_script-4.1.16.patch
 @ver 4.01.16.00 to 4.01.22.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-4.1.23.patch
+@patch 0080_all_slot_script-4.1.23.patch
 @ver 4.01.23.00 to 4.01.99.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.0.17.patch
+@patch 0080_all_slot_script-5.0.17.patch
 @ver 5.01.00.00 to 5.01.08.99
 @ver 5.00.17.00 to 5.00.20.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.0.21.patch
+@patch 0080_all_slot_script-5.0.21.patch
 @ver 5.00.21.00 to 5.00.33.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.0.34.patch
+@patch 0080_all_slot_script-5.0.34.patch
 @ver 5.00.34.00 to 5.00.99.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.1.10.patch
+@patch 0080_all_slot_script-5.1.10.patch
 @ver 5.01.09.00 to 5.01.11.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.1.12.patch
+@patch 0080_all_slot_script-5.1.12.patch
 @ver 5.01.12.00 to 5.01.13.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.1.14.patch
+@patch 0080_all_slot_script-5.1.14.patch
 @ver 5.01.14.00 to 5.01.14.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 080_all_slot_script-5.1.15.patch
+@patch 0080_all_slot_script-5.1.15.patch
 @ver 5.01.15.00 to 5.02.99.99
 @pn mysql-slotted
 @@ add slot MySQL support to scripts utilities
 
-@patch 081_all_slot_manager-5.0.19.patch
+@patch 0081_all_slot_manager-5.0.19.patch
 @ver 5.00.19.00 to 5.00.99.99
 @pn mysql-slotted
 @@ add slot support for mysqlmanager
 
-@patch 081_all_slot_manager-5.1.7.patch
+@patch 0081_all_slot_manager-5.1.7.patch
 @ver 5.01.07.00 to 5.01.08.99
 @pn mysql-slotted
 @@ add slot support for mysqlmanager
 
-@patch 081_all_slot_manager-5.1.10.patch
+@patch 0081_all_slot_manager-5.1.10.patch
 @ver 5.01.09.00 to 5.02.09.99
 @pn mysql-slotted
 @@ add slot support for mysqlmanager
 
-@patch 100_all_bug23427-abi-breakage-5.0.26.patch
+@patch 0100_all_bug23427-abi-breakage-5.0.26.patch
 @ver 5.00.26.00 to 5.00.26.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix MySQL bug #23427
 
-@patch 101_all_bootstrap_no_plugin.patch
+@patch 0101_all_bootstrap_no_plugin.patch
 @ver 5.01.13.00 to 5.01.21.99
 @pn mysql
 @pn mysql-community
@@ -194,7 +194,7 @@
 @@ prevent loading of modules from plugin table when in bootstrap mode
 @@ Thanks solar, bug #158777
 
-@patch 105_all_mysql_config_cleanup.patch
+@patch 0105_all_mysql_config_cleanup.patch
 @ver 4.01.22.00 to 4.01.99.99
 @ver 5.00.26.00 to 5.00.56.00
 @ver 5.01.21.99 to 5.01.99.99
@@ -203,7 +203,7 @@
 @pn mysql-slotted
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
-@patch 105_all_mysql_config_cleanup-5.0.60.patch
+@patch 0105_all_mysql_config_cleanup-5.0.60.patch
 @ver 5.00.60.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.21.99
 @pn mysql
@@ -211,7 +211,7 @@
 @pn mysql-slotted
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
-@patch 200_all_query-logging-bypass-4.1.19.patch
+@patch 0200_all_query-logging-bypass-4.1.19.patch
 @ver 4.01.14.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
@@ -219,7 +219,7 @@
 @@ Fix bug #128713
 @@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
 
-@patch 200_all_query-logging-bypass-5.0.21.patch
+@patch 0200_all_query-logging-bypass-5.0.21.patch
 @ver 5.00.00.00 to 5.00.23.99
 @ver 5.01.00.00 to 5.01.10.99
 @pn mysql
@@ -228,56 +228,56 @@
 @@ Fix bug #128713
 @@ dev-db/mysql: Query Logging Bypass Vulnerability (CVE-2006-0903)
 
-@patch 202_all_embedded-library-compile-5.0.38.patch
+@patch 0202_all_embedded-library-compile-5.0.38.patch
 @ver 5.00.38.00 to 5.00.39.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Compile fix for USE=embedded
 
-@patch 400_all_mysqld-safe-sh-4.0.27.patch
+@patch 0400_all_mysqld-safe-sh-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Change paths detection in mysqld_safe
 
-@patch 401_all_install-db-sh-4.0.27.patch
+@patch 0401_all_install-db-sh-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Change an output comment in mysql_install_db
 
-@patch 700_all_mysqldump-missing-cfgfile-fix-4.1.21.patch
+@patch 0700_all_mysqldump-missing-cfgfile-fix-4.1.21.patch
 @ver 4.01.21.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Add configuration section for mysqldump
 
-@patch 701_all_rpl000015-portsobst-fix-4.1.21.patch
+@patch 0701_all_rpl000015-portsobst-fix-4.1.21.patch
 @ver 4.01.21.00 to 4.01.22.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ normalize port 3306 in tests
 
-@patch 701_all_rpl000015-portsobst-fix-4.1.23.patch
+@patch 0701_all_rpl000015-portsobst-fix-4.1.23.patch
 @ver 4.01.23.00 to 4.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ normalize port 3306 in tests
 
-@patch 701_all_rpl000015-portsobst-fix-5.0.26.patch
+@patch 0701_all_rpl000015-portsobst-fix-5.0.26.patch
 @ver 5.00.26.00 to 5.00.31.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ normalize port 3306 in tests
 
-@patch 702_all_trigger-rename-fail-as-root-5.0.26.patch
+@patch 0702_all_trigger-rename-fail-as-root-5.0.26.patch
 @ver 5.00.26.00 to 5.00.33.99
 @pn mysql
 @pn mysql-community
@@ -285,7 +285,7 @@
 @@ portage normally ran as root, MySQL tests are designed to be used
 @@ with lower priviledges
 
-@patch 702_all_trigger-rename-fail-as-root-5.0.34.patch
+@patch 0702_all_trigger-rename-fail-as-root-5.0.34.patch
 @ver 5.00.34.00 to 5.00.34.99
 @pn mysql
 @pn mysql-community
@@ -293,7 +293,7 @@
 @@ portage normally ran as root, MySQL tests are designed to be used
 @@ with lower priviledges
 
-@patch 703_all_test-rpl_rotate_logs-5.0.21.patch
+@patch 0703_all_test-rpl_rotate_logs-5.0.21.patch
 @ver 5.00.26.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.15.99
 @ver 5.02.00.00 to 5.02.99.99
@@ -301,7 +301,7 @@
 @pn mysql-community
 @pn mysql-slotted
 
-@patch 704_all_disable_mybug_9735_test.patch
+@patch 0704_all_disable_mybug_9735_test.patch
 @ver 5.00.26.00 to 5.00.99.99
 @ver 5.01.00.00 to 5.01.21.99
 @pn mysql
@@ -311,7 +311,7 @@
 @@ three times the returned one, look like a multibyte character related
 @@ failure.
 
-@patch 705_all_we-are-in-2007-now.patch
+@patch 0705_all_we-are-in-2007-now.patch
 @ver 5.00.26.00 to 5.00.32.99
 @ver 5.01.14.00 to 5.01.14.99
 @pn mysql
@@ -319,7 +319,7 @@
 @pn mysql-slotted
 @@ the view.test is year dependant
 
-@patch 706_all_fix-nullpointer-dos.patch
+@patch 0706_all_fix-nullpointer-dos.patch
 @ver 5.00.26.00 to 5.00.39.99
 @ver 5.01.00.00 to 5.01.15.99
 @ver 5.02.00.00 to 5.02.99.99
@@ -328,7 +328,7 @@
 @pn mysql-slotted
 @@ Fix gentoo bug 171934
 
-@patch 707_all_fix-nullpointer-dos-testcase.patch
+@patch 0707_all_fix-nullpointer-dos-testcase.patch
 @ver 5.00.26.00 to 5.00.39.99
 @ver 5.01.00.00 to 5.01.15.99
 @ver 5.02.00.00 to 5.02.99.99
@@ -337,7 +337,7 @@
 @pn mysql-slotted
 @@ Testcase for fix to gentoo bug 171934 (upstream bug #27513)
 
-@patch 708_all_mysql_client_test-fix-pointer-aliasing-mysqlbug27383.patch
+@patch 0708_all_mysql_client_test-fix-pointer-aliasing-mysqlbug27383.patch
 @ver 5.00.42.00 to 5.00.44.99
 @ver 5.01.00.00 to 5.01.15.99
 @ver 5.02.00.00 to 5.02.09.99
@@ -346,35 +346,35 @@
 @pn mysql-slotted
 @@ Fix for pointer aliasing that breaks mysql_client_test (upstream bug #27393)
 
-@patch 709_all_innodb_spatial_crash_mybug_32125_5.0.patch
+@patch 0709_all_innodb_spatial_crash_mybug_32125_5.0.patch
 @ver 5.00.42.00 to 5.00.53.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix for InnoDB 'CONTAINS' DoS (gentoo bug #198988, upstream bug #32125)
 
-@patch 709_all_innodb_spatial_crash_mybug_32125_5.1.patch
+@patch 0709_all_innodb_spatial_crash_mybug_32125_5.1.patch
 @ver 5.01.22.00 to 5.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix for InnoDB 'CONTAINS' DoS (gentoo bug #198988, upstream bug #32125)
 
-@patch 710_all_respect_tmpdir_filesort_mybug_30287_5.0.patch
+@patch 0710_all_respect_tmpdir_filesort_mybug_30287_5.0.patch
 @ver 5.00.44.00 to 5.00.47.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix for TMPDIR not being used during filesot (upstream bug #30287)
 
-@patch 710_all_respect_tmpdir_filesort_mybug_30287_5.1.patch
+@patch 0710_all_respect_tmpdir_filesort_mybug_30287_5.1.patch
 @ver 5.01.20.00 to 5.01.21.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Fix for TMPDIR not being used during filesot (upstream bug #30287)
 
-@patch 711_all_mysql_gcc-4.2.patch
+@patch 0711_all_mysql_gcc-4.2.patch
 @ver 5.00.42.00 to 5.00.50.99
 @ver 5.01.21.99 to 5.01.22.99
 @pn mysql
@@ -382,7 +382,7 @@
 @pn mysql-slotted
 @@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
 
-@patch 711_all_mysql_gcc-4.2_5.0.54.patch
+@patch 0711_all_mysql_gcc-4.2_5.0.54.patch
 @ver 5.00.54.00 to 5.00.55.99
 @pn mysql
 @pn mysql-community
@@ -391,56 +391,56 @@
 # 5.0..56 and newer, as well as 5.0.51a do not need the MYSQL_MIN gcc-4.2 fix
 # anymore.
 
-@patch 712_all_openssl_handshake_mybug_33050.patch
+@patch 0712_all_openssl_handshake_mybug_33050.patch
 @ver 5.00.50.00 to 5.00.54.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Set the connection type for OpenSSL to not break the handshake (upstream bug 33050)
 
-@patch 713_all_mysqldump-hang-33057_5.0.52.patch
+@patch 0713_all_mysqldump-hang-33057_5.0.52.patch
 @ver 5.00.52.00 to 5.00.54.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Avoid hang during mysqldump
 
-@patch 714_all_no-atomic-configure.patch
+@patch 0714_all_no-atomic-configure.patch
 @ver 5.00.50.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ No atomic garbage in configure.in
 
-@patch 715_all_mysql_config_libdir.patch
+@patch 0715_all_mysql_config_libdir.patch
 @ver 5.00.50.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Do not muck with libdir in mysql_config
 
-@patch 716_all_flush_priveleges_in_tests.patch
+@patch 0716_all_flush_priveleges_in_tests.patch
 @ver 5.00.50.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Flush privileges during some tests to avoid false positives
 
-@patch 717_all_safe_s390x_stack_size.patch
+@patch 0717_all_safe_s390x_stack_size.patch
 @ver 5.00.50.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ s390x needs a sane stack size
 
-@patch 719_all_disallow_database_ops_without_super_mybug_27440.patch
+@patch 0719_all_disallow_database_ops_without_super_mybug_27440.patch
 @ver 5.00.51.00 to 5.00.55.99
 @ver 5.01.21.00 to 5.01.22.99
 @pn mysql
 @pn mysql-community
 @@ Fix for read_only allowing create/drop database without SUPER (upstream bug 27440)
 
-@patch 720_all_libtool_2_2_4.patch
+@patch 0720_all_libtool_2_2_4.patch
 @ver 5.00.50.00 to 5.00.99.99
 @ver 5.01.21.00 to 5.01.22.99
 @pn mysql
@@ -448,31 +448,31 @@
 @@ automake is more strict with libtool-2.2.4
 @@ Gentoo bug 220549
 
-@patch 721_all_encode_html_entities-5.0.70.patch
+@patch 0721_all_encode_html_entities-5.0.70.patch
 @ver 5.00.45.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Fix CVE-2008-4456 XSS in command line client (Gentoo #240407, MySQL #27884)
 
-@patch 721_all_encode_html_entities_testcase-5.0.72.patch
+@patch 0721_all_encode_html_entities_testcase-5.0.72.patch
 @ver 5.00.72.00 to 5.00.72.99
 @pn mysql
 @pn mysql-community
 @@ Testcase for CVE-2008-4456
 
-@patch 721_all_encode_html_entities_testcase-5.0.76.patch
+@patch 0721_all_encode_html_entities_testcase-5.0.76.patch
 @ver 5.00.76.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Testcase for CVE-2008-4456
 
-@patch 722_all_need_upgraded_grant_tables_for_grant.patch
+@patch 0722_all_need_upgraded_grant_tables_for_grant.patch
 @ver 5.00.18.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
 @@ Do not crash on old grant tables when GRANT is called (Gentoo #229329, MySQL #16470)
 
-@patch 723_all_avoid_bus_error_5.0.76.patch
+@patch 0723_all_avoid_bus_error_5.0.76.patch
 @ver 5.00.72.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
