@@ -23,7 +23,7 @@ sub parseIndex {
 			# Ignore whitespace
 			#print "White: $i";
 			getEntry();
-			storeEntry() if(length($patch));
+			storeEntry() if(length($patch) or length($comment));
 			#cleanEntry();
 		} elsif($i =~ /^\@patch\s+(\S+)\s+$/) {
 			cleanEntry();
@@ -41,23 +41,24 @@ sub parseIndex {
 			chomp $mypn;
 			push @pn, $mypn;
 		} elsif($i =~ /^\@\@\s+(.*)\s+$/) {
-			# Do not chomp comments
+			# Do not chomp descriptions
 			$desc .= $1."\n";
-		} elsif($i =~ /^#\s+(.*)\s+$/) {
+		} elsif($i =~ /^#(.*)\s+$/) {
 			# Do not chomp comments
 			$comment .= $1."\n";
 		} else {
 			print "Bad! $i\n";
 		}
 	}
-	storeEntry() if(length($patch));
+	storeEntry() if(length($patch) or length($comment));
+	#print Dumper(@data);
 	return @data;
 
 	sub getEntry {
 		my %entry;
-		$entry{patch} = $patch;
-		$entry{ver} = \@ver;
-		$entry{pn} = \@pn;
+		$entry{patch} = $patch if (length($patch) > 0);
+		$entry{ver} = \@ver if (@ver);
+		$entry{pn} = \@pn if (@pn);
 		chomp $desc;
 		$entry{desc} = $desc if (length($desc) > 0);
 		chomp $comment;
@@ -87,7 +88,7 @@ sub printIndex {
 	my $os = '';
 	foreach my $i (@index) {
 		#print Dumper($i);
-		$os .= sprintf "\@patch %s\n", $i->{patch};
+		$os .= sprintf "\@patch %s\n", $i->{patch} if $i->{patch};
 		foreach $_ ( @{ $i->{ver} } ) {
 			my @v = @$_;
 			$os  .= sprintf "\@ver %s to %s\n", $v[0], $v[1];
@@ -102,7 +103,7 @@ sub printIndex {
 		}
 		if($i->{comment}) {
 			my $comment = $i->{comment};
-			$comment =~ s/^/# /gm;
+			$comment =~ s/^/#/gm;
 			$os .= $comment."\n";
 		}
 		$os .= "\n";
@@ -150,6 +151,10 @@ sub selectPatches {
 			} else {
 				#printf("FAIL\n");
 			}
+		}
+		# Special case for comments
+		if(length($i->{comment})) {
+			$match_pn = $match_pv = 1;
 		}
 		if($match_pn == 1 and $match_pv == 1) {
 			#printf "match on %s\n", $i->{patch};
