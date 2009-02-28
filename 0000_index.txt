@@ -441,6 +441,7 @@
 @@ Fix for read_only allowing create/drop database without SUPER (upstream bug 27440)
 
 @patch 0720_all_libtool_2_2_4.patch
+@ver 4.01.22.00 to 4.01.99.99
 @ver 5.00.50.00 to 5.00.99.99
 @ver 5.01.21.00 to 5.01.22.99
 @pn mysql
