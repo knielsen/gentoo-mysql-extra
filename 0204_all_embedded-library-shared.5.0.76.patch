@@ -1380,3 +1380,115 @@ diff -ur mysql-5.0.76-old/vio/Makefile.am mysql-5.0.76/vio/Makefile.am
  
  EXTRA_DIST=	CMakeLists.txt
  
+diff -Nuar mysql.orig/ndb/src/common/util/Makefile.am mysql/ndb/src/common/util/Makefile.am
+--- mysql.orig/ndb/src/common/util/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/common/util/Makefile.am	2009-04-11 16:36:38.520666040 -0700
+@@ -31,9 +31,9 @@
+ testBitmask_SOURCES =  testBitmask.cpp
+ testBitmask_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ testBitmask.cpp : Bitmask.cpp
+ 	rm -f testBitmask.cpp
+diff -Nuar mysql.orig/ndb/src/cw/cpcd/Makefile.am mysql/ndb/src/cw/cpcd/Makefile.am
+--- mysql.orig/ndb/src/cw/cpcd/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/cw/cpcd/Makefile.am	2009-04-11 16:36:32.185153480 -0700
+@@ -19,9 +19,9 @@
+ 
+ LDADD_LOC = \
+             $(top_builddir)/ndb/src/libndbclient.la      \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ include $(top_srcdir)/ndb/config/common.mk.am
+ include $(top_srcdir)/ndb/config/type_util.mk.am
+diff -Nuar mysql.orig/ndb/src/kernel/blocks/dbdict/Makefile.am mysql/ndb/src/kernel/blocks/dbdict/Makefile.am
+--- mysql.orig/ndb/src/kernel/blocks/dbdict/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/kernel/blocks/dbdict/Makefile.am	2009-04-11 16:37:40.586744073 -0700
+@@ -26,9 +26,9 @@
+ LDADD +=  \
+          $(top_builddir)/ndb/src/common/util/libgeneral.la \
+          $(top_builddir)/ndb/src/common/portlib/libportlib.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+diff -Nuar mysql.orig/ndb/src/kernel/Makefile.am mysql/ndb/src/kernel/Makefile.am
+--- mysql.orig/ndb/src/kernel/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/kernel/Makefile.am	2009-04-11 16:37:20.953412135 -0700
+@@ -66,9 +66,9 @@
+               $(top_builddir)/ndb/src/mgmapi/libmgmapi.la \
+               $(top_builddir)/ndb/src/common/portlib/libportlib.la      \
+               $(top_builddir)/ndb/src/common/util/libgeneral.la  \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+diff -Nuar mysql.orig/ndb/src/mgmclient/Makefile.am mysql/ndb/src/mgmclient/Makefile.am
+--- mysql.orig/ndb/src/mgmclient/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/mgmclient/Makefile.am	2009-04-11 16:36:16.280363648 -0700
+@@ -37,9 +37,9 @@
+ 	    ../common/portlib/libportlib.la \
+             @readline_link@ \
+             $(top_builddir)/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a \
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la \
+             @TERMCAP_LIB@ @NDB_SCI_LIBS@
+ 
+ ndb_mgm_LDFLAGS = @ndb_bin_am_ldflags@
+diff -Nuar mysql.orig/ndb/src/mgmsrv/Makefile.am mysql/ndb/src/mgmsrv/Makefile.am
+--- mysql.orig/ndb/src/mgmsrv/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/src/mgmsrv/Makefile.am	2009-04-11 16:36:22.920358437 -0700
+@@ -40,9 +40,9 @@
+ 
+ LDADD_LOC = $(top_builddir)/ndb/src/mgmclient/CommandInterpreter.lo \
+             $(top_builddir)/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a \
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la \
+             @readline_link@ \
+             @NDB_SCI_LIBS@ \
+ 	    @TERMCAP_LIB@
+diff -Nuar mysql.orig/ndb/test/run-test/Makefile.am mysql/ndb/test/run-test/Makefile.am
+--- mysql.orig/ndb/test/run-test/Makefile.am	2009-04-11 16:31:18.000000000 -0700
++++ mysql/ndb/test/run-test/Makefile.am	2009-04-11 16:36:07.367509286 -0700
+@@ -32,9 +32,9 @@
+ INCLUDES_LOC = -I$(top_srcdir)/ndb/test/include
+ LDADD_LOC = $(top_builddir)/ndb/test/src/libNDBT.a \
+ 	    $(top_builddir)/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ wrappersdir=$(prefix)/bin
+ wrappers_SCRIPTS=atrt-testBackup atrt-mysql-test-run
