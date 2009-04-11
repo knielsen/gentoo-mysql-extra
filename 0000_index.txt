@@ -479,6 +479,12 @@
 @pn mysql-community
 @@ Prevent SIGBUS on Sparc with NDB
 
+@patch 0725_all_shared_libmysqld.patch
+@ver 5.0.76.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Take libmysqld to be a proper shared library.
+
 @patch 1001_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
