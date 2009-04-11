@@ -6,7 +6,8 @@ without statically including libmysqld or nor forcing libmysqld to be built
 with -fPIC.
 
 Thanks to <pageexec@freemail.hu> for the @plt fixes.
-Thanks to Diego Elio Pettenò <flameeyes@gentoo.org> for build system help.
+Thanks to Diego Elio Pettenò <flameeyes@gentoo.org> for all the extensive build
+system help with libtool conversions.
 
 Gentoo-Bug: 238487
 Gentoo-Bug-URL: https://bugs.gentoo.org/show_bug.cgi?id=238487
