@@ -235,7 +235,7 @@
 @pn mysql-slotted
 @@ Compile fix for USE=embedded
 
-@patch 0204_all_shared_libmysqld.patch
+@patch 0204_all_embedded-library-shared.5.0.76.patch
 @ver 5.0.76.00 to 5.00.99.99
 @pn mysql
 @pn mysql-community
