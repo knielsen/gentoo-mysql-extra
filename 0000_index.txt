@@ -235,6 +235,12 @@
 @pn mysql-slotted
 @@ Compile fix for USE=embedded
 
+@patch 0204_all_shared_libmysqld.patch
+@ver 5.0.76.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Take libmysqld to be a proper shared library.
+
 @patch 0400_all_mysqld-safe-sh-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
 @pn mysql
@@ -478,12 +484,6 @@
 @pn mysql
 @pn mysql-community
 @@ Prevent SIGBUS on Sparc with NDB
-
-@patch 0725_all_shared_libmysqld.patch
-@ver 5.0.76.00 to 5.00.99.99
-@pn mysql
-@pn mysql-community
-@@ Take libmysqld to be a proper shared library.
 
 @patch 1001_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99

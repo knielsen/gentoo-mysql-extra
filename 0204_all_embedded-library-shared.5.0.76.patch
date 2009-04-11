@@ -19,7 +19,7 @@ Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
 
 diff -ur mysql-5.0.76-old/client/Makefile.am mysql-5.0.76/client/Makefile.am
 --- mysql-5.0.76-old/client/Makefile.am	2009-01-15 16:44:51.000000000 -0100
-+++ mysql-5.0.76/client/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/client/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -37,7 +37,7 @@
  				$(top_srcdir)/mysys/my_copy.c \
  				$(top_srcdir)/mysys/my_mkdir.c
@@ -29,51 +29,9 @@ diff -ur mysql-5.0.76-old/client/Makefile.am mysql-5.0.76/client/Makefile.am
  mysqlbinlog_SOURCES =   	mysqlbinlog.cc \
  				$(top_srcdir)/mysys/mf_tempdir.c \
  				$(top_srcdir)/mysys/my_new.cc
-diff -ur mysql-5.0.76-old/cmd-line-utils/libedit/Makefile.am mysql-5.0.76/cmd-line-utils/libedit/Makefile.am
---- mysql-5.0.76-old/cmd-line-utils/libedit/Makefile.am	2009-01-15 16:44:52.000000000 -0100
-+++ mysql-5.0.76/cmd-line-utils/libedit/Makefile.am	2009-03-30 00:37:59.000000000 +0000
-@@ -7,18 +7,18 @@
- 
- INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
- 
--noinst_LIBRARIES =	libedit.a
-+noinst_LTLIBRARIES =	libedit.la
- 
--libedit_a_SOURCES =	chared.c el.c history.c map.c prompt.c readline.c \
-+libedit_la_SOURCES =	chared.c el.c history.c map.c prompt.c readline.c \
- 			search.c tokenizer.c vi.c common.c emacs.c \
- 			hist.c key.c parse.c read.c refresh.c sig.c term.c \
- 			tty.c help.c fcns.c
- 
--EXTRA_libedit_a_SOURCES =	np/unvis.c np/strlcpy.c np/vis.c np/strlcat.c \
-+EXTRA_libedit_la_SOURCES =	np/unvis.c np/strlcpy.c np/vis.c np/strlcat.c \
- 				np/fgetln.c
- 
--libedit_a_LIBADD = 		@LIBEDIT_LOBJECTS@
--libedit_a_DEPENDENCIES 	= 	@LIBEDIT_LOBJECTS@
-+libedit_la_LIBADD = 		@LIBEDIT_LOBJECTS@
-+libedit_la_DEPENDENCIES 	= 	@LIBEDIT_LOBJECTS@
- 
- pkginclude_HEADERS =	readline/readline.h
- 
-diff -ur mysql-5.0.76-old/cmd-line-utils/readline/Makefile.am mysql-5.0.76/cmd-line-utils/readline/Makefile.am
---- mysql-5.0.76-old/cmd-line-utils/readline/Makefile.am	2009-01-15 16:44:54.000000000 -0100
-+++ mysql-5.0.76/cmd-line-utils/readline/Makefile.am	2009-03-30 00:40:03.000000000 +0000
-@@ -6,9 +6,9 @@
- INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
- 			-I$(top_srcdir)
- 
--noinst_LIBRARIES =	libreadline.a
-+noinst_LTLIBRARIES =	libreadline.la
- 
--libreadline_a_SOURCES =	readline.c funmap.c keymaps.c \
-+libreadline_la_SOURCES =	readline.c funmap.c keymaps.c \
- 			vi_mode.c parens.c rltty.c \
- 			complete.c bind.c isearch.c \
- 			display.c signals.c \
 diff -ur mysql-5.0.76-old/config/ac-macros/ha_innodb.m4 mysql-5.0.76/config/ac-macros/ha_innodb.m4
 --- mysql-5.0.76-old/config/ac-macros/ha_innodb.m4	2009-01-15 16:44:57.000000000 -0100
-+++ mysql-5.0.76/config/ac-macros/ha_innodb.m4	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/config/ac-macros/ha_innodb.m4	2009-03-28 10:41:48.000000000 -0100
 @@ -25,40 +25,35 @@
  dnl Some libs are listed several times, in order for gcc to sort out
  dnl circular references.
@@ -146,17 +104,17 @@ diff -ur mysql-5.0.76-old/config/ac-macros/ha_innodb.m4 mysql-5.0.76/config/ac-m
        ;;
 diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
 --- mysql-5.0.76-old/configure.in	2009-01-15 16:44:57.000000000 -0100
-+++ mysql-5.0.76/configure.in	2009-03-30 01:57:49.000000000 +0000
-@@ -252,8 +252,6 @@
-   AC_PATH_PROG(AS, as, as)
++++ mysql-5.0.76/configure.in	2009-03-27 02:16:19.000000000 -0100
+@@ -253,7 +253,7 @@
  fi
  
--# Still need ranlib for readline; local static use only so no libtool.
+ # Still need ranlib for readline; local static use only so no libtool.
 -AC_PROG_RANLIB
++#AC_PROG_RANLIB
  # We use libtool
  #AC_LIBTOOL_WIN32_DLL
  AC_PROG_LIBTOOL
-@@ -574,6 +572,9 @@
+@@ -574,6 +574,9 @@
  # We need an ANSI C compiler
  AM_PROG_CC_STDC
  
@@ -166,7 +124,7 @@ diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
  # We need an assembler, too
  AM_PROG_AS
  CCASFLAGS="$CCASFLAGS $ASFLAGS"
-@@ -2692,9 +2693,9 @@
+@@ -2692,9 +2695,9 @@
  
  if test "$THREAD_SAFE_CLIENT" = "no"
  then
@@ -178,7 +136,7 @@ diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
    linked_client_targets="$linked_client_targets linked_libmysql_r_sources"
    AC_CONFIG_FILES(libmysql_r/Makefile)
    AC_DEFINE([THREAD_SAFE_CLIENT], [1], [Should be client be thread safe])
-@@ -2723,13 +2724,11 @@
+@@ -2723,13 +2726,11 @@
  export CC CXX CFLAGS CXXFLAGS LD LDFLAGS AR
  ac_configure_args="$ac_configure_args CFLAGS='$CFLAGS' CXXFLAGS='$CXXFLAGS'"
  
@@ -193,7 +151,7 @@ diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
  fi
  
  if test "$with_server" = "no"
-@@ -2737,7 +2736,7 @@
+@@ -2737,7 +2738,7 @@
    AM_CONDITIONAL([BUILD_INNODB_TOOLS], [false])
  else
    server_scripts="mysqld_safe mysql_install_db"
@@ -204,7 +162,7 @@ diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
    #
 diff -ur mysql-5.0.76-old/dbug/Makefile.am mysql-5.0.76/dbug/Makefile.am
 --- mysql-5.0.76-old/dbug/Makefile.am	2009-01-15 16:44:57.000000000 -0100
-+++ mysql-5.0.76/dbug/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/dbug/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -16,10 +16,9 @@
  # MA 02111-1307, USA
  
@@ -234,7 +192,7 @@ diff -ur mysql-5.0.76-old/dbug/Makefile.am mysql-5.0.76/dbug/Makefile.am
  		-nroff -mm user.r > $@
 diff -ur mysql-5.0.76-old/extra/Makefile.am mysql-5.0.76/extra/Makefile.am
 --- mysql-5.0.76-old/extra/Makefile.am	2009-01-15 16:44:58.000000000 -0100
-+++ mysql-5.0.76/extra/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/extra/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -15,8 +15,7 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -247,7 +205,7 @@ diff -ur mysql-5.0.76-old/extra/Makefile.am mysql-5.0.76/extra/Makefile.am
                          $(top_builddir)/include/sql_state.h \
 diff -ur mysql-5.0.76-old/heap/Makefile.am mysql-5.0.76/heap/Makefile.am
 --- mysql-5.0.76-old/heap/Makefile.am	2009-01-15 16:45:05.000000000 -0100
-+++ mysql-5.0.76/heap/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/heap/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -14,14 +14,13 @@
  # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  
@@ -268,7 +226,7 @@ diff -ur mysql-5.0.76-old/heap/Makefile.am mysql-5.0.76/heap/Makefile.am
  			hp_rnext.c hp_rlast.c hp_rprev.c hp_clear.c \
 diff -ur mysql-5.0.76-old/innobase/btr/Makefile.am mysql-5.0.76/innobase/btr/Makefile.am
 --- mysql-5.0.76-old/innobase/btr/Makefile.am	2009-01-15 16:45:09.000000000 -0100
-+++ mysql-5.0.76/innobase/btr/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/btr/Makefile.am	2009-03-26 23:37:17.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -283,7 +241,7 @@ diff -ur mysql-5.0.76-old/innobase/btr/Makefile.am mysql-5.0.76/innobase/btr/Mak
  
 diff -ur mysql-5.0.76-old/innobase/buf/Makefile.am mysql-5.0.76/innobase/buf/Makefile.am
 --- mysql-5.0.76-old/innobase/buf/Makefile.am	2009-01-15 16:45:09.000000000 -0100
-+++ mysql-5.0.76/innobase/buf/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/buf/Makefile.am	2009-03-16 01:42:05.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -298,16 +256,17 @@ diff -ur mysql-5.0.76-old/innobase/buf/Makefile.am mysql-5.0.76/innobase/buf/Mak
  
 diff -ur mysql-5.0.76-old/innobase/configure.in mysql-5.0.76/innobase/configure.in
 --- mysql-5.0.76-old/innobase/configure.in	2009-01-15 16:45:09.000000000 -0100
-+++ mysql-5.0.76/innobase/configure.in	2009-03-30 01:59:30.000000000 +0000
-@@ -32,7 +32,6 @@
++++ mysql-5.0.76/innobase/configure.in	2009-03-28 17:27:00.000000000 -0100
+@@ -32,7 +32,7 @@
  CXXFLAGS="$CXXFLAGS "
  
  AC_PROG_CC
 -AC_PROG_RANLIB
++#AC_PROG_RANLIB
  AC_PROG_INSTALL
  AC_PROG_LIBTOOL
  AC_CHECK_HEADERS(aio.h sched.h)
-@@ -126,14 +125,4 @@
+@@ -126,14 +126,4 @@
  fi
  AC_SUBST(ARFLAGS)
  
@@ -325,7 +284,7 @@ diff -ur mysql-5.0.76-old/innobase/configure.in mysql-5.0.76/innobase/configure.
 +AC_OUTPUT(Makefile)
 diff -ur mysql-5.0.76-old/innobase/data/Makefile.am mysql-5.0.76/innobase/data/Makefile.am
 --- mysql-5.0.76-old/innobase/data/Makefile.am	2009-01-15 16:45:09.000000000 -0100
-+++ mysql-5.0.76/innobase/data/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/data/Makefile.am	2009-03-16 01:42:18.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -340,7 +299,7 @@ diff -ur mysql-5.0.76-old/innobase/data/Makefile.am mysql-5.0.76/innobase/data/M
  
 diff -ur mysql-5.0.76-old/innobase/dict/Makefile.am mysql-5.0.76/innobase/dict/Makefile.am
 --- mysql-5.0.76-old/innobase/dict/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/dict/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/dict/Makefile.am	2009-03-16 01:42:34.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -355,7 +314,7 @@ diff -ur mysql-5.0.76-old/innobase/dict/Makefile.am mysql-5.0.76/innobase/dict/M
  EXTRA_PROGRAMS =	
 diff -ur mysql-5.0.76-old/innobase/dyn/Makefile.am mysql-5.0.76/innobase/dyn/Makefile.am
 --- mysql-5.0.76-old/innobase/dyn/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/dyn/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/dyn/Makefile.am	2009-03-16 01:42:52.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -370,7 +329,7 @@ diff -ur mysql-5.0.76-old/innobase/dyn/Makefile.am mysql-5.0.76/innobase/dyn/Mak
  
 diff -ur mysql-5.0.76-old/innobase/eval/Makefile.am mysql-5.0.76/innobase/eval/Makefile.am
 --- mysql-5.0.76-old/innobase/eval/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/eval/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/eval/Makefile.am	2009-03-16 01:43:06.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -385,7 +344,7 @@ diff -ur mysql-5.0.76-old/innobase/eval/Makefile.am mysql-5.0.76/innobase/eval/M
  
 diff -ur mysql-5.0.76-old/innobase/fil/Makefile.am mysql-5.0.76/innobase/fil/Makefile.am
 --- mysql-5.0.76-old/innobase/fil/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/fil/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/fil/Makefile.am	2009-03-16 01:43:30.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -400,7 +359,7 @@ diff -ur mysql-5.0.76-old/innobase/fil/Makefile.am mysql-5.0.76/innobase/fil/Mak
  
 diff -ur mysql-5.0.76-old/innobase/fsp/Makefile.am mysql-5.0.76/innobase/fsp/Makefile.am
 --- mysql-5.0.76-old/innobase/fsp/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/fsp/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/fsp/Makefile.am	2009-03-16 01:43:42.000000000 -0100
 @@ -16,9 +16,9 @@
  
  include ../include/Makefile.i
@@ -415,7 +374,7 @@ diff -ur mysql-5.0.76-old/innobase/fsp/Makefile.am mysql-5.0.76/innobase/fsp/Mak
  
 diff -ur mysql-5.0.76-old/innobase/fut/Makefile.am mysql-5.0.76/innobase/fut/Makefile.am
 --- mysql-5.0.76-old/innobase/fut/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/fut/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/fut/Makefile.am	2009-03-16 01:43:55.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -430,7 +389,7 @@ diff -ur mysql-5.0.76-old/innobase/fut/Makefile.am mysql-5.0.76/innobase/fut/Mak
  
 diff -ur mysql-5.0.76-old/innobase/ha/Makefile.am mysql-5.0.76/innobase/ha/Makefile.am
 --- mysql-5.0.76-old/innobase/ha/Makefile.am	2009-01-15 16:45:10.000000000 -0100
-+++ mysql-5.0.76/innobase/ha/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/ha/Makefile.am	2009-03-16 01:44:11.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -445,7 +404,7 @@ diff -ur mysql-5.0.76-old/innobase/ha/Makefile.am mysql-5.0.76/innobase/ha/Makef
  
 diff -ur mysql-5.0.76-old/innobase/ibuf/Makefile.am mysql-5.0.76/innobase/ibuf/Makefile.am
 --- mysql-5.0.76-old/innobase/ibuf/Makefile.am	2009-01-15 16:45:11.000000000 -0100
-+++ mysql-5.0.76/innobase/ibuf/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/ibuf/Makefile.am	2009-03-16 01:44:24.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -460,7 +419,7 @@ diff -ur mysql-5.0.76-old/innobase/ibuf/Makefile.am mysql-5.0.76/innobase/ibuf/M
  
 diff -ur mysql-5.0.76-old/innobase/lock/Makefile.am mysql-5.0.76/innobase/lock/Makefile.am
 --- mysql-5.0.76-old/innobase/lock/Makefile.am	2009-01-15 16:45:16.000000000 -0100
-+++ mysql-5.0.76/innobase/lock/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/lock/Makefile.am	2009-03-16 01:44:48.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -475,7 +434,7 @@ diff -ur mysql-5.0.76-old/innobase/lock/Makefile.am mysql-5.0.76/innobase/lock/M
  
 diff -ur mysql-5.0.76-old/innobase/log/Makefile.am mysql-5.0.76/innobase/log/Makefile.am
 --- mysql-5.0.76-old/innobase/log/Makefile.am	2009-01-15 16:45:16.000000000 -0100
-+++ mysql-5.0.76/innobase/log/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/log/Makefile.am	2009-03-16 01:45:02.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -490,7 +449,7 @@ diff -ur mysql-5.0.76-old/innobase/log/Makefile.am mysql-5.0.76/innobase/log/Mak
  
 diff -ur mysql-5.0.76-old/innobase/mach/Makefile.am mysql-5.0.76/innobase/mach/Makefile.am
 --- mysql-5.0.76-old/innobase/mach/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/mach/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/mach/Makefile.am	2009-03-16 01:45:14.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -505,7 +464,7 @@ diff -ur mysql-5.0.76-old/innobase/mach/Makefile.am mysql-5.0.76/innobase/mach/M
  
 diff -ur mysql-5.0.76-old/innobase/Makefile.am mysql-5.0.76/innobase/Makefile.am
 --- mysql-5.0.76-old/innobase/Makefile.am	2009-01-15 16:45:09.000000000 -0100
-+++ mysql-5.0.76/innobase/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/Makefile.am	2009-03-28 21:49:37.000000000 -0100
 @@ -15,14 +15,35 @@
  
  # Process this file with automake to create Makefile.in
@@ -550,7 +509,7 @@ diff -ur mysql-5.0.76-old/innobase/Makefile.am mysql-5.0.76/innobase/Makefile.am
  # Don't update the files from bitkeeper
 diff -ur mysql-5.0.76-old/innobase/mem/Makefile.am mysql-5.0.76/innobase/mem/Makefile.am
 --- mysql-5.0.76-old/innobase/mem/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/mem/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/mem/Makefile.am	2009-03-16 01:45:28.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -565,7 +524,7 @@ diff -ur mysql-5.0.76-old/innobase/mem/Makefile.am mysql-5.0.76/innobase/mem/Mak
  
 diff -ur mysql-5.0.76-old/innobase/mtr/Makefile.am mysql-5.0.76/innobase/mtr/Makefile.am
 --- mysql-5.0.76-old/innobase/mtr/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/mtr/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/mtr/Makefile.am	2009-03-16 01:45:44.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -580,7 +539,7 @@ diff -ur mysql-5.0.76-old/innobase/mtr/Makefile.am mysql-5.0.76/innobase/mtr/Mak
  
 diff -ur mysql-5.0.76-old/innobase/os/Makefile.am mysql-5.0.76/innobase/os/Makefile.am
 --- mysql-5.0.76-old/innobase/os/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/os/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/os/Makefile.am	2009-03-16 01:46:10.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -595,7 +554,7 @@ diff -ur mysql-5.0.76-old/innobase/os/Makefile.am mysql-5.0.76/innobase/os/Makef
  
 diff -ur mysql-5.0.76-old/innobase/page/Makefile.am mysql-5.0.76/innobase/page/Makefile.am
 --- mysql-5.0.76-old/innobase/page/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/page/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/page/Makefile.am	2009-03-16 01:46:25.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -610,7 +569,7 @@ diff -ur mysql-5.0.76-old/innobase/page/Makefile.am mysql-5.0.76/innobase/page/M
  
 diff -ur mysql-5.0.76-old/innobase/pars/Makefile.am mysql-5.0.76/innobase/pars/Makefile.am
 --- mysql-5.0.76-old/innobase/pars/Makefile.am	2009-01-15 16:45:17.000000000 -0100
-+++ mysql-5.0.76/innobase/pars/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/pars/Makefile.am	2009-03-16 01:46:51.000000000 -0100
 @@ -15,11 +15,11 @@
  
  include ../include/Makefile.i
@@ -627,7 +586,7 @@ diff -ur mysql-5.0.76-old/innobase/pars/Makefile.am mysql-5.0.76/innobase/pars/M
  
 diff -ur mysql-5.0.76-old/innobase/que/Makefile.am mysql-5.0.76/innobase/que/Makefile.am
 --- mysql-5.0.76-old/innobase/que/Makefile.am	2009-01-15 16:45:18.000000000 -0100
-+++ mysql-5.0.76/innobase/que/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/que/Makefile.am	2009-03-27 03:55:52.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -642,7 +601,7 @@ diff -ur mysql-5.0.76-old/innobase/que/Makefile.am mysql-5.0.76/innobase/que/Mak
  
 diff -ur mysql-5.0.76-old/innobase/read/Makefile.am mysql-5.0.76/innobase/read/Makefile.am
 --- mysql-5.0.76-old/innobase/read/Makefile.am	2009-01-15 16:45:18.000000000 -0100
-+++ mysql-5.0.76/innobase/read/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/read/Makefile.am	2009-03-16 01:47:22.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -657,7 +616,7 @@ diff -ur mysql-5.0.76-old/innobase/read/Makefile.am mysql-5.0.76/innobase/read/M
  
 diff -ur mysql-5.0.76-old/innobase/rem/Makefile.am mysql-5.0.76/innobase/rem/Makefile.am
 --- mysql-5.0.76-old/innobase/rem/Makefile.am	2009-01-15 16:45:18.000000000 -0100
-+++ mysql-5.0.76/innobase/rem/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/rem/Makefile.am	2009-03-16 01:47:48.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -672,7 +631,7 @@ diff -ur mysql-5.0.76-old/innobase/rem/Makefile.am mysql-5.0.76/innobase/rem/Mak
  
 diff -ur mysql-5.0.76-old/innobase/row/Makefile.am mysql-5.0.76/innobase/row/Makefile.am
 --- mysql-5.0.76-old/innobase/row/Makefile.am	2009-01-15 16:45:18.000000000 -0100
-+++ mysql-5.0.76/innobase/row/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/row/Makefile.am	2009-03-16 01:48:06.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -687,7 +646,7 @@ diff -ur mysql-5.0.76-old/innobase/row/Makefile.am mysql-5.0.76/innobase/row/Mak
  EXTRA_PROGRAMS =	
 diff -ur mysql-5.0.76-old/innobase/srv/Makefile.am mysql-5.0.76/innobase/srv/Makefile.am
 --- mysql-5.0.76-old/innobase/srv/Makefile.am	2009-01-15 16:45:18.000000000 -0100
-+++ mysql-5.0.76/innobase/srv/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/srv/Makefile.am	2009-03-16 01:48:22.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -702,7 +661,7 @@ diff -ur mysql-5.0.76-old/innobase/srv/Makefile.am mysql-5.0.76/innobase/srv/Mak
  
 diff -ur mysql-5.0.76-old/innobase/sync/Makefile.am mysql-5.0.76/innobase/sync/Makefile.am
 --- mysql-5.0.76-old/innobase/sync/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/innobase/sync/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/sync/Makefile.am	2009-03-16 01:48:36.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -717,7 +676,7 @@ diff -ur mysql-5.0.76-old/innobase/sync/Makefile.am mysql-5.0.76/innobase/sync/M
  
 diff -ur mysql-5.0.76-old/innobase/thr/Makefile.am mysql-5.0.76/innobase/thr/Makefile.am
 --- mysql-5.0.76-old/innobase/thr/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/innobase/thr/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/thr/Makefile.am	2009-03-16 01:48:48.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -732,7 +691,7 @@ diff -ur mysql-5.0.76-old/innobase/thr/Makefile.am mysql-5.0.76/innobase/thr/Mak
  
 diff -ur mysql-5.0.76-old/innobase/trx/Makefile.am mysql-5.0.76/innobase/trx/Makefile.am
 --- mysql-5.0.76-old/innobase/trx/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/innobase/trx/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/trx/Makefile.am	2009-03-16 01:49:00.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -747,7 +706,7 @@ diff -ur mysql-5.0.76-old/innobase/trx/Makefile.am mysql-5.0.76/innobase/trx/Mak
  EXTRA_PROGRAMS =	
 diff -ur mysql-5.0.76-old/innobase/usr/Makefile.am mysql-5.0.76/innobase/usr/Makefile.am
 --- mysql-5.0.76-old/innobase/usr/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/innobase/usr/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/usr/Makefile.am	2009-03-16 01:49:13.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -762,7 +721,7 @@ diff -ur mysql-5.0.76-old/innobase/usr/Makefile.am mysql-5.0.76/innobase/usr/Mak
  
 diff -ur mysql-5.0.76-old/innobase/ut/Makefile.am mysql-5.0.76/innobase/ut/Makefile.am
 --- mysql-5.0.76-old/innobase/ut/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/innobase/ut/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/innobase/ut/Makefile.am	2009-03-16 01:49:27.000000000 -0100
 @@ -15,9 +15,9 @@
  
  include ../include/Makefile.i
@@ -777,7 +736,7 @@ diff -ur mysql-5.0.76-old/innobase/ut/Makefile.am mysql-5.0.76/innobase/ut/Makef
  
 diff -ur mysql-5.0.76-old/libmysql/Makefile.am mysql-5.0.76/libmysql/Makefile.am
 --- mysql-5.0.76-old/libmysql/Makefile.am	2009-01-15 16:45:19.000000000 -0100
-+++ mysql-5.0.76/libmysql/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/libmysql/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -106,8 +106,8 @@
  	echo "# This file is autogenerated from Makefile.am" >> $$dir/Makefile; \
  	echo 'CFLAGS=	-I. -DUNDEF_THREADS_HACK' >>$$dir/Makefile; \
@@ -791,7 +750,7 @@ diff -ur mysql-5.0.76-old/libmysql/Makefile.am mysql-5.0.76/libmysql/Makefile.am
  	cd $$dir; gmake
 diff -ur mysql-5.0.76-old/libmysqld/examples/Makefile.am mysql-5.0.76/libmysqld/examples/Makefile.am
 --- mysql-5.0.76-old/libmysqld/examples/Makefile.am	2009-01-15 16:45:20.000000000 -0100
-+++ mysql-5.0.76/libmysqld/examples/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/libmysqld/examples/Makefile.am	2009-03-28 19:34:54.000000000 -0100
 @@ -35,12 +35,12 @@
  		-I$(top_srcdir) -I$(top_srcdir)/client -I$(top_srcdir)/regex \
  		$(openssl_includes)
@@ -809,7 +768,7 @@ diff -ur mysql-5.0.76-old/libmysqld/examples/Makefile.am mysql-5.0.76/libmysqld/
                  my_readline.h sql_string.h completion_hash.h
 diff -ur mysql-5.0.76-old/libmysqld/Makefile.am mysql-5.0.76/libmysqld/Makefile.am
 --- mysql-5.0.76-old/libmysqld/Makefile.am	2009-01-15 16:45:20.000000000 -0100
-+++ mysql-5.0.76/libmysqld/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/libmysqld/Makefile.am	2009-03-28 17:47:37.000000000 -0100
 @@ -32,10 +32,10 @@
  			-I$(top_srcdir)/regex \
  			$(openssl_includes) @ZLIB_INCLUDES@
@@ -889,7 +848,7 @@ diff -ur mysql-5.0.76-old/libmysqld/Makefile.am mysql-5.0.76/libmysqld/Makefile.
  ## the version info for libmysqld; however, it's possible for the
 diff -ur mysql-5.0.76-old/myisam/Makefile.am mysql-5.0.76/myisam/Makefile.am
 --- mysql-5.0.76-old/myisam/Makefile.am	2009-01-15 16:45:21.000000000 -0100
-+++ mysql-5.0.76/myisam/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/myisam/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -16,27 +16,27 @@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt
  pkgdata_DATA =		mi_test_all mi_test_all.res
@@ -938,7 +897,7 @@ diff -ur mysql-5.0.76-old/myisam/Makefile.am mysql-5.0.76/myisam/Makefile.am
  			mi_rrnd.c mi_scan.c mi_cache.c \
 diff -ur mysql-5.0.76-old/myisammrg/Makefile.am mysql-5.0.76/myisammrg/Makefile.am
 --- mysql-5.0.76-old/myisammrg/Makefile.am	2009-01-15 16:45:25.000000000 -0100
-+++ mysql-5.0.76/myisammrg/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/myisammrg/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -14,9 +14,9 @@
  # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  
@@ -953,7 +912,7 @@ diff -ur mysql-5.0.76-old/myisammrg/Makefile.am mysql-5.0.76/myisammrg/Makefile.
  			myrg_rkey.c myrg_rfirst.c myrg_rlast.c myrg_rnext.c \
 diff -ur mysql-5.0.76-old/mysys/Makefile.am mysql-5.0.76/mysys/Makefile.am
 --- mysql-5.0.76-old/mysys/Makefile.am	2009-01-15 16:47:01.000000000 -0100
-+++ mysql-5.0.76/mysys/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/mysys/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -18,14 +18,12 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
@@ -1068,7 +1027,7 @@ diff -ur mysql-5.0.76-old/mysys/Makefile.am mysql-5.0.76/mysys/Makefile.am
  	$(RM) -f ./test_base64.c
 diff -ur mysql-5.0.76-old/netware/Makefile.am mysql-5.0.76/netware/Makefile.am
 --- mysql-5.0.76-old/netware/Makefile.am	2009-01-15 16:48:03.000000000 -0100
-+++ mysql-5.0.76/netware/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/netware/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -16,14 +16,13 @@
  
  if HAVE_NETWARE
@@ -1088,7 +1047,7 @@ diff -ur mysql-5.0.76-old/netware/Makefile.am mysql-5.0.76/netware/Makefile.am
  netware_build_files =           client/mysql.def client/mysqladmin.def \
 diff -ur mysql-5.0.76-old/pstack/Makefile.am mysql-5.0.76/pstack/Makefile.am
 --- mysql-5.0.76-old/pstack/Makefile.am	2009-01-15 16:48:04.000000000 -0100
-+++ mysql-5.0.76/pstack/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/pstack/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -27,8 +27,8 @@
  EXTRA_DIST=		$(SRC)
  
@@ -1102,7 +1061,7 @@ diff -ur mysql-5.0.76-old/pstack/Makefile.am mysql-5.0.76/pstack/Makefile.am
  # Don't update the files from bitkeeper
 diff -ur mysql-5.0.76-old/regex/Makefile.am mysql-5.0.76/regex/Makefile.am
 --- mysql-5.0.76-old/regex/Makefile.am	2009-01-15 16:48:05.000000000 -0100
-+++ mysql-5.0.76/regex/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/regex/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -1119,7 +1078,7 @@ diff -ur mysql-5.0.76-old/regex/Makefile.am mysql-5.0.76/regex/Makefile.am
  re_LDFLAGS= @NOINST_LDFLAGS@
 diff -ur mysql-5.0.76-old/server-tools/instance-manager/Makefile.am mysql-5.0.76/server-tools/instance-manager/Makefile.am
 --- mysql-5.0.76-old/server-tools/instance-manager/Makefile.am	2009-01-15 16:48:07.000000000 -0100
-+++ mysql-5.0.76/server-tools/instance-manager/Makefile.am	2009-03-30 00:37:02.000000000 +0000
++++ mysql-5.0.76/server-tools/instance-manager/Makefile.am	2009-03-28 23:41:08.000000000 -0100
 @@ -24,8 +24,7 @@
  # default_options.h, generated from default_options.h.in)
  # See automake/autoconf docs for details
@@ -1139,15 +1098,14 @@ diff -ur mysql-5.0.76-old/server-tools/instance-manager/Makefile.am mysql-5.0.76
 +liboptions_la_LIBADD= $(top_builddir)/libmysql/libmysqlclient.la
  
  # MySQL sometimes uses symlinks to reuse code 
--# All symlinked files are grouped in libnet.a
-+# All symlinked files are grouped in libnet.la
-+
+ # All symlinked files are grouped in libnet.a
+ 
+-nodist_libnet_a_SOURCES= net_serv.cc client_settings.h
 +nodist_libnet_la_SOURCES= net_serv.cc client_settings.h \
 +	$(srcdir)/../../sql/password.c $(srcdir)/../../sql/pack.c \
 +	$(srcdir)/../../sql/sql_state.c $(srcdir)/../../sql/mini_client_errors.c \
 +	$(srcdir)/../../sql/client.c
- 
--nodist_libnet_a_SOURCES= net_serv.cc client_settings.h
++
 -libnet_a_LIBADD= $(top_builddir)/sql/password.$(OBJEXT) \
 -	$(top_builddir)/sql/pack.$(OBJEXT) \
 -	$(top_builddir)/sql/sql_state.$(OBJEXT) \
@@ -1156,7 +1114,7 @@ diff -ur mysql-5.0.76-old/server-tools/instance-manager/Makefile.am mysql-5.0.76
  
  CLEANFILES= net_serv.cc client_settings.h
  
-@@ -79,11 +78,11 @@
+@@ -79,11 +83,11 @@
                          portability.h
  
  mysqlmanager_LDADD=	liboptions.la \
@@ -1175,7 +1133,7 @@ diff -ur mysql-5.0.76-old/server-tools/instance-manager/Makefile.am mysql-5.0.76
  
 diff -ur mysql-5.0.76-old/sql/Makefile.am mysql-5.0.76/sql/Makefile.am
 --- mysql-5.0.76-old/sql/Makefile.am	2009-01-15 16:48:09.000000000 -0100
-+++ mysql-5.0.76/sql/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/sql/Makefile.am	2009-03-28 17:47:22.000000000 -0100
 @@ -22,25 +22,24 @@
  			@bdb_includes@ @innodb_includes@ @ndbcluster_includes@ \
  			-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -1307,7 +1265,7 @@ diff -ur mysql-5.0.76-old/sql/Makefile.am mysql-5.0.76/sql/Makefile.am
  gen_lex_hash_LDADD =	$(LDADD) $(CXXLDFLAGS)
 diff -ur mysql-5.0.76-old/strings/Makefile.am mysql-5.0.76/strings/Makefile.am
 --- mysql-5.0.76-old/strings/Makefile.am	2009-01-15 16:48:34.000000000 -0100
-+++ mysql-5.0.76/strings/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/strings/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
@@ -1361,33 +1319,9 @@ diff -ur mysql-5.0.76-old/strings/Makefile.am mysql-5.0.76/strings/Makefile.am
  	$(RM) -f ./test_decimal.c
  
  # Don't update the files from bitkeeper
-diff -ur mysql-5.0.76-old/strings/strings-x86.s mysql-5.0.76/strings/strings-x86.s
---- mysql-5.0.76-old/strings/strings-x86.s	2009-01-15 16:48:37.000000000 -0100
-+++ mysql-5.0.76/strings/strings-x86.s	2009-04-11 21:17:15.000000000 +0000
-@@ -293,7 +293,7 @@
- 	movl	%esp,%ebp
- 	pushl	12(%ebp)		#  search
- 	pushl	8(%ebp)			#  str
--	call	strstr
-+	call	strstr@plt
- 	add	$8,%esp
- 	or	%eax,%eax
- 	jz	si_99			#  Not found, return NULL
-diff -ur mysql-5.0.76-old/strings/strinstr-sparc.s mysql-5.0.76/strings/strinstr-sparc.s
---- mysql-5.0.76-old/strings/strinstr-sparc.s	2009-01-15 16:48:37.000000000 -0100
-+++ mysql-5.0.76/strings/strinstr-sparc.s	2009-04-11 21:18:27.000000000 +0000
-@@ -24,7 +24,7 @@
- strinstr:
- 	save	%sp,-96,%sp
- 	or	%g0,%i1,%o1
--	call	strstr,2	! Result = %o0
-+	call	strstr@plt,2	! Result = %o0
- 	or	%g0,%i0,%o0
- 	orcc	%g0,%o0,%o0
- 	bne	.end
 diff -ur mysql-5.0.76-old/tests/Makefile.am mysql-5.0.76/tests/Makefile.am
 --- mysql-5.0.76-old/tests/Makefile.am	2009-01-15 16:48:39.000000000 -0100
-+++ mysql-5.0.76/tests/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/tests/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -42,11 +42,11 @@
  
  insert_test_SOURCES=       insert_test.c
@@ -1405,7 +1339,7 @@ diff -ur mysql-5.0.76-old/tests/Makefile.am mysql-5.0.76/tests/Makefile.am
  DEFS =			-DUNDEF_THREADS_HACK
 diff -ur mysql-5.0.76-old/tools/Makefile.am mysql-5.0.76/tools/Makefile.am
 --- mysql-5.0.76-old/tools/Makefile.am	2009-01-15 16:48:40.000000000 -0100
-+++ mysql-5.0.76/tools/Makefile.am	2009-03-30 00:22:11.000000000 +0000
++++ mysql-5.0.76/tools/Makefile.am	2009-03-15 23:29:17.000000000 -0100
 @@ -23,7 +23,7 @@
  
  bin_PROGRAMS=		mysqltestmanager
@@ -1417,7 +1351,7 @@ diff -ur mysql-5.0.76-old/tools/Makefile.am mysql-5.0.76/tools/Makefile.am
  # Don't update the files from bitkeeper
 diff -ur mysql-5.0.76-old/vio/Makefile.am mysql-5.0.76/vio/Makefile.am
 --- mysql-5.0.76-old/vio/Makefile.am	2009-01-15 16:48:40.000000000 -0100
-+++ mysql-5.0.76/vio/Makefile.am	2009-03-30 00:40:30.000000000 +0000
++++ mysql-5.0.76/vio/Makefile.am	2009-03-28 20:24:27.000000000 -0100
 @@ -16,11 +16,12 @@
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
  			$(openssl_includes)
@@ -1428,8 +1362,19 @@ diff -ur mysql-5.0.76-old/vio/Makefile.am mysql-5.0.76/vio/Makefile.am
  noinst_HEADERS =	vio_priv.h
  
 -libvio_a_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
-+libvio_la_LIBADD = @openssl_libs@
++libvio_la_LIBADD = -lssl
 +libvio_la_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
  
  EXTRA_DIST=	CMakeLists.txt
- 
+diff -ur mysql-5.0.76-old/strings/strings-x86.s mysql-5.0.76/strings/strings-x86.s
+--- mysql-5.0.76-old/strings/strings-x86.s	2009-01-15 16:48:37.000000000 -0100
++++ mysql-5.0.76/strings/strings-x86.s	2009-04-11 21:17:15.000000000 +0000
+@@ -293,7 +293,7 @@
+ 	movl	%esp,%ebp
+ 	pushl	12(%ebp)		#  search
+ 	pushl	8(%ebp)			#  str
+-	call	strstr
++	call	strstr@plt
+ 	add	$8,%esp
+ 	or	%eax,%eax
+ 	jz	si_99			#  Not found, return NULL
