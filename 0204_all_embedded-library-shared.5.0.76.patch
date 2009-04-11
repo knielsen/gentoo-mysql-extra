@@ -1492,3 +1492,47 @@ diff -Nuar mysql.orig/ndb/test/run-test/Makefile.am mysql/ndb/test/run-test/Make
  
  wrappersdir=$(prefix)/bin
  wrappers_SCRIPTS=atrt-testBackup atrt-mysql-test-run
+diff -Nuar mysql.orig/ndb/config/type_ndbapitest.mk.am mysql/ndb/config/type_ndbapitest.mk.am
+--- mysql.orig/ndb/config/type_ndbapitest.mk.am	2009-01-15 09:47:06.000000000 -0800
++++ mysql/ndb/config/type_ndbapitest.mk.am	2009-04-11 16:44:10.268399273 -0700
+@@ -15,9 +15,9 @@
+ 
+ LDADD += $(top_builddir)/ndb/test/src/libNDBT.a \
+          $(top_builddir)/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ INCLUDES += -I$(top_srcdir) \
+ 	-I$(top_builddir)/include \
+diff -Nuar mysql.orig/ndb/config/type_ndbapitools.mk.am mysql/ndb/config/type_ndbapitools.mk.am
+--- mysql.orig/ndb/config/type_ndbapitools.mk.am	2009-01-15 09:47:06.000000000 -0800
++++ mysql/ndb/config/type_ndbapitools.mk.am	2009-04-11 16:44:04.156084503 -0700
+@@ -15,9 +15,9 @@
+ 
+ LDADD += \
+          $(top_builddir)/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ INCLUDES += -I$(srcdir) \
+ 	-I$(top_builddir)/include \
+diff -Nuar mysql.orig/ndb/config/win-libraries mysql/ndb/config/win-libraries
+--- mysql.orig/ndb/config/win-libraries	2009-01-15 09:47:06.000000000 -0800
++++ mysql/ndb/config/win-libraries	2009-04-11 16:44:33.724336658 -0700
+@@ -21,7 +21,7 @@
+ # the same goes for mysys and strings
+   lib=$i
+   case $i in
+-  *libdbug.a | *libmysys.a | *libmystrings.a) 
++  *libdbug.la | *libmysys.la | *libmystrings.la) 
+   lib=`echo $i | sed s'!dbug\/lib!!' | sed 's!mysys\/lib!!' | sed 's!strings\/libmy!!'`
+   echo "Changing from $i to $lib"
+   ;;
