@@ -163,11 +163,12 @@ diff -ur mysql-5.0.76-old/configure.in mysql-5.0.76/configure.in
 diff -ur mysql-5.0.76-old/dbug/Makefile.am mysql-5.0.76/dbug/Makefile.am
 --- mysql-5.0.76-old/dbug/Makefile.am	2009-01-15 16:44:57.000000000 -0100
 +++ mysql-5.0.76/dbug/Makefile.am	2009-04-11 22:44:00.000000000 +0000
-@@ -16,10 +16,9 @@
+@@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
  INCLUDES =              -I$(top_builddir)/include -I$(top_srcdir)/include
 -LDADD =                 libdbug.a ../mysys/libmysys.a ../strings/libmystrings.a
++LDADD =                 ../mysys/libmysys.la ../strings/libmystrings.la
 -pkglib_LIBRARIES =      libdbug.a
 +noinst_LTLIBRARIES =    libdbug.la
  noinst_HEADERS =        dbug_long.h
