@@ -19,7 +19,7 @@ Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=250880
 -  //  Uint32 * src = (Uint32*)&tmp;
 -  //  signal->theData[0] = src[0];
 -  //  signal->theData[1] = src[1];
-+#elif
++#else
 +  Uint32 * src = (Uint32*)&tmp;
 +  signal->theData[0] = src[0];
 +  signal->theData[1] = src[1];
