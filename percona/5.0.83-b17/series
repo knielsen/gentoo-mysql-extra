@@ -4,7 +4,7 @@ profiling_slow.patch
 userstatv2.patch
 microsec_process.patch
 innodb_io_patches.patch
-mirror_binlog.patch
+#mirror_binlog.patch
 mysqld_safe_syslog.patch
 innodb_locks_held.patch
 innodb_show_bp.patch
