@@ -1,0 +1,43 @@
+Fix LDFLAGS inclusion in the mysql_config libs output for --as-needed usage.
+
+X-Patch-URL: http://bugs.gentoo.org/attachment.cgi?id=182078&action=view
+Gentoo-Bug: 253917
+Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=253917
+
+diff --git a/scripts/mysql_config.pl.in b/scripts/mysql_config.pl.in
+index 3ae8baf..a7e8d57 100644
+--- a/scripts/mysql_config.pl.in
++++ b/scripts/mysql_config.pl.in
+@@ -198,11 +198,11 @@ else
+ 
+ my $flags;
+ $flags->{libs} =
+-  [@ldflags,@lib_opts,'@ZLIB_DEPS@','@NON_THREADED_LIBS@','@openssl_libs@','@STATIC_NSS_FLAGS@'];
++  [@lib_opts,'@ZLIB_DEPS@','@NON_THREADED_LIBS@','@openssl_libs@','@STATIC_NSS_FLAGS@'];
+ $flags->{libs_r} =
+-  [@ldflags,@lib_r_opts,'@ZLIB_DEPS@','@LIBS@','@openssl_libs@'];
++  [@lib_r_opts,'@ZLIB_DEPS@','@LIBS@','@openssl_libs@'];
+ $flags->{embedded_libs} =
+-  [@ldflags,@lib_e_opts,'@ZLIB_DEPS@','@LIBS@','@WRAPLIBS@','@innodb_system_libs@','@openssl_libs@'];
++  [@lib_e_opts,'@ZLIB_DEPS@','@LIBS@','@WRAPLIBS@','@innodb_system_libs@','@openssl_libs@'];
+ 
+ $flags->{include} = ["-I$pkgincludedir"];
+ $flags->{cflags}  = [@{$flags->{include}},split(" ",'@CFLAGS@')];
+diff --git a/scripts/mysql_config.sh b/scripts/mysql_config.sh
+index 915f623..8f85a37 100644
+--- a/scripts/mysql_config.sh
++++ b/scripts/mysql_config.sh
+@@ -102,10 +102,10 @@ fi
+ 
+ # Create options 
+ # We intentionally add a space to the beginning and end of lib strings, simplifies replace later
+-libs=" $ldflags -L$pkglibdir -lmysqlclient @ZLIB_DEPS@ @NON_THREADED_LIBS@"
++libs=" -L$pkglibdir -lmysqlclient @ZLIB_DEPS@ @NON_THREADED_LIBS@"
+ libs="$libs @openssl_libs@ @STATIC_NSS_FLAGS@ "
+-libs_r=" $ldflags -L$pkglibdir -lmysqlclient_r @ZLIB_DEPS@ @LIBS@ @openssl_libs@ "
+-embedded_libs=" $ldflags -L$pkglibdir -lmysqld @ZLIB_DEPS@ @LIBS@ @WRAPLIBS@ @innodb_system_libs@ @openssl_libs@ "
++libs_r=" -L$pkglibdir -lmysqlclient_r @ZLIB_DEPS@ @LIBS@ @openssl_libs@ "
++embedded_libs=" -L$pkglibdir -lmysqld @ZLIB_DEPS@ @LIBS@ @WRAPLIBS@ @innodb_system_libs@ @openssl_libs@ "
+ 
+ if [ -r "$pkglibdir/libmygcc.a" ]; then
+   # When linking against the static library with a different version of GCC

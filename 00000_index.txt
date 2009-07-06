@@ -501,6 +501,12 @@
 @pn mysql-community
 @@ Prevent SIGBUS on Sparc with NDB
 
+@patch 07240_all_as-needed-config-5.0.76.patch
+@ver 5.00.76.00 to 5.00.99.99
+@pn mysql
+@pn mysql-community
+@@ Fix LDFLAGS inclusion in the mysql_config libs output for --as-needed usage.
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
