@@ -674,43 +674,43 @@
 @pn mysql
 @@ Percona 5.0.83-b17: Extended statistics in slow.log
 
-@patch 10030_all_profiling_slow-percona-5.0.83-b17.patch
+@patch 10021_all_profiling_slow-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: profiling from SHOW PROFILE to slow.log
 
-@patch 10040_all_userstatv2-percona-5.0.83-b17.patch
+@patch 10030_all_userstatv2-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: SHOW USER/TABLE/INDEX statistics
 
-@patch 10050_all_microsec_process-percona-5.0.83-b17.patch
+@patch 10040_all_microsec_process-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
-@patch 10060_all_innodb_io_patches-percona-5.0.83-b17.patch
+@patch 10050_all_innodb_io_patches-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Cluster of past InnoDB IO patches
 
 # Disabled, broken.
-#@patch 10070_all_mirror_binlog-percona-5.0.83-b17.patch
+#@patch 10060_all_mirror_binlog-percona-5.0.83-b17.patch
 #@ver 5.00.83.00 to 5.00.99.99
 #@pn mysql
 #@@ Percona 5.0.83-b17: Mirroring binary logs on slave
 
-@patch 10080_all_mysqld_safe_syslog-percona-5.0.83-b17.patch
+@patch 10070_all_mysqld_safe_syslog-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Patch allows redirect output of error.log to syslog-ng
 
-@patch 10090_all_innodb_locks_held-percona-5.0.83-b17.patch
+@patch 10080_all_innodb_locks_held-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Add locks held, remove locked records in SHOW INNODB STATUS
 
-@patch 10100_all_innodb_show_bp-percona-5.0.83-b17.patch
+@patch 10090_all_innodb_show_bp-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: show innodb buffer pool content
@@ -730,12 +730,12 @@
 @pn mysql
 @@ Percona 5.0.83-b17: Information of fsync callers in InnoDB
 
-@patch 10140_all_innodb_show_hashed_memory-percona-5.0.83-b17.patch
+@patch 10139_all_innodb_show_hashed_memory-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
-@patch 10150_all_innodb_dict_size_limit-percona-5.0.83-b17.patch
+@patch 10140_all_innodb_dict_size_limit-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Limit dictionary cache size
@@ -750,12 +750,12 @@
 @pn mysql
 @@ Percona 5.0.83-b17: Use InnoDB timer based concurrency throttling (backport from MySQL 5.4.0)
 
-@patch 10180_all_split_buf_pool_mutex_fixed_optimistic_safe-percona-5.0.83-b17.patch
+@patch 11000_all_split_buf_pool_mutex_fixed_optimistic_safe-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: InnoDB patch to fix buffer pool scalability
 
-@patch 10190_all_innodb_rw_lock-percona-5.0.83-b17.patch
+@patch 11010_all_innodb_rw_lock-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
 @pn mysql
 @@ Percona 5.0.83-b17: Fix of InnoDB rw_locks
