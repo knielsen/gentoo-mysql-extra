@@ -1,0 +1,389 @@
+diff -ruN a/innobase/configure b/innobase/configure
+--- a/innobase/configure	2009-01-30 06:56:31.000000000 +0900
++++ b/innobase/configure	2009-05-06 15:40:47.000000000 +0900
+@@ -21306,6 +21306,88 @@
+ fi
+ done
+ 
++
++# as http://lists.mysql.com/commits/40686 does
++{ echo "$as_me:$LINENO: checking whether the compiler provides atomic builtins" >&5
++echo $ECHO_N "checking whether the compiler provides atomic builtins... $ECHO_C" >&6; }
++if test "${mysql_cv_atomic_builtins+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  if test "$cross_compiling" = yes; then
++  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
++See \`config.log' for more details." >&5
++echo "$as_me: error: cannot run test program while cross compiling
++See \`config.log' for more details." >&2;}
++   { (exit 1); exit 1; }; }
++else
++  cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++
++  int main()
++  {
++    int foo= -10; int bar= 10;
++    __sync_fetch_and_add(&foo, bar);
++    if (foo)
++      return -1;
++    bar= __sync_lock_test_and_set(&foo, bar);
++    if (bar || foo != 10)
++      return -1;
++    bar= __sync_val_compare_and_swap(&bar, foo, 15);
++    if (bar)
++      return -1;
++    return 0;
++  }
++
++_ACEOF
++rm -f conftest$ac_exeext
++if { (ac_try="$ac_link"
++case "(($ac_try" in
++  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
++  *) ac_try_echo=$ac_try;;
++esac
++eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
++  (eval "$ac_link") 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
++  { (case "(($ac_try" in
++  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
++  *) ac_try_echo=$ac_try;;
++esac
++eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
++  (eval "$ac_try") 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  mysql_cv_atomic_builtins=yes
++else
++  echo "$as_me: program exited with status $ac_status" >&5
++echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++( exit $ac_status )
++mysql_cv_atomic_builtins=no
++fi
++rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
++fi
++
++
++fi
++{ echo "$as_me:$LINENO: result: $mysql_cv_atomic_builtins" >&5
++echo "${ECHO_T}$mysql_cv_atomic_builtins" >&6; }
++
++if test "x$mysql_cv_atomic_builtins" = xyes; then
++
++cat >>confdefs.h <<\_ACEOF
++#define HAVE_ATOMIC_BUILTINS 1
++_ACEOF
++
++fi
++
+ #AC_CHECK_FUNCS(readdir_r) MySQL checks that it has also the right args.
+ # Some versions of Unix only take 2 arguments.
+ #AC_C_INLINE  Already checked in MySQL
+diff -ruN a/innobase/configure.in b/innobase/configure.in
+--- a/innobase/configure.in	2009-01-30 06:42:15.000000000 +0900
++++ b/innobase/configure.in	2009-05-06 15:40:47.000000000 +0900
+@@ -42,6 +42,31 @@
+ AC_CHECK_FUNCS(sched_yield)
+ AC_CHECK_FUNCS(fdatasync)
+ AC_CHECK_FUNCS(localtime_r)
++
++# as http://lists.mysql.com/commits/40686 does
++AC_CACHE_CHECK([whether the compiler provides atomic builtins],
++               [mysql_cv_atomic_builtins], [AC_TRY_RUN([
++  int main()
++  {
++    int foo= -10; int bar= 10;
++    __sync_fetch_and_add(&foo, bar);
++    if (foo)
++      return -1;
++    bar= __sync_lock_test_and_set(&foo, bar);
++    if (bar || foo != 10)
++      return -1;
++    bar= __sync_val_compare_and_swap(&bar, foo, 15);
++    if (bar)
++      return -1;
++    return 0;
++  }
++], [mysql_cv_atomic_builtins=yes], [mysql_cv_atomic_builtins=no])])
++
++if test "x$mysql_cv_atomic_builtins" = xyes; then
++  AC_DEFINE(HAVE_ATOMIC_BUILTINS, 1,
++            [Define to 1 if compiler provides atomic builtins.])
++fi
++
+ #AC_CHECK_FUNCS(readdir_r) MySQL checks that it has also the right args.
+ # Some versions of Unix only take 2 arguments.
+ #AC_C_INLINE  Already checked in MySQL
+diff -ruN a/innobase/ib_config.h b/innobase/ib_config.h
+--- a/innobase/ib_config.h	2009-01-30 07:05:03.000000000 +0900
++++ b/innobase/ib_config.h	2009-05-06 15:40:47.000000000 +0900
+@@ -7,6 +7,9 @@
+ /* Define to 1 if you have the <aio.h> header file. */
+ #define HAVE_AIO_H 1
+ 
++/* Define to 1 if compiler provides atomic builtins. */
++#define HAVE_ATOMIC_BUILTINS 1
++
+ /* Define to 1 if you have the <dlfcn.h> header file. */
+ #define HAVE_DLFCN_H 1
+ 
+diff -ruN a/innobase/ib_config.h.in b/innobase/ib_config.h.in
+--- a/innobase/ib_config.h.in	2009-01-30 06:56:11.000000000 +0900
++++ b/innobase/ib_config.h.in	2009-05-06 15:40:47.000000000 +0900
+@@ -6,6 +6,9 @@
+ /* Define to 1 if you have the <aio.h> header file. */
+ #undef HAVE_AIO_H
+ 
++/* Define to 1 if compiler provides atomic builtins. */
++#undef HAVE_ATOMIC_BUILTINS
++
+ /* Define to 1 if you have the <dlfcn.h> header file. */
+ #undef HAVE_DLFCN_H
+ 
+diff -ruN a/innobase/include/srv0srv.h b/innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	2009-05-06 15:38:01.000000000 +0900
++++ b/innobase/include/srv0srv.h	2009-05-06 16:04:36.000000000 +0900
+@@ -90,6 +90,8 @@
+ extern ulint	srv_mem_pool_size;
+ extern ulint	srv_lock_table_size;
+ 
++extern ibool	srv_thread_concurrency_timer_based;
++
+ extern ulint	srv_n_file_io_threads;
+ extern ulint	srv_n_read_io_threads;
+ extern ulint	srv_n_write_io_threads;
+diff -ruN a/innobase/srv/srv0srv.c b/innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	2009-05-06 15:38:01.000000000 +0900
++++ b/innobase/srv/srv0srv.c	2009-05-06 17:12:54.000000000 +0900
+@@ -267,6 +267,7 @@
+ computer. Bigger computers need bigger values. Value 0 will disable the
+ concurrency check. */
+ 
++ibool	srv_thread_concurrency_timer_based = TRUE;
+ ulong	srv_thread_concurrency	= 0;
+ ulong   srv_commit_concurrency  = 0;
+ 
+@@ -1020,6 +1021,74 @@
+ Puts an OS thread to wait if there are too many concurrent threads
+ (>= srv_thread_concurrency) inside InnoDB. The threads wait in a FIFO queue. */
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++static void
++enter_innodb_with_tickets(trx_t* trx)
++{
++	trx->declared_to_be_inside_innodb = TRUE;
++	trx->n_tickets_to_enter_innodb = SRV_FREE_TICKETS_TO_ENTER;
++	return;
++}
++
++static void
++srv_conc_enter_innodb_timer_based(trx_t* trx)
++{
++	lint	conc_n_threads;
++	ibool	has_yielded = FALSE;
++	ulint	has_slept = 0;
++
++	if (trx->declared_to_be_inside_innodb) {
++		ut_print_timestamp(stderr);
++		fputs(
++"  InnoDB: Error: trying to declare trx to enter InnoDB, but\n"
++"InnoDB: it already is declared.\n", stderr);
++		trx_print(stderr, trx, 0);
++		putc('\n', stderr);
++	}
++retry:
++	if (srv_conc_n_threads < (lint) srv_thread_concurrency) {
++		conc_n_threads = __sync_add_and_fetch(&srv_conc_n_threads, 1);
++		if (conc_n_threads <= (lint) srv_thread_concurrency) {
++			enter_innodb_with_tickets(trx);
++			return;
++		}
++		__sync_add_and_fetch(&srv_conc_n_threads, -1);
++	}
++	if (!has_yielded)
++	{
++		has_yielded = TRUE;
++		os_thread_yield();
++		goto retry;
++	}
++	if (trx->has_search_latch
++	    || NULL != UT_LIST_GET_FIRST(trx->trx_locks)) {
++
++		conc_n_threads = __sync_add_and_fetch(&srv_conc_n_threads, 1);
++		enter_innodb_with_tickets(trx);
++		return;
++	}
++	if (has_slept < 2)
++	{
++		trx->op_info = "sleeping before entering InnoDB";
++		os_thread_sleep(10000);
++		trx->op_info = "";
++		has_slept++;
++	}
++	conc_n_threads = __sync_add_and_fetch(&srv_conc_n_threads, 1);
++	enter_innodb_with_tickets(trx);
++	return;
++}
++
++static void
++srv_conc_exit_innodb_timer_based(trx_t* trx)
++{
++	__sync_add_and_fetch(&srv_conc_n_threads, -1);
++	trx->declared_to_be_inside_innodb = FALSE;
++	trx->n_tickets_to_enter_innodb = 0;
++	return;
++}
++#endif
++
+ void
+ srv_conc_enter_innodb(
+ /*==================*/
+@@ -1043,6 +1112,13 @@
+ 		return;
+ 	}
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (srv_thread_concurrency_timer_based) {
++		srv_conc_enter_innodb_timer_based(trx);
++		return;
++	}
++#endif
++
+ 	os_fast_mutex_lock(&srv_conc_mutex);
+ retry:
+ 	if (trx->declared_to_be_inside_innodb) {
+@@ -1196,6 +1272,15 @@
+ 		return;
+ 	}
+ 
++	ut_ad(srv_conc_n_threads >= 0);
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (srv_thread_concurrency_timer_based) {
++		__sync_add_and_fetch(&srv_conc_n_threads, 1);
++		trx->declared_to_be_inside_innodb = TRUE;
++		trx->n_tickets_to_enter_innodb = 1;
++		return;
++	}
++#endif
+ 	os_fast_mutex_lock(&srv_conc_mutex);
+ 
+ 	srv_conc_n_threads++;
+@@ -1227,8 +1312,16 @@
+ 		return;
+ 	}
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (srv_thread_concurrency_timer_based) {
++		srv_conc_exit_innodb_timer_based(trx);
++		return;
++	}
++#endif
++
+ 	os_fast_mutex_lock(&srv_conc_mutex);
+ 
++	ut_ad(srv_conc_n_threads > 0);
+ 	srv_conc_n_threads--;
+ 	trx->declared_to_be_inside_innodb = FALSE;
+ 	trx->n_tickets_to_enter_innodb = 0;
+diff -ruN a/innobase/srv/srv0start.c b/innobase/srv/srv0start.c
+--- a/innobase/srv/srv0start.c	2009-05-06 15:38:01.000000000 +0900
++++ b/innobase/srv/srv0start.c	2009-05-06 17:22:26.000000000 +0900
+@@ -1040,6 +1040,11 @@
+ 		return(DB_ERROR);
+ 	}
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	fprintf(stderr,
++		"InnoDB: use atomic builtins.\n");
++#endif
++
+ 	/* Since InnoDB does not currently clean up all its internal data
+ 	   structures in MySQL Embedded Server Library server_end(), we
+ 	   print an error message if someone tries to start up InnoDB a
+diff -ruN a/patch_info/innodb_thread_concurrency_timer_based.info b/patch_info/innodb_thread_concurrency_timer_based.info
+--- /dev/null	1970-01-01 09:00:00.000000000 +0900
++++ b/patch_info/innodb_thread_concurrency_timer_based.info	2009-05-06 17:17:12.000000000 +0900
+@@ -0,0 +1,6 @@
++File=thread_concurrency_timer_based.patch
++Name=Use InnoDB timer based concurrency throttling (backport from MySQL 5.4.0)
++Version=1.0
++Author=Percona <info@percona.com>
++License=GPL
++Comment
+diff -ruN a/sql/ha_innodb.cc b/sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	2009-05-06 15:38:01.000000000 +0900
++++ b/sql/ha_innodb.cc	2009-05-06 15:54:08.000000000 +0900
+@@ -152,6 +152,7 @@
+      innobase_open_files;
+ 
+ long innobase_read_io_threads, innobase_write_io_threads;
++my_bool innobase_thread_concurrency_timer_based;
+ long innobase_extra_rsegments;
+ longlong innobase_buffer_pool_size, innobase_log_file_size;
+ 
+@@ -1477,6 +1478,9 @@
+ 	srv_n_log_files = (ulint) innobase_log_files_in_group;
+ 	srv_log_file_size = (ulint) innobase_log_file_size;
+ 
++	srv_thread_concurrency_timer_based =
++		(ibool) innobase_thread_concurrency_timer_based;
++
+ #ifdef UNIV_LOG_ARCHIVE
+ 	srv_log_archive_on = (ulint) innobase_log_archive;
+ #endif /* UNIV_LOG_ARCHIVE */
+diff -ruN a/sql/ha_innodb.h b/sql/ha_innodb.h
+--- a/sql/ha_innodb.h	2009-05-06 15:38:01.000000000 +0900
++++ b/sql/ha_innodb.h	2009-05-06 15:55:50.000000000 +0900
+@@ -205,6 +205,7 @@
+ extern long innobase_buffer_pool_awe_mem_mb;
+ extern long innobase_file_io_threads, innobase_lock_wait_timeout;
+ extern long innobase_read_io_threads, innobase_write_io_threads;
++extern my_bool innobase_thread_concurrency_timer_based;
+ extern long innobase_extra_rsegments;
+ extern long innobase_force_recovery;
+ extern long innobase_open_files;
+diff -ruN a/sql/mysqld.cc b/sql/mysqld.cc
+--- a/sql/mysqld.cc	2009-05-06 15:38:01.000000000 +0900
++++ b/sql/mysqld.cc	2009-05-06 16:22:06.000000000 +0900
+@@ -5096,6 +5096,7 @@
+   OPT_INNODB_ADAPTIVE_CHECKPOINT,
+   OPT_INNODB_READ_IO_THREADS,
+   OPT_INNODB_WRITE_IO_THREADS,
++  OPT_INNODB_THREAD_CONCURRENCY_TIMER_BASED,
+   OPT_INNODB_EXTRA_RSEGMENTS,
+   OPT_INNODB_DICT_SIZE_LIMIT,
+   OPT_INNODB_ADAPTIVE_HASH_INDEX,
+@@ -5455,6 +5456,11 @@
+    "Number of background write I/O threads in InnoDB.",
+    (gptr*) &innobase_write_io_threads, (gptr*) &innobase_write_io_threads,
+    0, GET_LONG, REQUIRED_ARG, 1, 1, 64, 0, 0, 0},
++  {"innodb_thread_concurrency_timer_based", OPT_INNODB_THREAD_CONCURRENCY_TIMER_BASED,
++   "Use InnoDB timer based concurrency throttling. ",
++   (gptr*) &innobase_thread_concurrency_timer_based,
++   (gptr*) &innobase_thread_concurrency_timer_based,
++   0, GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0},
+   {"innodb_extra_rsegments", OPT_INNODB_EXTRA_RSEGMENTS,
+    "Number of extra user rollback segments when create new database.",
+    (gptr*) &innobase_extra_rsegments, (gptr*) &innobase_extra_rsegments,
+diff -ruN a/sql/set_var.cc b/sql/set_var.cc
+--- a/sql/set_var.cc	2009-05-06 15:38:01.000000000 +0900
++++ b/sql/set_var.cc	2009-05-06 16:02:27.000000000 +0900
+@@ -1063,6 +1063,7 @@
+   {sys_innodb_adaptive_checkpoint.name, (char*) &sys_innodb_adaptive_checkpoint, SHOW_SYS},
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG},
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG},
++  {"innodb_thread_concurrency_timer_based", (char*) &innobase_thread_concurrency_timer_based, SHOW_MY_BOOL},
+   {"innodb_extra_rsegments", (char*) &innobase_extra_rsegments, SHOW_LONG},
+   {sys_innodb_dict_size_limit.name, (char*) &sys_innodb_dict_size_limit, SHOW_SYS},
+   {sys_innodb_io_pattern_trace.name, (char*) &sys_innodb_io_pattern_trace, SHOW_SYS},
