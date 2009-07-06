@@ -676,10 +676,11 @@
 @pn mysql
 @@ Percona 5.0.83-b17: Cluster of past InnoDB IO patches
 
-@patch 10070_all_mirror_binlog-percona-5.0.83-b17.patch
-@ver 5.00.83.00 to 5.00.99.99
-@pn mysql
-@@ Percona 5.0.83-b17: Mirroring binary logs on slave
+# Disabled, broken.
+#@patch 10070_all_mirror_binlog-percona-5.0.83-b17.patch
+#@ver 5.00.83.00 to 5.00.99.99
+#@pn mysql
+#@@ Percona 5.0.83-b17: Mirroring binary logs on slave
 
 @patch 10080_all_mysqld_safe_syslog-percona-5.0.83-b17.patch
 @ver 5.00.83.00 to 5.00.99.99
