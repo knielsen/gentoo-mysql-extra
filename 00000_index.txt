@@ -318,7 +318,7 @@
 @pn mysql-slotted
 
 @patch 07040_all_disable_mybug_9735_test.patch
-@ver 5.00.26.00 to 5.00.99.99
+@ver 5.00.26.00 to 5.00.81.99
 @ver 5.01.00.00 to 5.01.21.99
 @pn mysql
 @pn mysql-community
