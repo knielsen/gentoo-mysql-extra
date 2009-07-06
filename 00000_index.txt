@@ -495,7 +495,7 @@
 @@ Percona 5.0.75-b12: Patch listing in build data
 
 @patch 10010_all_show_patches-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Patch listing in build data
 
@@ -505,7 +505,7 @@
 @@ Percona 5.0.75-b12: Extended statistics in slow.log
 
 @patch 10020_all_microslow_innodb-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Extended statistics in slow.log
 
@@ -515,7 +515,7 @@
 @@ Percona 5.0.75-b12: SHOW USER/TABLE/INDEX statistics
 
 @patch 10030_all_userstatv2-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: SHOW USER/TABLE/INDEX statistics
 
@@ -525,7 +525,7 @@
 @@ Percona 5.0.75-b12: Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
 @patch 10040_all_microsec_process-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
@@ -535,7 +535,7 @@
 @@ Percona 5.0.75-b12: Cluster of past InnoDB IO patches
 
 @patch 10050_all_innodb_io_patches-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Cluster of past InnoDB IO patches
 
@@ -547,7 +547,7 @@
 
 # Disabled, broken.
 #@patch 10060_all_mirror_binlog-percona-5.0.77-b13.patch
-#@ver 5.00.77.00 to 5.00.99.99
+#@ver 5.00.77.00 to 5.00.77.99
 #@pn mysql-community
 #@@ Percona 5.0.77-b13: Mirroring binary logs on slave
 
@@ -557,7 +557,7 @@
 @@ Percona 5.0.75-b12: allows redirect output of error.log to syslog-ng
 
 @patch 10070_all_mysqld_safe_syslog-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: allows redirect output of error.log to syslog-ng
 
@@ -567,7 +567,7 @@
 @@ Percona 5.0.75-b12: Add locks held, remove locked records in SHOW INNODB STATUS
 
 @patch 10080_all_innodb_locks_held-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Add locks held, remove locked records in SHOW INNODB STATUS
 
@@ -577,7 +577,7 @@
 @@ Percona 5.0.75-b12: show innodb buffer pool content
 
 @patch 10090_all_innodb_show_bp-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: show innodb buffer pool content
 
@@ -587,7 +587,7 @@
 @@ Percona 5.0.75-b12: Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
 @patch 10100_all_innodb_show_hashed_memory-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
@@ -597,7 +597,7 @@
 @@ Percona 5.0.75-b12: Session status to check fragmentation of the last InnoDB scan
 
 @patch 10110_all_innodb_check_fragmentation-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Session status to check fragmentation of the last InnoDB scan
 
@@ -607,7 +607,7 @@
 @@ Percona 5.0.75-b12: Information schema table of InnoDB IO counts for each datafile pages
 
 @patch 10120_all_innodb_io_pattern-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Information schema table of InnoDB IO counts for each datafile pages
 
@@ -617,12 +617,12 @@
 @@ Percona 5.0.75-b12: Information of fsync callers in InnoDB
 
 @patch 10130_all_innodb_fsync_source-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Information of fsync callers in InnoDB
 
 @patch 10140_all_innodb_dict_size_limit-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Variable innodb_dict_size_limit in bytes
 
@@ -632,7 +632,7 @@
 @@ Percona 5.0.75-b12: InnoDB patch to fix buffer pool scalability
 
 @patch 11000_all_split_buf_pool_mutex_fixed_optimistic_safe-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: InnoDB patch to fix buffer pool scalability
 
@@ -642,6 +642,6 @@
 @@ Percona 5.0.75-b12: Fix of InnoDB rw_locks
 
 @patch 11010_all_innodb_rw_lock-percona-5.0.77-b13.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.77.99
 @pn mysql-community
 @@ Percona 5.0.77-b13: Fix of InnoDB rw_locks
