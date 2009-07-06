@@ -1,0 +1,18 @@
+GCC 4.4 Fixup.
+
+X-Patch-URL: http://bugs.gentoo.org/attachment.cgi?id=194164&action=view
+Gentoo-Bug: 271475
+Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=271475
+
+diff -uNr mysql.orig/sql/ha_innodb.cc mysql/sql/ha_innodb.cc
+--- mysql.orig/sql/ha_innodb.cc	2009-06-10 13:42:17.000000000 +0200
++++ mysql/sql/ha_innodb.cc	2009-06-10 13:43:51.000000000 +0200
+@@ -6679,7 +6679,7 @@
+ 	dict_index_t*	index;
+ 	buf_block_t*    block;
+ 
+-	char *p;
++	const char *p;
+ 	char db_name_raw[NAME_LEN*5+1];
+ 	char table_name_raw[NAME_LEN*5+1];
+ 
