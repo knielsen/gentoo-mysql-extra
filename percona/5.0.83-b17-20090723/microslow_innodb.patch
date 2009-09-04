@@ -1,0 +1,2493 @@
+diff -r 069dc6d4f269 include/my_getopt.h
+--- a/include/my_getopt.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/include/my_getopt.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -28,7 +28,8 @@
+ #define GET_ULL        8
+ #define GET_STR        9
+ #define GET_STR_ALLOC 10
+-#define GET_DISABLED  11
++#define GET_MICROTIME 11
++#define GET_DISABLED  12
+ 
+ #define GET_ASK_ADDR	 128
+ #define GET_TYPE_MASK	 127
+diff -r 069dc6d4f269 include/my_time.h
+--- a/include/my_time.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/include/my_time.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -140,7 +140,7 @@
+ int my_date_to_str(const MYSQL_TIME *l_time, char *to);
+ int my_datetime_to_str(const MYSQL_TIME *l_time, char *to);
+ int my_TIME_to_str(const MYSQL_TIME *l_time, char *to);
+-
++ulonglong my_timer(ulonglong *ltime, ulonglong frequency);
+ C_MODE_END
+ 
+ #endif /* _my_time_h_ */
+diff -r 069dc6d4f269 innobase/buf/buf0buf.c
+--- a/innobase/buf/buf0buf.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/buf/buf0buf.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -37,6 +37,10 @@
+ #include "log0log.h"
+ #include "trx0undo.h"
+ #include "srv0srv.h"
++#include "trx0trx.h"
++
++/* prototypes for new functions added to ha_innodb.cc */
++trx_t* innobase_get_trx();
+ 
+ /*
+ 		IMPLEMENTATION OF THE BUFFER POOL
+@@ -1086,6 +1090,36 @@
+ 	return(block);
+ }
+ 
++inline void _increment_page_get_statistics(buf_block_t* block, trx_t* trx)
++{
++	ulint           block_hash;
++	ulint           block_hash_byte;
++	byte            block_hash_offset;
++
++	ut_ad(block);
++
++	if (!srv_slow_log || !trx || !trx->take_stats)
++		return;
++
++	if (!trx->distinct_page_access_hash) {
++		trx->distinct_page_access_hash = mem_alloc(DPAH_SIZE);
++		memset(trx->distinct_page_access_hash, 0, DPAH_SIZE);
++	}
++
++        block_hash = ut_hash_ulint((block->space << 20) + block->space +
++					block->offset, DPAH_SIZE << 3);
++	block_hash_byte = block_hash >> 3;
++	block_hash_offset = (byte) block_hash & 0x07;
++	if (block_hash_byte < 0 || block_hash_byte >= DPAH_SIZE)
++		fprintf(stderr, "!!! block_hash_byte = %lu  block_hash_offset = %lu !!!\n", block_hash_byte, block_hash_offset);
++	if (block_hash_offset < 0 || block_hash_offset > 7)
++		fprintf(stderr, "!!! block_hash_byte = %lu  block_hash_offset = %lu !!!\n", block_hash_byte, block_hash_offset);
++	if ((trx->distinct_page_access_hash[block_hash_byte] & ((byte) 0x01 << block_hash_offset)) == 0)
++		trx->distinct_page_access++;
++	trx->distinct_page_access_hash[block_hash_byte] |= (byte) 0x01 << block_hash_offset;
++	return;
++}
++
+ /************************************************************************
+ This is the general function used to get access to a database page. */
+ 
+@@ -1108,6 +1142,11 @@
+ 	ulint		fix_type;
+ 	ibool		success;
+ 	ibool		must_read;
++	trx_t*          trx = NULL;
++	ulint           sec;
++	ulint           ms;
++	ib_longlong     start_time;
++	ib_longlong     finish_time;
+ 	
+ 	ut_ad(mtr);
+ 	ut_ad((rw_latch == RW_S_LATCH)
+@@ -1119,6 +1158,9 @@
+ #ifndef UNIV_LOG_DEBUG
+ 	ut_ad(!ibuf_inside() || ibuf_page(space, offset));
+ #endif
++	if (srv_slow_log) {
++		trx = innobase_get_trx();
++	}
+ 	buf_pool->n_page_gets++;
+ loop:
+ 	block = NULL;
+@@ -1148,7 +1190,7 @@
+ 			return(NULL);
+ 		}
+ 
+-		buf_read_page(space, offset);
++		buf_read_page(space, offset, trx);
+ 
+ #ifdef UNIV_DEBUG
+ 		buf_dbg_counter++;
+@@ -1261,6 +1303,11 @@
+ 		        /* Let us wait until the read operation
+ 			completes */
+ 
++			if (srv_slow_log && trx && trx->take_stats)
++			{
++				ut_usectime(&sec, &ms);
++				start_time = (ib_longlong)sec * 1000000 + ms;
++			}
+ 		        for (;;) {
+ 				mutex_enter(&block->mutex);
+ 
+@@ -1276,6 +1323,12 @@
+ 				       break;
+ 				}
+ 			}
++                	if (srv_slow_log && trx && trx->take_stats && start_time)
++			{
++				ut_usectime(&sec, &ms);
++        	        	finish_time = (ib_longlong)sec * 1000000 + ms;
++                		trx->io_reads_wait_timer += (ulint)(finish_time - start_time);
++			}
+ 		}
+ 
+ 		fix_type = MTR_MEMO_BUF_FIX;
+@@ -1296,12 +1349,17 @@
+ 		/* In the case of a first access, try to apply linear
+ 		read-ahead */
+ 
+-		buf_read_ahead_linear(space, offset);
++		buf_read_ahead_linear(space, offset, trx);
+ 	}
+ 
+ #ifdef UNIV_IBUF_DEBUG
+ 	ut_a(ibuf_count_get(block->space, block->offset) == 0);
+ #endif
++
++	if (srv_slow_log) {
++		_increment_page_get_statistics(block, trx);
++	}
++	
+ 	return(block->frame);		
+ }
+ 
+@@ -1326,6 +1384,7 @@
+ 	ibool		accessed;
+ 	ibool		success;
+ 	ulint		fix_type;
++	trx_t*          trx = NULL;
+ 
+ 	ut_ad(mtr && block);
+ 	ut_ad((rw_latch == RW_S_LATCH) || (rw_latch == RW_X_LATCH));
+@@ -1440,7 +1499,7 @@
+ 		read-ahead */
+ 
+ 		buf_read_ahead_linear(buf_frame_get_space_id(guess),
+-					buf_frame_get_page_no(guess));
++					buf_frame_get_page_no(guess), trx);
+ 	}
+ 
+ #ifdef UNIV_IBUF_DEBUG
+@@ -1448,6 +1507,11 @@
+ #endif
+ 	buf_pool->n_page_gets++;
+ 
++	if (srv_slow_log) {
++		trx = innobase_get_trx();
++		_increment_page_get_statistics(block, trx);
++	}
++
+ 	return(TRUE);
+ }
+ 
+@@ -1470,6 +1534,7 @@
+ 	buf_block_t*	block;
+ 	ibool		success;
+ 	ulint		fix_type;
++	trx_t*		trx = NULL;
+ 
+ 	ut_ad(mtr);
+ 	ut_ad((rw_latch == RW_S_LATCH) || (rw_latch == RW_X_LATCH));
+@@ -1559,6 +1624,11 @@
+ #endif
+ 	buf_pool->n_page_gets++;
+ 
++	if (srv_slow_log) {
++		trx = innobase_get_trx();
++		_increment_page_get_statistics(block, trx);
++	}
++
+ 	return(TRUE);
+ }
+ 
+diff -r 069dc6d4f269 innobase/buf/buf0rea.c
+--- a/innobase/buf/buf0rea.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/buf/buf0rea.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -70,7 +70,8 @@
+ 			treat the tablespace as dropped; this is a timestamp we
+ 			use to stop dangling page reads from a tablespace
+ 			which we have DISCARDed + IMPORTed back */
+-	ulint	offset)	/* in: page number */
++	ulint	offset,	/* in: page number */
++	trx_t*  trx)
+ {
+ 	buf_block_t*	block;
+ 	ulint		wake_later;
+@@ -140,10 +141,10 @@
+ 
+ 	ut_a(block->state == BUF_BLOCK_FILE_PAGE);
+ 
+-	*err = fil_io(OS_FILE_READ | wake_later,
++	*err = _fil_io(OS_FILE_READ | wake_later,
+ 			sync, space,
+ 			offset, 0, UNIV_PAGE_SIZE,
+-			(void*)block->frame, (void*)block);
++			(void*)block->frame, (void*)block, trx);
+ 	ut_a(*err == DB_SUCCESS);
+ 
+ 	if (sync) {
+@@ -174,8 +175,9 @@
+ 			the page at the given page number does not get
+ 			read even if we return a value > 0! */
+ 	ulint	space,	/* in: space id */
+-	ulint	offset)	/* in: page number of a page which the current thread
++	ulint	offset,	/* in: page number of a page which the current thread
+ 			wants to access */
++	trx_t*  trx)
+ {
+ 	ib_longlong	tablespace_version;
+ 	buf_block_t*	block;
+@@ -270,7 +272,7 @@
+ 		if (!ibuf_bitmap_page(i)) {
+ 			count += buf_read_page_low(&err, FALSE, ibuf_mode
+ 					| OS_AIO_SIMULATED_WAKE_LATER,
+-				        space, tablespace_version, i);
++				        space, tablespace_version, i, trx);
+ 			if (err == DB_TABLESPACE_DELETED) {
+ 				ut_print_timestamp(stderr);
+ 				fprintf(stderr,
+@@ -314,7 +316,8 @@
+ 			/* out: number of page read requests issued: this can
+ 			be > 1 if read-ahead occurred */
+ 	ulint	space,	/* in: space id */
+-	ulint	offset)	/* in: page number */
++	ulint	offset,	/* in: page number */
++	trx_t*  trx)
+ {
+ 	ib_longlong	tablespace_version;
+ 	ulint		count;
+@@ -323,13 +326,13 @@
+ 
+ 	tablespace_version = fil_space_get_version(space);
+ 
+-	count = buf_read_ahead_random(space, offset);
++	count = buf_read_ahead_random(space, offset, trx);
+ 
+ 	/* We do the i/o in the synchronous aio mode to save thread
+ 	switches: hence TRUE */
+ 
+ 	count2 = buf_read_page_low(&err, TRUE, BUF_READ_ANY_PAGE, space,
+-					tablespace_version, offset);
++					tablespace_version, offset, trx);
+         srv_buf_pool_reads+= count2;
+ 	if (err == DB_TABLESPACE_DELETED) {
+ 	        ut_print_timestamp(stderr);
+@@ -374,8 +377,9 @@
+ /*==================*/
+ 			/* out: number of page read requests issued */
+ 	ulint	space,	/* in: space id */
+-	ulint	offset)	/* in: page number of a page; NOTE: the current thread
++	ulint	offset,	/* in: page number of a page; NOTE: the current thread
+ 			must want access to this page (see NOTE 3 above) */
++	trx_t*  trx)
+ {
+ 	ib_longlong	tablespace_version;
+ 	buf_block_t*	block;
+@@ -556,7 +560,7 @@
+ 		if (!ibuf_bitmap_page(i)) {
+ 			count += buf_read_page_low(&err, FALSE, ibuf_mode
+ 					| OS_AIO_SIMULATED_WAKE_LATER,
+-					space, 	tablespace_version, i);
++					space, 	tablespace_version, i, trx);
+ 			if (err == DB_TABLESPACE_DELETED) {
+ 				ut_print_timestamp(stderr);
+ 				fprintf(stderr,
+@@ -625,10 +629,10 @@
+ 	for (i = 0; i < n_stored; i++) {
+ 		if ((i + 1 == n_stored) && sync) {
+ 			buf_read_page_low(&err, TRUE, BUF_READ_ANY_PAGE,
+-				space_ids[i], space_versions[i], page_nos[i]);
++				space_ids[i], space_versions[i], page_nos[i], NULL);
+ 		} else {
+ 			buf_read_page_low(&err, FALSE, BUF_READ_ANY_PAGE,
+-				space_ids[i], space_versions[i], page_nos[i]);
++				space_ids[i], space_versions[i], page_nos[i], NULL);
+ 		}
+ 
+ 		if (err == DB_TABLESPACE_DELETED) {
+@@ -704,11 +708,11 @@
+ 
+ 		if ((i + 1 == n_stored) && sync) {
+ 			buf_read_page_low(&err, TRUE, BUF_READ_ANY_PAGE, space,
+-					tablespace_version, page_nos[i]);
++					tablespace_version, page_nos[i], NULL);
+ 		} else {
+ 			buf_read_page_low(&err, FALSE, BUF_READ_ANY_PAGE
+ 					| OS_AIO_SIMULATED_WAKE_LATER,
+-				       space, tablespace_version, page_nos[i]);
++				       space, tablespace_version, page_nos[i], NULL);
+ 		}
+ 	}
+ 	
+diff -r 069dc6d4f269 innobase/fil/fil0fil.c
+--- a/innobase/fil/fil0fil.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/fil/fil0fil.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -3527,7 +3527,7 @@
+ 			node->name, node->handle, buf,
+ 			offset_low, offset_high,
+ 			UNIV_PAGE_SIZE * n_pages,
+-			NULL, NULL);
++			NULL, NULL, NULL);
+ #endif
+ 		if (success) {
+ 			node->size += n_pages;
+@@ -3851,7 +3851,7 @@
+ Reads or writes data. This operation is asynchronous (aio). */
+ 
+ ulint
+-fil_io(
++_fil_io(
+ /*===*/
+ 				/* out: DB_SUCCESS, or DB_TABLESPACE_DELETED
+ 				if we are trying to do i/o on a tablespace
+@@ -3877,8 +3877,9 @@
+ 	void*	buf,		/* in/out: buffer where to store read data
+ 				or from where to write; in aio this must be
+ 				appropriately aligned */
+-	void*	message)	/* in: message for aio handler if non-sync
++	void*	message,	/* in: message for aio handler if non-sync
+ 				aio used, else ignored */
++	trx_t*  trx)
+ {
+ 	fil_system_t*	system		= fil_system;
+ 	ulint		mode;
+@@ -4018,7 +4019,7 @@
+ #else
+ 	/* Queue the aio request */
+ 	ret = os_aio(type, mode | wake_later, node->name, node->handle, buf,
+-				offset_low, offset_high, len, node, message);
++				offset_low, offset_high, len, node, message, trx);
+ #endif
+ 	ut_a(ret);
+ 
+diff -r 069dc6d4f269 innobase/include/buf0rea.h
+--- a/innobase/include/buf0rea.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/include/buf0rea.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -10,6 +10,7 @@
+ #define buf0rea_h
+ 
+ #include "univ.i"
++#include "trx0types.h"
+ #include "buf0types.h"
+ 
+ /************************************************************************
+@@ -25,7 +26,8 @@
+ 			/* out: number of page read requests issued: this can
+ 			be > 1 if read-ahead occurred */
+ 	ulint	space,	/* in: space id */
+-	ulint	offset);/* in: page number */
++	ulint	offset,	/* in: page number */
++	trx_t*  trx);
+ /************************************************************************
+ Applies linear read-ahead if in the buf_pool the page is a border page of
+ a linear read-ahead area and all the pages in the area have been accessed.
+@@ -55,8 +57,9 @@
+ /*==================*/
+ 			/* out: number of page read requests issued */
+ 	ulint	space,	/* in: space id */
+-	ulint	offset);/* in: page number of a page; NOTE: the current thread
++	ulint	offset,	/* in: page number of a page; NOTE: the current thread
+ 			must want access to this page (see NOTE 3 above) */
++	trx_t*  trx);
+ /************************************************************************
+ Issues read requests for pages which the ibuf module wants to read in, in
+ order to contract the insert buffer tree. Technically, this function is like
+diff -r 069dc6d4f269 innobase/include/fil0fil.h
+--- a/innobase/include/fil0fil.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/include/fil0fil.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -534,8 +534,11 @@
+ /************************************************************************
+ Reads or writes data. This operation is asynchronous (aio). */
+ 
++#define fil_io(type, sync, space_id, block_offset, byte_offset, len, buf, message) \
++	_fil_io(type, sync, space_id, block_offset, byte_offset, len, buf, message, NULL)
++
+ ulint
+-fil_io(
++_fil_io(
+ /*===*/
+ 				/* out: DB_SUCCESS, or DB_TABLESPACE_DELETED
+ 				if we are trying to do i/o on a tablespace
+@@ -561,8 +564,9 @@
+ 	void*	buf,		/* in/out: buffer where to store read data
+ 				or from where to write; in aio this must be
+ 				appropriately aligned */
+-	void*	message);	/* in: message for aio handler if non-sync
++	void*	message,	/* in: message for aio handler if non-sync
+ 				aio used, else ignored */
++	trx_t*  trx);
+ /************************************************************************
+ Reads data from a space to a buffer. Remember that the possible incomplete
+ blocks at the end of file are ignored: they are not taken into account when
+diff -r 069dc6d4f269 innobase/include/os0file.h
+--- a/innobase/include/os0file.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/include/os0file.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -11,6 +11,8 @@
+ 
+ #include "univ.i"
+ 
++#include "trx0types.h"
++
+ #ifndef __WIN__
+ #include <dirent.h>
+ #include <sys/stat.h>
+@@ -421,8 +423,11 @@
+ /***********************************************************************
+ Requests a synchronous read operation. */
+ 
++#define os_file_read(file, buf, offset, offset_high, n)         \
++		_os_file_read(file, buf, offset, offset_high, n, NULL)
++
+ ibool
+-os_file_read(
++_os_file_read(
+ /*=========*/
+ 				/* out: TRUE if request was
+ 				successful, FALSE if fail */
+@@ -432,7 +437,8 @@
+ 				offset where to read */
+ 	ulint		offset_high,/* in: most significant 32 bits of
+ 				offset */
+-	ulint		n);	/* in: number of bytes to read */	
++	ulint		n,	/* in: number of bytes to read */
++	trx_t*		trx);
+ /***********************************************************************
+ Rewind file to its start, read at most size - 1 bytes from it to str, and
+ NUL-terminate str. All errors are silently ignored. This function is
+@@ -584,7 +590,8 @@
+ 				can be used to identify a completed aio
+ 				operation); if mode is OS_AIO_SYNC, these
+ 				are ignored */
+-	void*		message2);
++	void*		message2,
++	trx_t*          trx);
+ /****************************************************************************
+ Wakes up all async i/o threads so that they know to exit themselves in
+ shutdown. */
+diff -r 069dc6d4f269 innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/include/srv0srv.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -27,6 +27,8 @@
+ #define SRV_AUTO_EXTEND_INCREMENT	\
+ 	(srv_auto_extend_increment * ((1024 * 1024) / UNIV_PAGE_SIZE))
+ 
++extern ibool	srv_slow_log;
++
+ /* This is set to TRUE if the MySQL user has set it in MySQL */
+ extern ibool	srv_lower_case_table_names;
+ 
+diff -r 069dc6d4f269 innobase/include/trx0trx.h
+--- a/innobase/include/trx0trx.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/include/trx0trx.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -668,6 +668,17 @@
+ 	/*------------------------------*/
+ 	char detailed_error[256];	/* detailed error message for last
+ 					error, or empty. */
++	/*------------------------------*/
++	ulint		io_reads;
++	ib_longlong     io_read;
++	ulint		io_reads_wait_timer;
++	ib_longlong     lock_que_wait_ustarted;
++	ulint           lock_que_wait_timer;
++	ulint           innodb_que_wait_timer;
++	ulint           distinct_page_access;
++#define	DPAH_SIZE	8192
++	byte*		distinct_page_access_hash;
++	ibool		take_stats;
+ };
+ 
+ #define TRX_MAX_N_THREADS	32	/* maximum number of concurrent
+diff -r 069dc6d4f269 innobase/lock/lock0lock.c
+--- a/innobase/lock/lock0lock.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/lock/lock0lock.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -1806,6 +1806,8 @@
+ {
+ 	lock_t*	lock;
+ 	trx_t*	trx;
++	ulint   sec;
++	ulint   ms;
+ 	
+ #ifdef UNIV_SYNC_DEBUG
+ 	ut_ad(mutex_own(&kernel_mutex));
+@@ -1861,6 +1863,10 @@
+ 	trx->que_state = TRX_QUE_LOCK_WAIT;
+ 	trx->was_chosen_as_deadlock_victim = FALSE;
+ 	trx->wait_started = time(NULL);
++	if (srv_slow_log && trx->take_stats) {
++		ut_usectime(&sec, &ms);
++		trx->lock_que_wait_ustarted = (ib_longlong)sec * 1000000 + ms;
++	}
+ 
+ 	ut_a(que_thr_stop(thr));
+ 
+@@ -3514,7 +3520,9 @@
+ {
+ 	lock_t*	lock;
+ 	trx_t*	trx;
+-	
++	ulint   sec;
++	ulint   ms;
++
+ #ifdef UNIV_SYNC_DEBUG
+ 	ut_ad(mutex_own(&kernel_mutex));
+ #endif /* UNIV_SYNC_DEBUG */
+@@ -3564,6 +3572,10 @@
+ 		return(DB_SUCCESS);
+ 	}
+ 	
++	if (srv_slow_log && trx->take_stats) {
++		ut_usectime(&sec, &ms);
++		trx->lock_que_wait_ustarted = (ib_longlong)sec * 1000000 + ms;
++	}
+ 	trx->que_state = TRX_QUE_LOCK_WAIT;
+ 	trx->was_chosen_as_deadlock_victim = FALSE;
+ 	trx->wait_started = time(NULL);
+diff -r 069dc6d4f269 innobase/os/os0file.c
+--- a/innobase/os/os0file.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/os/os0file.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -14,6 +14,8 @@
+ #include "srv0start.h"
+ #include "fil0fil.h"
+ #include "buf0buf.h"
++#include "trx0sys.h"
++#include "trx0trx.h"
+ 
+ #if defined(UNIV_HOTBACKUP) && defined(__WIN__)
+ /* Add includes for the _stat() call to compile on Windows */
+@@ -1903,9 +1905,13 @@
+ #ifndef __WIN__
+ /***********************************************************************
+ Does a synchronous read operation in Posix. */
++
++#define os_file_pread(file, buf, n, offset, offset_high)        \
++		_os_file_pread(file, buf, n, offset, offset_high, NULL);
++
+ static
+ ssize_t
+-os_file_pread(
++_os_file_pread(
+ /*==========*/
+ 				/* out: number of bytes read, -1 if error */
+ 	os_file_t	file,	/* in: handle to a file */
+@@ -1913,12 +1919,17 @@
+ 	ulint		n,	/* in: number of bytes to read */	
+ 	ulint		offset,	/* in: least significant 32 bits of file
+ 				offset from where to read */
+-	ulint		offset_high) /* in: most significant 32 bits of
+-				offset */
++	ulint		offset_high, /* in: most significant 32 bits of
++				offset */
++        trx_t*		trx)
+ {
+         off_t	offs;
+ 	ssize_t	n_bytes;
+-
++	ulint           sec;
++	ulint           ms;
++	ib_longlong     start_time;
++	ib_longlong     finish_time;
++	
+ 	ut_a((offset & 0xFFFFFFFFUL) == offset);
+         
+         /* If off_t is > 4 bytes in size, then we assume we can pass a
+@@ -1937,7 +1948,13 @@
+         }
+ 
+ 	os_n_file_reads++;
+-
++	if (srv_slow_log && trx && trx->take_stats)
++	{
++	        trx->io_reads++;
++		trx->io_read += n;
++		ut_usectime(&sec, &ms);
++		start_time = (ib_longlong)sec * 1000000 + ms;
++	}
+ #if defined(HAVE_PREAD) && !defined(HAVE_BROKEN_PREAD)
+         os_mutex_enter(os_file_count_mutex);
+ 	os_file_n_pending_preads++;
+@@ -1951,6 +1968,13 @@
+ 	os_n_pending_reads--;
+         os_mutex_exit(os_file_count_mutex);
+ 
++        if (srv_slow_log && trx && trx->take_stats && start_time)
++        {
++		ut_usectime(&sec, &ms);
++        	finish_time = (ib_longlong)sec * 1000000 + ms;
++                trx->io_reads_wait_timer += (ulint)(finish_time - start_time);
++	}
++
+ 	return(n_bytes);
+ #else
+ 	{
+@@ -1981,6 +2005,13 @@
+ 	os_n_pending_reads--;
+         os_mutex_exit(os_file_count_mutex);
+ 
++        if (srv_slow_log && trx && trx->take_stats && start_time)
++        {
++		ut_usectime(&sec, &ms);
++        	finish_time = (ib_longlong)sec * 1000000 + ms;
++                trx->io_reads_wait_timer += (ulint)(finish_time - start_time);
++	}
++
+ 	return(ret);
+ 	}
+ #endif
+@@ -2103,7 +2134,7 @@
+ Requests a synchronous positioned read operation. */
+ 
+ ibool
+-os_file_read(
++_os_file_read(
+ /*=========*/
+ 				/* out: TRUE if request was
+ 				successful, FALSE if fail */
+@@ -2113,7 +2144,8 @@
+ 				offset where to read */
+ 	ulint		offset_high, /* in: most significant 32 bits of
+ 				offset */
+-	ulint		n)	/* in: number of bytes to read */	
++	ulint		n,	/* in: number of bytes to read */
++        trx_t*		trx)
+ {
+ #ifdef __WIN__
+ 	BOOL		ret;
+@@ -2177,7 +2209,7 @@
+ 	os_bytes_read_since_printout += n;
+ 
+ try_again:
+-	ret = os_file_pread(file, buf, n, offset, offset_high);
++	ret = _os_file_pread(file, buf, n, offset, offset_high, trx);
+ 
+ 	if ((ulint)ret == n) {
+ 
+@@ -3137,7 +3169,8 @@
+ 				offset */
+ 	ulint		offset_high, /* in: most significant 32 bits of
+ 				offset */
+-	ulint		len)	/* in: length of the block to read or write */
++	ulint		len,	/* in: length of the block to read or write */
++	trx_t*          trx)
+ {
+ 	os_aio_slot_t*	slot;
+ #ifdef WIN_ASYNC_IO
+@@ -3390,7 +3423,8 @@
+ 				can be used to identify a completed aio
+ 				operation); if mode is OS_AIO_SYNC, these
+ 				are ignored */
+-	void*		message2)
++	void*		message2,
++	trx_t*          trx)
+ {
+ 	os_aio_array_t*	array;
+ 	os_aio_slot_t*	slot;
+@@ -3429,8 +3463,8 @@
+ 		wait in the Windows case. */
+ 
+ 		if (type == OS_FILE_READ) {
+-			return(os_file_read(file, buf, offset,
+-							offset_high, n));
++			return(_os_file_read(file, buf, offset,
++							offset_high, n, trx));
+ 		}
+ 
+ 		ut_a(type == OS_FILE_WRITE);
+@@ -3463,8 +3497,13 @@
+ 		ut_error;
+ 	}
+ 	
++	if (trx && type == OS_FILE_READ)
++	{
++		trx->io_reads++;
++		trx->io_read += n;
++	}
+ 	slot = os_aio_array_reserve_slot(type, array, message1, message2, file,
+-					name, buf, offset, offset_high, n);
++					name, buf, offset, offset_high, n, trx);
+ 	if (type == OS_FILE_READ) {
+ 		if (os_aio_use_native_aio) {
+ #ifdef WIN_ASYNC_IO
+diff -r 069dc6d4f269 innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/srv/srv0srv.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -48,6 +48,8 @@
+ #include "srv0start.h"
+ #include "row0mysql.h"
+ 
++ibool	srv_slow_log = 0;
++
+ /* This is set to TRUE if the MySQL user has set it in MySQL; currently
+ affects only FOREIGN KEY definition parsing */
+ ibool	srv_lower_case_table_names	= FALSE;
+@@ -1002,6 +1004,10 @@
+ 	ibool			has_slept = FALSE;
+ 	srv_conc_slot_t*	slot	  = NULL;
+ 	ulint			i;
++	ib_longlong             start_time = 0L;
++	ib_longlong             finish_time = 0L;
++	ulint                   sec;
++	ulint                   ms;
+ 
+ 	/* If trx has 'free tickets' to enter the engine left, then use one
+ 	such ticket */
+@@ -1060,6 +1066,7 @@
+     if (SRV_THREAD_SLEEP_DELAY > 0)
+     {
+       os_thread_sleep(SRV_THREAD_SLEEP_DELAY);
++      trx->innodb_que_wait_timer += SRV_THREAD_SLEEP_DELAY;
+     }
+ 
+ 		trx->op_info = "";
+@@ -1115,12 +1122,23 @@
+ 	/* Go to wait for the event; when a thread leaves InnoDB it will
+ 	release this thread */
+ 
++	if (srv_slow_log && trx->take_stats) {
++		ut_usectime(&sec, &ms);
++		start_time = (ib_longlong)sec * 1000000 + ms;
++	}
++
+ 	trx->op_info = "waiting in InnoDB queue";
+ 
+ 	os_event_wait(slot->event);
+ 
+ 	trx->op_info = "";
+ 
++	if (srv_slow_log && trx->take_stats && start_time) {
++		ut_usectime(&sec, &ms);
++		finish_time = (ib_longlong)sec * 1000000 + ms;
++		trx->innodb_que_wait_timer += (ulint)(finish_time - start_time);
++	}
++
+ 	os_fast_mutex_lock(&srv_conc_mutex);
+ 
+ 	srv_conc_n_waiting_threads--;
+diff -r 069dc6d4f269 innobase/trx/trx0trx.c
+--- a/innobase/trx/trx0trx.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/innobase/trx/trx0trx.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -190,6 +190,15 @@
+ 	trx->global_read_view_heap = mem_heap_create(256);
+ 	trx->global_read_view = NULL;
+ 	trx->read_view = NULL;
++	
++	trx->io_reads = 0;
++	trx->io_read = 0;
++	trx->io_reads_wait_timer = 0;
++	trx->lock_que_wait_timer = 0;
++	trx->innodb_que_wait_timer = 0;
++	trx->distinct_page_access = 0;
++	trx->distinct_page_access_hash = NULL;
++	trx->take_stats = FALSE;
+ 
+ 	/* Set X/Open XA transaction identification to NULL */
+ 	memset(&trx->xid, 0, sizeof(trx->xid));
+@@ -230,6 +239,11 @@
+ 
+ 	trx->mysql_process_no = os_proc_get_number();
+ 	
++	if (srv_slow_log && trx->take_stats) {
++		trx->distinct_page_access_hash = mem_alloc(DPAH_SIZE);
++		memset(trx->distinct_page_access_hash, 0, DPAH_SIZE);
++	}
++
+ 	return(trx);
+ }
+ 
+@@ -366,6 +380,12 @@
+ /*===============*/
+ 	trx_t*	trx)	/* in, own: trx object */
+ {
++	if (trx->distinct_page_access_hash)
++	{
++		mem_free(trx->distinct_page_access_hash);
++		trx->distinct_page_access_hash= NULL;
++	}
++
+ 	thr_local_free(trx->mysql_thread_id);
+ 
+ 	mutex_enter(&kernel_mutex);
+@@ -389,6 +409,12 @@
+ /*====================*/
+ 	trx_t*	trx)	/* in, own: trx object */
+ {
++	if (trx->distinct_page_access_hash)
++	{
++		mem_free(trx->distinct_page_access_hash);
++		trx->distinct_page_access_hash= NULL;
++	}
++
+ 	mutex_enter(&kernel_mutex);
+ 	
+ 	trx_free(trx);
+@@ -1064,7 +1090,10 @@
+ 	trx_t*	trx)	/* in: transaction */
+ {
+ 	que_thr_t*	thr;
+-
++	ulint           sec;
++	ulint           ms;
++	ib_longlong     now;
++	
+ #ifdef UNIV_SYNC_DEBUG
+ 	ut_ad(mutex_own(&kernel_mutex));
+ #endif /* UNIV_SYNC_DEBUG */
+@@ -1080,6 +1109,11 @@
+ 		thr = UT_LIST_GET_FIRST(trx->wait_thrs);
+ 	}
+ 
++	if (srv_slow_log && trx->take_stats) {
++		ut_usectime(&sec, &ms);
++		now = (ib_longlong)sec * 1000000 + ms;
++		trx->lock_que_wait_timer += (ulint)(now - trx->lock_que_wait_ustarted);
++	}
+ 	trx->que_state = TRX_QUE_RUNNING;
+ }
+ 
+@@ -1093,6 +1127,9 @@
+ 	trx_t*	trx)	/* in: transaction in the TRX_QUE_LOCK_WAIT state */
+ {
+ 	que_thr_t*	thr;
++	ulint           sec;
++	ulint           ms;
++	ib_longlong     now;
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 	ut_ad(mutex_own(&kernel_mutex));
+@@ -1109,6 +1146,11 @@
+ 		thr = UT_LIST_GET_FIRST(trx->wait_thrs);
+ 	}
+ 
++	if (srv_slow_log && trx->take_stats) {
++		ut_usectime(&sec, &ms);
++		now = (ib_longlong)sec * 1000000 + ms;
++		trx->lock_que_wait_timer += (ulint)(now - trx->lock_que_wait_ustarted);
++	}
+ 	trx->que_state = TRX_QUE_RUNNING;
+ }
+ 
+diff -r 069dc6d4f269 mysys/my_getopt.c
+--- a/mysys/my_getopt.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/mysys/my_getopt.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -827,7 +827,8 @@
+ #endif
+     break;
+   default:
+-    DBUG_ASSERT((optp->var_type & GET_TYPE_MASK) == GET_ULL);
++    DBUG_ASSERT((optp->var_type & GET_TYPE_MASK) == GET_ULL
++                || (optp->var_type & GET_TYPE_MASK) == GET_MICROTIME);
+     break;
+   }
+ 
+@@ -1061,6 +1061,9 @@
+       case GET_ULONG:
+ 	printf("%lu\n", *((ulong*) value));
+ 	break;
++      case GET_MICROTIME:
++	printf("%6f\n", ((double)(*((longlong*) value))) / 1000000.0);
++	break;
+       case GET_LL:
+ 	printf("%s\n", llstr(*((longlong*) value), buff));
+ 	break;
+diff -r 069dc6d4f269 patch_info/microslow_innodb.info
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patch_info/microslow_innodb.info	Mon Jun 01 00:35:30 2009 -0700
+@@ -0,0 +1,15 @@
++File=microslow_innodb.patch
++Name=Extended statistics in slow.log
++Version=1.2
++Author=Percona <info@percona.com>
++License=GPL
++Comment=
++Changelog
++2008-11-26
++YK: Fix inefficient determination of trx, Make not to call useless gettimeofday when don't use slow log. Make log_slow_queries dynamic (bool).
++
++2008-11-07
++VT: Moved log_slow_rate_limit in SHOW VARIABLE into right place
++
++2008-11
++Arjen Lentz: Fixups (backward compatibility) by Arjen Lentz <arjen@openquery.com.au>
+diff -r 069dc6d4f269 scripts/mysqldumpslow.sh
+--- a/scripts/mysqldumpslow.sh	Mon Jun 01 00:35:20 2009 -0700
++++ b/scripts/mysqldumpslow.sh	Mon Jun 01 00:35:30 2009 -0700
+@@ -83,8 +83,8 @@
+     s/^#? Time: \d{6}\s+\d+:\d+:\d+.*\n//;
+     my ($user,$host) = s/^#? User\@Host:\s+(\S+)\s+\@\s+(\S+).*\n// ? ($1,$2) : ('','');
+ 
+-    s/^# Query_time: (\d+)  Lock_time: (\d+)  Rows_sent: (\d+).*\n//;
+-    my ($t, $l, $r) = ($1, $2, $3);
++    s/^# Query_time: (\d+(\.\d+)?)  Lock_time: (\d+(\.\d+)?)  Rows_sent: (\d+(\.\d+)?).*\n//;
++    my ($t, $l, $r) = ($1, $3, $5);
+     $t -= $l unless $opt{l};
+ 
+     # remove fluff that mysqld writes to log when it (re)starts:
+diff -r 069dc6d4f269 sql-common/my_time.c
+--- a/sql-common/my_time.c	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql-common/my_time.c	Mon Jun 01 00:35:30 2009 -0700
+@@ -1253,3 +1253,37 @@
+   return 0;
+ }
+ 
++/*
++ int my_timer(ulonglong *ltime, ulonglong frequency)
++
++ For performance measurement this function returns the number
++ of microseconds since the epoch (SVr4, BSD 4.3, POSIX 1003.1-2001)
++ or system start (Windows platforms).
++
++ For windows platforms frequency value (obtained via 
++ QueryPerformanceFrequency) has to be specified. The global frequency
++ value is set in mysqld.cc. 
++
++ If Windows platform doesn't support QueryPerformanceFrequency we will
++ obtain the time via GetClockCount, which supports microseconds only.
++*/
++
++ulonglong my_timer(ulonglong *ltime, ulonglong frequency)
++{
++  ulonglong newtime= 0;
++#ifdef __WIN__
++  if (frequency) 
++  {
++    QueryPerformanceCounter((LARGE_INTEGER *)&newtime);
++    newtime/= (frequency * 1000000);
++  } else
++    newtime= (GetTickCount() * 1000; /* GetTickCount only returns milliseconds */
++#else
++  struct timeval t;
++  if (gettimeofday(&t, NULL) != -1)
++    newtime= (ulonglong)t.tv_sec * 1000000 + t.tv_usec;
++#endif
++  if (ltime)
++    *ltime= newtime;
++  return newtime;
++}
+diff -r 069dc6d4f269 sql/filesort.cc
+--- a/sql/filesort.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/filesort.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -180,6 +180,7 @@
+   {
+     statistic_increment(thd->status_var.filesort_scan_count, &LOCK_status);
+   }
++  thd->query_plan_flags|= QPLAN_FILESORT;
+ #ifdef CAN_TRUST_RANGE
+   if (select && select->quick && select->quick->records > 0L)
+   {
+@@ -245,6 +246,7 @@
+   }
+   else
+   {
++    thd->query_plan_flags|= QPLAN_FILESORT_DISK;
+     if (table_sort.buffpek && table_sort.buffpek_len < maxbuffer)
+     {
+       x_free(table_sort.buffpek);
+@@ -1116,6 +1118,7 @@
+ 
+   statistic_increment(current_thd->status_var.filesort_merge_passes,
+ 		      &LOCK_status);
++  current_thd->query_plan_fsort_passes++;
+   if (param->not_killable)
+   {
+     killed= &not_killable;
+diff -r 069dc6d4f269 sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/ha_innodb.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -1,3 +1,4 @@
++
+ /* Copyright (C) 2000-2005 MySQL AB & Innobase Oy
+ 
+    This program is free software; you can redistribute it and/or modify
+@@ -819,9 +820,34 @@
+ 		trx->check_unique_secondary = TRUE;
+ 	}
+ 
++	if (thd->variables.log_slow_verbosity & SLOG_V_INNODB) {
++		trx->take_stats = TRUE;
++	} else {
++		trx->take_stats = FALSE;
++	}
++
+ 	return(trx);
+ }
+ 
++/*************************************************************************
++Gets current trx. */
++extern "C"
++trx_t*
++innobase_get_trx()
++{
++	THD *thd=current_thd;
++	if (likely(thd != 0)) {
++		return((trx_t*) thd->ha_data[innobase_hton.slot]);
++	} else {
++		return(NULL);
++	}
++}
++
++void
++innobase_update_var_slow_log()
++{
++	srv_slow_log = (ibool) opt_slow_log;
++}
+ 
+ /*************************************************************************
+ Construct ha_innobase handler. */
+@@ -1324,6 +1350,8 @@
+ 
+ 	/* -------------- Log files ---------------------------*/
+ 
++	srv_slow_log = (ibool) opt_slow_log;
++
+ 	/* The default dir for log files is the datadir of MySQL */
+ 
+ 	if (!innobase_log_group_home_dir) {
+@@ -4694,6 +4722,12 @@
+ 		trx->check_unique_secondary = FALSE;
+ 	}
+ 
++	if (thd->variables.log_slow_verbosity & SLOG_V_INNODB) {
++		trx->take_stats = TRUE;
++	} else {
++		trx->take_stats = FALSE;
++	}
++
+ 	if (lower_case_table_names) {
+ 		srv_lower_case_table_names = TRUE;
+ 	} else {
+@@ -4959,6 +4993,12 @@
+ 		trx->check_unique_secondary = FALSE;
+ 	}
+ 
++	if (thd->variables.log_slow_verbosity & SLOG_V_INNODB) {
++		trx->take_stats = TRUE;
++	} else {
++		trx->take_stats = FALSE;
++	}
++
+ 	name_len = strlen(name);
+ 
+ 	assert(name_len < 1000);
+@@ -5046,6 +5086,12 @@
+ 		trx->check_foreigns = FALSE;
+ 	}
+ 
++	if (current_thd->variables.log_slow_verbosity & SLOG_V_INNODB) {
++		trx->take_stats = TRUE;
++	} else {
++		trx->take_stats = FALSE;
++	}
++
+   	error = row_drop_database_for_mysql(namebuf, trx);
+ 	my_free(namebuf, MYF(0));
+ 
+@@ -5112,6 +5158,12 @@
+ 		trx->check_foreigns = FALSE;
+ 	}
+ 
++	if (current_thd->variables.log_slow_verbosity & SLOG_V_INNODB) {
++		trx->take_stats = TRUE;
++	} else {
++		trx->take_stats = FALSE;
++	}
++
+ 	name_len1 = strlen(from);
+ 	name_len2 = strlen(to);
+ 
+@@ -6119,6 +6171,7 @@
+ {
+ 	row_prebuilt_t* prebuilt = (row_prebuilt_t*) innobase_prebuilt;
+ 	trx_t*		trx;
++	int i;
+ 
+   	DBUG_ENTER("ha_innobase::external_lock");
+ 	DBUG_PRINT("enter",("lock_type: %d", lock_type));
+@@ -6242,7 +6295,24 @@
+ 
+ 	if (trx->n_mysql_tables_in_use == 0) {
+ 
+-	        trx->mysql_n_tables_locked = 0;
++		current_thd->innodb_was_used = TRUE;
++		current_thd->innodb_io_reads += trx->io_reads;
++		current_thd->innodb_io_read += trx->io_read;
++		current_thd->innodb_io_reads_wait_timer += trx->io_reads_wait_timer;
++		current_thd->innodb_lock_que_wait_timer += trx->lock_que_wait_timer;
++		current_thd->innodb_innodb_que_wait_timer += trx->innodb_que_wait_timer;
++                current_thd->innodb_page_access += trx->distinct_page_access;
++
++		trx->io_reads = 0;
++		trx->io_read = 0;
++		trx->io_reads_wait_timer = 0;
++		trx->lock_que_wait_timer = 0;
++		trx->innodb_que_wait_timer = 0;
++		trx->distinct_page_access = 0;
++		if (trx->distinct_page_access_hash)
++			memset(trx->distinct_page_access_hash, 0, DPAH_SIZE);
++
++    		trx->mysql_n_tables_locked = 0;
+ 		prebuilt->used_in_HANDLER = FALSE;
+ 
+ 		if (!(thd->options & (OPTION_NOT_AUTOCOMMIT | OPTION_BEGIN))) {
+diff -r 069dc6d4f269 sql/ha_innodb.h
+--- a/sql/ha_innodb.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/ha_innodb.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -271,6 +271,8 @@
+ 
+ int innobase_start_trx_and_assign_read_view(THD* thd);
+ 
++void innobase_update_var_slow_log();
++
+ /***********************************************************************
+ This function is used to prepare X/Open XA distributed transaction   */
+ 
+diff -r 069dc6d4f269 sql/log.cc
+--- a/sql/log.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/log.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -2289,11 +2289,12 @@
+ */
+ 
+ bool MYSQL_LOG::write(THD *thd,const char *query, uint query_length,
+-		      time_t query_start_arg)
++		      time_t query_start_arg, ulonglong query_start_timer)
+ {
+   bool error=0;
+   time_t current_time;
+-  if (!is_open())
++  ulonglong current_timer;
++  if (!opt_slow_log || !is_open())
+     return 0;
+   DBUG_ENTER("MYSQL_LOG::write");
+ 
+@@ -2303,7 +2304,8 @@
+     int tmp_errno=0;
+     char buff[80],*end;
+     end=buff;
+-    if (!(thd->options & OPTION_UPDATE_LOG))
++    if (!(thd->options & OPTION_UPDATE_LOG) &&
++        !(thd->slave_thread && opt_log_slow_slave_statements))
+     {
+       VOID(pthread_mutex_unlock(&LOCK_log));
+       DBUG_RETURN(0);
+@@ -2333,22 +2335,72 @@
+       if (my_b_printf(&log_file, "# User@Host: %s[%s] @ %s [%s]\n",
+                       sctx->priv_user ?
+                       sctx->priv_user : "",
+-                      sctx->user ? sctx->user : "",
++                      sctx->user ? sctx->user : (thd->slave_thread ? "SQL_SLAVE" : ""),
+                       sctx->host ? sctx->host : "",
+                       sctx->ip ? sctx->ip : "") ==
+           (uint) -1)
+         tmp_errno=errno;
+     }
+-    if (query_start_arg)
++    if (query_start_timer)
+     {
++      char buf[5][20];
++      ulonglong current_timer= my_timer(&current_timer, frequency);
++      snprintf(buf[0], 20, "%.6f", (current_timer ? (current_timer - query_start_timer):0) / 1000000.0);
++      snprintf(buf[1], 20, "%.6f", (thd->timer_after_lock - query_start_timer) / 1000000.0);
++      if (!query_length)
++      {
++        thd->sent_row_count= thd->examined_row_count= 0;
++        thd->row_count= 0;
++        thd->innodb_was_used= FALSE;
++        thd->query_plan_flags= QPLAN_NONE;
++        thd->query_plan_fsort_passes= 0;
++      }
++
+       /* For slow query log */
+       if (my_b_printf(&log_file,
+-                      "# Query_time: %lu  Lock_time: %lu  Rows_sent: %lu  Rows_examined: %lu\n",
+-                      (ulong) (current_time - query_start_arg),
+-                      (ulong) (thd->time_after_lock - query_start_arg),
++                      "# Thread_id: %lu  Schema: %s\n" \
++                      "# Query_time: %s  Lock_time: %s  Rows_sent: %lu  Rows_examined: %lu  Rows_affected: %lu  Rows_read: %lu\n", 
++                      (ulong) thd->thread_id, (thd->db ? thd->db : ""),
++                      buf[0], buf[1],
+                       (ulong) thd->sent_row_count,
+-                      (ulong) thd->examined_row_count) == (uint) -1)
++                      (ulong) thd->examined_row_count,
++                      ((long) thd->row_count_func > 0 ) ? (ulong) thd->row_count_func : 0,
++                      (ulong) thd->row_count) == (uint) -1)
+         tmp_errno=errno;
++      if ((thd->variables.log_slow_verbosity & SLOG_V_QUERY_PLAN) &&
++           my_b_printf(&log_file,
++                      "# QC_Hit: %s  Full_scan: %s  Full_join: %s  Tmp_table: %s  Tmp_table_on_disk: %s\n" \
++                      "# Filesort: %s  Filesort_on_disk: %s  Merge_passes: %lu\n",
++                      ((thd->query_plan_flags & QPLAN_QC) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_FULL_SCAN) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_FULL_JOIN) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_TMP_TABLE) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_TMP_DISK) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_FILESORT) ? "Yes" : "No"),
++                      ((thd->query_plan_flags & QPLAN_FILESORT_DISK) ? "Yes" : "No"),
++                      thd->query_plan_fsort_passes) == (uint) -1)
++        tmp_errno=errno;
++      if ((thd->variables.log_slow_verbosity & SLOG_V_INNODB) && thd->innodb_was_used)
++      {
++        snprintf(buf[2], 20, "%.6f", thd->innodb_io_reads_wait_timer / 1000000.0);
++        snprintf(buf[3], 20, "%.6f", thd->innodb_lock_que_wait_timer / 1000000.0);
++        snprintf(buf[4], 20, "%.6f", thd->innodb_innodb_que_wait_timer / 1000000.0);
++        if (my_b_printf(&log_file,
++                        "#   InnoDB_IO_r_ops: %lu  InnoDB_IO_r_bytes: %lu  InnoDB_IO_r_wait: %s\n" \
++                        "#   InnoDB_rec_lock_wait: %s  InnoDB_queue_wait: %s\n" \
++                        "#   InnoDB_pages_distinct: %lu\n",
++                        (ulong) thd->innodb_io_reads,
++                        (ulong) thd->innodb_io_read,
++                        buf[2], buf[3], buf[4],
++                        (ulong) thd->innodb_page_access) == (uint) -1)
++          tmp_errno=errno;
++      } 
++      else
++      {
++        if ((thd->variables.log_slow_verbosity & SLOG_V_INNODB) &&
++            my_b_printf(&log_file,"# No InnoDB statistics available for this query\n") == (uint) -1)
++          tmp_errno=errno;
++      }
+     }
+     if (thd->db && strcmp(thd->db,db))
+     {						// Database changed
+diff -r 069dc6d4f269 sql/log_event.cc
+--- a/sql/log_event.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/log_event.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -2057,6 +2057,7 @@
+       /* Execute the query (note that we bypass dispatch_command()) */
+       const char* found_semicolon= NULL;
+       mysql_parse(thd, thd->query, thd->query_length, &found_semicolon);
++      log_slow_statement(thd);
+ 
+     }
+     else
+diff -r 069dc6d4f269 sql/mysql_priv.h
+--- a/sql/mysql_priv.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/mysql_priv.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -507,6 +507,78 @@
+ 
+ #define STRING_BUFFER_USUAL_SIZE 80
+ 
++/* Slow log */
++
++struct msl_opts
++{
++  ulong val;
++  const char *name;
++};
++
++#define SLOG_V_MICROTIME      1 << 0
++#define SLOG_V_QUERY_PLAN     1 << 1
++#define SLOG_V_INNODB         1 << 2
++/* ... */
++#define SLOG_V_INVALID        1 << 31
++#define SLOG_V_NONE           SLOG_V_MICROTIME
++
++static const struct msl_opts slog_verb[]= 
++{
++  /* Basic flags */
++
++  { SLOG_V_MICROTIME, "microtime" },
++  { SLOG_V_QUERY_PLAN, "query_plan" },
++  { SLOG_V_INNODB, "innodb" },
++
++  /* End of baisc flags */
++
++  { 0, "" },
++
++  /* Complex flags */
++
++  { SLOG_V_MICROTIME, "minimal" },
++  { SLOG_V_MICROTIME|SLOG_V_QUERY_PLAN, "standard" },
++  { SLOG_V_MICROTIME|SLOG_V_QUERY_PLAN|SLOG_V_INNODB, "full" },
++
++  /* End of complex flags */
++
++  { SLOG_V_INVALID, (char *)0 }
++};
++
++#define QPLAN_NONE            0
++#define QPLAN_QC              1 << 0
++#define QPLAN_QC_NO           1 << 1
++#define QPLAN_FULL_SCAN       1 << 2
++#define QPLAN_FULL_JOIN       1 << 3
++#define QPLAN_TMP_TABLE       1 << 4
++#define QPLAN_TMP_DISK        1 << 5
++#define QPLAN_FILESORT        1 << 6
++#define QPLAN_FILESORT_DISK   1 << 7
++/* ... */
++#define QPLAN_MAX             1 << 31
++
++#define SLOG_F_QC_NO          QPLAN_QC_NO
++#define SLOG_F_FULL_SCAN      QPLAN_FULL_SCAN
++#define SLOG_F_FULL_JOIN      QPLAN_FULL_JOIN
++#define SLOG_F_TMP_TABLE      QPLAN_TMP_TABLE
++#define SLOG_F_TMP_DISK       QPLAN_TMP_DISK
++#define SLOG_F_FILESORT       QPLAN_FILESORT
++#define SLOG_F_FILESORT_DISK  QPLAN_FILESORT_DISK
++#define SLOG_F_INVALID        1 << 31
++#define SLOG_F_NONE           0
++
++static const struct msl_opts slog_filter[]= 
++{
++  { SLOG_F_QC_NO,         "qc_miss" },
++  { SLOG_F_FULL_SCAN,     "full_scan" },
++  { SLOG_F_FULL_JOIN,     "full_join" },
++  { SLOG_F_TMP_TABLE,     "tmp_table" },
++  { SLOG_F_TMP_DISK,      "tmp_table_on_disk" },
++  { SLOG_F_FILESORT,      "filesort" },
++  { SLOG_F_FILESORT_DISK, "filesort_on_disk" },
++  { SLOG_F_INVALID,       (char *)0 }
++};
++
+ enum enum_parsing_place
+ {
+   NO_MATTER,
+@@ -1365,6 +1437,7 @@
+ extern bool using_update_log, opt_large_files, server_id_supplied;
+ extern bool opt_update_log, opt_bin_log, opt_error_log;
+ extern my_bool opt_log, opt_slow_log, opt_log_queries_not_using_indexes;
++extern char *opt_slow_logname;
+ extern bool opt_disable_networking, opt_skip_show_db;
+ extern my_bool opt_character_set_client_handshake;
+ extern bool volatile abort_loop, shutdown_in_progress, grant_option;
+@@ -1376,7 +1449,8 @@
+ extern my_bool opt_enable_named_pipe, opt_sync_frm, opt_allow_suspicious_udfs;
+ extern my_bool opt_secure_auth;
+ extern char* opt_secure_file_priv;
+-extern my_bool opt_log_slow_admin_statements;
++extern my_bool opt_log_slow_admin_statements, opt_log_slow_slave_statements;
++extern my_bool opt_use_global_long_query_time;
+ extern my_bool sp_automatic_privileges, opt_noacl;
+ extern my_bool opt_old_style_user_limits, trust_function_creators;
+ extern uint opt_crash_binlog_innodb;
+diff -r 069dc6d4f269 sql/mysqld.cc
+--- a/sql/mysqld.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/mysqld.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -176,7 +176,6 @@
+ static void getvolumeID(BYTE *volumeName);
+ #endif /* __NETWARE__ */
+ 
+-
+ #ifdef _AIX41
+ int initgroups(const char *,unsigned int);
+ #endif
+@@ -411,10 +410,13 @@
+ my_bool opt_secure_auth= 0;
+ char* opt_secure_file_priv= 0;
+ my_bool opt_log_slow_admin_statements= 0;
++my_bool opt_log_slow_slave_statements= 0;
++my_bool opt_use_global_long_query_time= 0;
+ my_bool lower_case_file_system= 0;
+ my_bool opt_large_pages= 0;
+ uint    opt_large_page_size= 0;
+ my_bool opt_old_style_user_limits= 0, trust_function_creators= 0;
++char* opt_slow_logname= 0;
+ /*
+   True if there is at least one per-hour limit for some user, so we should
+   check them before each query (and possibly reset counters when hour is
+@@ -509,6 +511,7 @@
+ Ge_creator ge_creator;
+ Le_creator le_creator;
+ 
++ulonglong frequency= 0;
+ 
+ FILE *bootstrap_file;
+ int bootstrap_error;
+@@ -588,7 +591,7 @@
+ static int cleanup_done;
+ static ulong opt_specialflag, opt_myisam_block_size;
+ static char *opt_logname, *opt_update_logname, *opt_binlog_index_name;
+-static char *opt_slow_logname, *opt_tc_heuristic_recover;
++static char *opt_tc_heuristic_recover;
+ static char *mysql_home_ptr, *pidfile_name_ptr;
+ static char **defaults_argv;
+ static char *opt_bin_logname;
+@@ -3697,6 +3700,8 @@
+       unireg_abort(1);
+     }
+   }
++  if (!QueryPerformanceFrequency((LARGE_INTEGER *)&frequency))
++    frequency= 0;
+ #endif /* __WIN__ */
+ 
+   if (init_common_variables(MYSQL_CONFIG_NAME,
+@@ -4947,7 +4952,7 @@
+   OPT_INTERACTIVE_TIMEOUT, OPT_JOIN_BUFF_SIZE,
+   OPT_KEY_BUFFER_SIZE, OPT_KEY_CACHE_BLOCK_SIZE,
+   OPT_KEY_CACHE_DIVISION_LIMIT, OPT_KEY_CACHE_AGE_THRESHOLD,
+-  OPT_LONG_QUERY_TIME,
++  OPT_LONG_QUERY_TIME, OPT_MIN_EXAMINED_ROW_LIMIT,
+   OPT_LOWER_CASE_TABLE_NAMES, OPT_MAX_ALLOWED_PACKET,
+   OPT_MAX_BINLOG_CACHE_SIZE, OPT_MAX_BINLOG_SIZE,
+   OPT_MAX_CONNECTIONS, OPT_MAX_CONNECT_ERRORS,
+@@ -5038,11 +5043,18 @@
+   OPT_TIMED_MUTEXES,
+   OPT_OLD_STYLE_USER_LIMITS,
+   OPT_LOG_SLOW_ADMIN_STATEMENTS,
++  OPT_LOG_SLOW_SLAVE_STATEMENTS,
++  OPT_LOG_SLOW_RATE_LIMIT,
++  OPT_LOG_SLOW_VERBOSITY,
++  OPT_LOG_SLOW_FILTER,
+   OPT_TABLE_LOCK_WAIT_TIMEOUT,
+   OPT_PLUGIN_DIR,
+   OPT_PORT_OPEN_TIMEOUT,
+   OPT_MERGE,
+   OPT_PROFILING,
++  OPT_SLOW_LOG,
++  OPT_SLOW_QUERY_LOG_FILE,
++  OPT_USE_GLOBAL_LONG_QUERY_TIME,
+   OPT_INNODB_ROLLBACK_ON_TIMEOUT,
+   OPT_SECURE_FILE_PRIV,
+   OPT_KEEP_FILES_ON_CREATE,
+@@ -5441,10 +5453,19 @@
+    (gptr*) &opt_log_slow_admin_statements,
+    (gptr*) &opt_log_slow_admin_statements,
+    0, GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0},
++  {"log-slow-slave-statements", OPT_LOG_SLOW_SLAVE_STATEMENTS,
++   "Log slow replicated statements to the slow log if it is open.",
++   (gptr*) &opt_log_slow_slave_statements,
++   (gptr*) &opt_log_slow_slave_statements,
++   0, GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0},
+   {"log-slow-queries", OPT_SLOW_QUERY_LOG,
+     "Log slow queries to this log file. Defaults logging to hostname-slow.log file. Must be enabled to activate other slow log options.",
+    (gptr*) &opt_slow_logname, (gptr*) &opt_slow_logname, 0, GET_STR, OPT_ARG,
+    0, 0, 0, 0, 0, 0},
++  {"slow_query_log_file", OPT_SLOW_QUERY_LOG_FILE,
++    "Log slow queries to given log file. Defaults logging to hostname-slow.log. Must be enabled to activate other slow log options.",
++   (gptr*) &opt_slow_logname, (gptr*) &opt_slow_logname, 0, GET_STR, OPT_ARG,
++   0, 0, 0, 0, 0, 0},
+   {"log-tc", OPT_LOG_TC,
+    "Path to transaction coordinator log (used for transactions that affect "
+    "more than one storage engine, when binary log is disabled)",
+@@ -5808,6 +5829,9 @@
+    "Tells the slave thread to continue replication when a query returns an error from the provided list.",
+    0, 0, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+ #endif
++  {"slow-query-log", OPT_SLOW_LOG,
++   "Enable|disable slow query log", (gptr*) &opt_slow_log,
++   (gptr*) &opt_slow_log, 0, GET_BOOL, OPT_ARG, 0, 0, 0, 0, 0, 0},
+   {"socket", OPT_SOCKET, "Socket file to use for connection.",
+    (gptr*) &mysqld_unix_port, (gptr*) &mysqld_unix_port, 0, GET_STR,
+    REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+@@ -6110,11 +6134,31 @@
+    (gptr*) 0,
+    0, (GET_ULONG | GET_ASK_ADDR) , REQUIRED_ARG, 100,
+    1, 100, 0, 1, 0},
+-  {"long_query_time", OPT_LONG_QUERY_TIME,
+-   "Log all queries that have taken more than long_query_time seconds to execute to file.",
+-   (gptr*) &global_system_variables.long_query_time,
+-   (gptr*) &max_system_variables.long_query_time, 0, GET_ULONG,
+-   REQUIRED_ARG, 10, 1, LONG_TIMEOUT, 0, 1, 0},
++  {"log_slow_filter", OPT_LOG_SLOW_FILTER,
++    "Log only the queries that followed certain execution plan. Multiple flags allowed in a comma-separated string. [qc_miss, full_scan, full_join, tmp_table, tmp_table_on_disk, filesort, filesort_on_disk]",
++    0, 0, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, SLOG_F_NONE, 0, 0},
++  {"log_slow_rate_limit", OPT_LOG_SLOW_RATE_LIMIT,
++    "Rate limit statement writes to slow log to only those from every (1/log_slow_rate_limit) session.",
++    (gptr*) &global_system_variables.log_slow_rate_limit,
++    (gptr*) &max_system_variables.log_slow_rate_limit, 0, GET_ULONG,
++    REQUIRED_ARG, 1, 1, LONG_MAX, 0, 1L, 0},
++  {"log_slow_verbosity", OPT_LOG_SLOW_VERBOSITY,
++    "Choose how verbose the messages to your slow log will be. Multiple flags allowed in a comma-separated string. [microtime, query_plan, innodb]",
++    0, 0, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, SLOG_V_MICROTIME, 0, 0},
++   {"long_query_time", OPT_LONG_QUERY_TIME,
++    "Log all queries that have taken more than long_query_time seconds to execute to file.",
++    (gptr*) &global_system_variables.long_query_time,
++    (gptr*) &max_system_variables.long_query_time, 0, GET_MICROTIME,
++    REQUIRED_ARG, 10000000, 0, LONG_TIMEOUT * 1000000, 0, 1, 0},
++  {"min_examined_row_limit", OPT_MIN_EXAMINED_ROW_LIMIT,
++    "Don't log queries which examine less than min_examined_row_limit rows to file.",
++    (gptr*) &global_system_variables.min_examined_row_limit,
++    (gptr*) &max_system_variables.min_examined_row_limit, 0, GET_ULONG,
++    REQUIRED_ARG, 0, 0, LONG_MAX, 0, 1L, 0},
++  {"use_global_long_query_time", OPT_USE_GLOBAL_LONG_QUERY_TIME,
++   "Control always use global long_query_time or local long_query_time.",
++   (gptr*) &opt_use_global_long_query_time, (gptr*) &opt_use_global_long_query_time,
++   0, GET_BOOL, NO_ARG, 0, 0, 1, 0, 1, 0},
+   {"lower_case_table_names", OPT_LOWER_CASE_TABLE_NAMES,
+    "If set to 1 table names are stored in lowercase on disk and table names will be case-insensitive.  Should be set to 2 if you are using a case insensitive file system",
+    (gptr*) &lower_case_table_names,
+@@ -6893,7 +6937,11 @@
+   global_system_variables.max_join_size= (ulonglong) HA_POS_ERROR;
+   max_system_variables.max_join_size=   (ulonglong) HA_POS_ERROR;
+   global_system_variables.old_passwords= 0;
+-
++  global_system_variables.long_query_time = 10000000;
++  max_system_variables.long_query_time = LONG_TIMEOUT * 1000000;
++  global_system_variables.log_slow_verbosity= SLOG_V_MICROTIME;
++  global_system_variables.log_slow_filter= SLOG_F_NONE;
++  
+   /*
+     Default behavior for 4.1 and 5.0 is to treat NULL values as unequal
+     when collecting index statistics for MyISAM tables.
+@@ -7364,6 +7412,35 @@
+   case OPT_BOOTSTRAP:
+     opt_noacl=opt_bootstrap=1;
+     break;
++  case OPT_LOG_SLOW_FILTER:
++    if ((global_system_variables.log_slow_filter= 
++          msl_flag_resolve_by_name(slog_filter, argument,
++                                   SLOG_F_NONE, SLOG_F_INVALID)) == SLOG_F_INVALID)
++    {
++      fprintf(stderr,"Invalid argument in log_slow_filter: %s\n", argument);
++      exit(1);
++    }
++    break;
++  case OPT_LOG_SLOW_VERBOSITY:
++    if ((global_system_variables.log_slow_verbosity= 
++         msl_flag_resolve_by_name(slog_verb, argument,
++                                  SLOG_V_NONE, SLOG_V_INVALID)) == SLOG_V_INVALID)
++    {
++      fprintf(stderr,"Invalid argument in log_slow_verbosity: %s\n", argument);
++      exit(1);
++    }
++    break;
++  case OPT_LONG_QUERY_TIME:
++  {
++    double doubleslow = strtod(argument,NULL);
++    if (doubleslow < 0 || doubleslow > (LONG_TIMEOUT))
++    {
++      fprintf(stderr,"Out of range long_query_time value: %s\n", argument);
++      exit(1);
++    }
++    global_system_variables.long_query_time = (ulonglong) (doubleslow * 1000000);
++    break;
++  }
+   case OPT_STORAGE_ENGINE:
+   {
+     if ((enum db_type)((global_system_variables.table_type=
+@@ -7696,10 +7773,14 @@
+   if (opt_bdb)
+     sql_print_warning("this binary does not contain BDB storage engine");
+ #endif
+-  if ((opt_log_slow_admin_statements || opt_log_queries_not_using_indexes) &&
++  if ((opt_log_slow_admin_statements || opt_log_queries_not_using_indexes ||
++        opt_log_slow_slave_statements) &&
+       !opt_slow_log)
+-    sql_print_warning("options --log-slow-admin-statements and --log-queries-not-using-indexes have no effect if --log-slow-queries is not set");
+-
++  {
++    sql_print_warning("options --log-slow-admin-statements, --log-slow-slave-statements and --log-queries-not-using-indexes have no effect if --log-slow-queries is not set");
++    opt_log_slow_slave_statements= FALSE;
++  }
++  
+   if (argc > 0)
+   {
+     fprintf(stderr, "%s: Too many arguments (first extra is '%s').\nUse --help to get a list of available options\n", my_progname, *argv);
+diff -r 069dc6d4f269 sql/set_var.cc
+--- a/sql/set_var.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/set_var.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -217,9 +217,13 @@
+   sys_log_queries_not_using_indexes("log_queries_not_using_indexes",
+                                     &opt_log_queries_not_using_indexes);
+ sys_var_thd_ulong	sys_log_warnings("log_warnings", &SV::log_warnings);
+-sys_var_thd_ulong	sys_long_query_time("long_query_time",
++sys_var_thd_microtime  sys_long_query_time("long_query_time",
+ 					     &SV::long_query_time);
++sys_var_bool_ptr	sys_use_global_long_query_time("use_global_long_query_time",
++                                                       &opt_use_global_long_query_time);
+ sys_var_bool_const_ptr sys_log_slow("log_slow_queries", &opt_slow_log);
++sys_var_log_slow	sys_slow_query_log("slow_query_log", &opt_slow_log);
++sys_var_const_str_ptr	sys_slow_query_log_file("slow_query_log_file", &opt_slow_logname);
+ sys_var_thd_bool	sys_low_priority_updates("low_priority_updates",
+ 						 &SV::low_priority_updates,
+ 						 fix_low_priority_updates);
+@@ -283,6 +287,8 @@
+ 					   &SV::max_tmp_tables);
+ sys_var_long_ptr	sys_max_write_lock_count("max_write_lock_count",
+ 						 &max_write_lock_count);
++sys_var_thd_ulong	sys_min_examined_row_limit("min_examined_row_limit",
++					     &SV::min_examined_row_limit);
+ sys_var_thd_ulong       sys_multi_range_count("multi_range_count",
+                                               &SV::multi_range_count);
+ sys_var_long_ptr	sys_myisam_data_pointer_size("myisam_data_pointer_size",
+@@ -327,6 +333,20 @@
+ sys_var_bool_ptr	sys_relay_log_purge("relay_log_purge",
+                                             &relay_log_purge);
+ #endif
++sys_var_thd_ulong	sys_log_slow_rate_limit("log_slow_rate_limit",
++					     &SV::log_slow_rate_limit);
++sys_var_thd_msl_flag	sys_log_slow_filter("log_slow_filter",
++				       &SV::log_slow_filter,
++                                       SLOG_F_NONE,
++                                       SLOG_F_NONE,
++                                       SLOG_F_INVALID,
++                                       slog_filter);
++sys_var_thd_msl_flag	sys_log_slow_verbosity("log_slow_verbosity",
++				       &SV::log_slow_verbosity,
++                                       SLOG_V_NONE,
++                                       SLOG_V_MICROTIME,
++                                       SLOG_V_INVALID,
++                                       slog_verb);
+ sys_var_long_ptr	sys_rpl_recovery_rank("rpl_recovery_rank",
+ 					      &rpl_recovery_rank);
+ sys_var_long_ptr	sys_query_cache_size("query_cache_size",
+@@ -697,6 +717,10 @@
+   &sys_log_off,
+   &sys_log_queries_not_using_indexes,
+   &sys_log_slow,
++  &sys_log_slow_filter,
++  &sys_log_slow_rate_limit,
++  &sys_log_slow_verbosity,
++  &sys_use_global_long_query_time,
+   &sys_log_update,
+   &sys_log_warnings,
+   &sys_long_query_time,
+@@ -720,6 +744,7 @@
+   &sys_max_tmp_tables,
+   &sys_max_user_connections,
+   &sys_max_write_lock_count,
++  &sys_min_examined_row_limit,
+   &sys_multi_range_count,
+   &sys_myisam_data_pointer_size,
+   &sys_myisam_max_sort_file_size,
+@@ -773,6 +798,8 @@
+   &sys_slave_skip_counter,
+ #endif
+   &sys_slow_launch_time,
++  &sys_slow_query_log,
++  &sys_slow_query_log_file,
+   &sys_sort_buffer,
+   &sys_sql_big_tables,
+   &sys_sql_low_priority_updates,
+@@ -994,8 +1021,11 @@
+   {"log_slave_updates",       (char*) &opt_log_slave_updates,       SHOW_MY_BOOL},
+ #endif
+   {sys_log_slow.name,         (char*) &sys_log_slow,                SHOW_SYS},
++  {sys_log_slow_filter.name, (char*) &sys_log_slow_filter, SHOW_SYS},
++  {sys_log_slow_rate_limit.name, (char*) &sys_log_slow_rate_limit, SHOW_SYS},
++  {sys_log_slow_verbosity.name, (char*) &sys_log_slow_verbosity, SHOW_SYS},
+   {sys_log_warnings.name,     (char*) &sys_log_warnings,	    SHOW_SYS},
+-  {sys_long_query_time.name,  (char*) &sys_long_query_time, 	    SHOW_SYS},
++  {sys_long_query_time.name,  (char*) &sys_long_query_time, 	    SHOW_MICROTIME},
+   {sys_low_priority_updates.name, (char*) &sys_low_priority_updates, SHOW_SYS},
+   {"lower_case_file_system",  (char*) &lower_case_file_system,      SHOW_MY_BOOL},
+   {"lower_case_table_names",  (char*) &lower_case_table_names,      SHOW_INT},
+@@ -1022,6 +1052,7 @@
+   {sys_max_tmp_tables.name,	(char*) &sys_max_tmp_tables,	    SHOW_SYS},
+   {sys_max_user_connections.name,(char*) &sys_max_user_connections, SHOW_SYS},
+   {sys_max_write_lock_count.name, (char*) &sys_max_write_lock_count,SHOW_SYS},
++  {sys_min_examined_row_limit.name, (char*) &sys_min_examined_row_limit, SHOW_SYS},
+   {sys_multi_range_count.name,  (char*) &sys_multi_range_count,     SHOW_SYS},
+   {sys_myisam_data_pointer_size.name, (char*) &sys_myisam_data_pointer_size, SHOW_SYS},
+   {sys_myisam_max_sort_file_size.name, (char*) &sys_myisam_max_sort_file_size,
+@@ -1109,6 +1140,8 @@
+   {sys_slave_trans_retries.name,(char*) &sys_slave_trans_retries,   SHOW_SYS},
+ #endif
+   {sys_slow_launch_time.name, (char*) &sys_slow_launch_time,        SHOW_SYS},
++  {sys_slow_query_log.name,   (char*) &sys_slow_query_log,          SHOW_SYS},
++  {sys_slow_query_log_file.name,(char*) &sys_slow_query_log_file,   SHOW_SYS},
+ #ifdef HAVE_SYS_UN_H
+   {"socket",                  (char*) &mysqld_unix_port,             SHOW_CHAR_PTR},
+ #endif
+@@ -1149,6 +1182,7 @@
+   {sys_tx_isolation.name,     (char*) &sys_tx_isolation,	    SHOW_SYS},
+   {sys_updatable_views_with_limit.name,
+                               (char*) &sys_updatable_views_with_limit,SHOW_SYS},
++  {sys_use_global_long_query_time.name, (char*) &sys_use_global_long_query_time, SHOW_SYS},
+   {sys_version.name,          (char*) &sys_version,                 SHOW_SYS},
+ #ifdef HAVE_BERKELEY_DB
+   {sys_version_bdb.name,      (char*) &sys_version_bdb,             SHOW_SYS},
+@@ -1777,6 +1811,17 @@
+ }
+ 
+ 
++bool sys_var_thd_microtime::check(THD *thd, set_var *var)
++{
++  if (var->value->result_type() == DECIMAL_RESULT)
++    var->save_result.ulonglong_value= (ulonglong)(var->value->val_real() * 1000000);
++  else
++    var->save_result.ulonglong_value= (ulonglong)(var->value->val_int() * 1000000);
++
++  return 0;
++}
++
++
+ bool sys_var_thd_bool::update(THD *thd,  set_var *var)
+ {
+   if (var->type == OPT_GLOBAL)
+@@ -1933,6 +1978,19 @@
+     pthread_mutex_unlock(&LOCK_global_system_variables);
+     return new Item_int(value);
+   }
++  case SHOW_MICROTIME:
++  {
++    longlong value;
++    char buff[80];
++    int len;
++
++    pthread_mutex_lock(&LOCK_global_system_variables);
++    value= *(longlong*) value_ptr(thd, var_type, base);
++    pthread_mutex_unlock(&LOCK_global_system_variables);
++
++    len = snprintf(buff, 80, "%f", ((double) value) / 1000000.0);
++    return new Item_float(buff,len);
++  }
+   case SHOW_HA_ROWS:
+   {
+     ha_rows value;
+@@ -2765,6 +2823,30 @@
+ }
+ 
+ 
++bool sys_var_log_slow::update(THD *thd, set_var *var)
++{
++  bool ret;
++
++  pthread_mutex_lock(&LOCK_global_system_variables);
++  if (var->save_result.ulong_value)
++  {
++    if(!mysql_slow_log.is_open())
++    {
++      mysql_slow_log.open_slow_log(opt_slow_logname);
++    }
++  }
++  pthread_mutex_unlock(&LOCK_global_system_variables);
++
++  ret = sys_var_bool_ptr::update(thd, var);
++
++#ifdef HAVE_INNOBASE_DB
++  innobase_update_var_slow_log();
++#endif
++
++  return(ret);
++}
++
++
+ #ifdef HAVE_REPLICATION
+ bool sys_var_slave_skip_counter::check(THD *thd, set_var *var)
+ {
+@@ -3534,6 +3616,191 @@
+ #endif
+ }
+ 
++/* Slow log stuff */
++
++ulong msl_option_resolve_by_name(const struct msl_opts *opts, const char *name, ulong len)
++{
++  ulong i;
++  
++  for (i=0; opts[i].name; i++)
++  {
++    if (!my_strnncoll(&my_charset_latin1,
++                      (const uchar *)name, len,
++                      (const uchar *)opts[i].name, strlen(opts[i].name)))
++      return opts[i].val;
++  }
++  return opts[i].val;
++}
++
++ulong msl_flag_resolve_by_name(const struct msl_opts *opts, const char *names_list, 
++                               const ulong none_val, const ulong invalid_val)
++{
++  const char *p, *e;
++  ulong val= none_val;
++  
++  if (!*names_list)
++    return val;
++  
++  for (p= e= names_list; ; e++)
++  {
++    ulong i;
++    
++    if (*e != ',' && *e)
++      continue;
++    for (i=0; opts[i].name; i++)
++    {
++      if (!my_strnncoll(&my_charset_latin1,
++                        (const uchar *)p, e - p,
++                        (const uchar *)opts[i].name, strlen(opts[i].name)))
++      {
++        val= val | opts[i].val;
++        break;
++      }
++    }
++    if (opts[i].val == invalid_val)
++      return invalid_val;
++    if (!*e)
++      break;
++    p= e + 1;
++  }
++  return val;
++}
++
++const char *msl_option_get_name(const struct msl_opts *opts, ulong val)
++{
++  for (ulong i=0; opts[i].name && opts[i].name[0]; i++)
++  {
++    if (opts[i].val == val)
++      return opts[i].name;
++  }
++  return "*INVALID*";
++}
++
++char *msl_flag_get_name(const struct msl_opts *opts, char *buf, ulong val)
++{
++  uint offset= 0;
++  
++  *buf= '\0';
++  for (ulong i=0; opts[i].name && opts[i].name[0]; i++)
++  {
++    if (opts[i].val & val)
++      offset+= snprintf(buf+offset, STRING_BUFFER_USUAL_SIZE - offset - 1,
++                        "%s%s", (offset ? "," : ""), opts[i].name);
++  }
++  return buf;
++}
++
++/****************************************************************************
++ Functions to handle log_slow_verbosity
++****************************************************************************/
++
++/* Based upon sys_var::check_enum() */
++
++bool sys_var_thd_msl_option::check(THD *thd, set_var *var)
++{
++  char buff[STRING_BUFFER_USUAL_SIZE];
++  String str(buff, sizeof(buff), &my_charset_latin1), *res;
++
++  if (var->value->result_type() == STRING_RESULT)
++  {
++    ulong verb= this->invalid_val;
++    if (!(res=var->value->val_str(&str)) ||
++	      (var->save_result.ulong_value=
++          (ulong) (verb= msl_option_resolve_by_name(this->opts, res->ptr(), res->length()))) == this->invalid_val)
++      goto err;
++    return 0;
++  }
++
++err:
++  my_error(ER_WRONG_ARGUMENTS, MYF(0), var->var->name);
++  return 1;
++}
++
++byte *sys_var_thd_msl_option::value_ptr(THD *thd, enum_var_type type,
++					LEX_STRING *base)
++{
++  ulong val;
++  val= ((type == OPT_GLOBAL) ? global_system_variables.*offset :
++        thd->variables.*offset);
++  const char *verbosity= msl_option_get_name(this->opts, val);
++  return (byte *) verbosity;
++}
++
++
++void sys_var_thd_msl_option::set_default(THD *thd, enum_var_type type)
++{
++  if (type == OPT_GLOBAL)
++    global_system_variables.*offset= (ulong) this->default_val;
++  else
++    thd->variables.*offset= (ulong) (global_system_variables.*offset);
++}
++
++
++bool sys_var_thd_msl_option::update(THD *thd, set_var *var)
++{
++  if (var->type == OPT_GLOBAL)
++    global_system_variables.*offset= var->save_result.ulong_value;
++  else
++    thd->variables.*offset= var->save_result.ulong_value;
++  return 0;
++}
++
++/****************************************************************************
++ Functions to handle log_slow_filter
++****************************************************************************/
++  
++/* Based upon sys_var::check_enum() */
++
++bool sys_var_thd_msl_flag::check(THD *thd, set_var *var)
++{
++  char buff[2 * STRING_BUFFER_USUAL_SIZE];
++  String str(buff, sizeof(buff), &my_charset_latin1), *res;
++
++  if (var->value->result_type() == STRING_RESULT)
++  {
++    ulong filter= this->none_val;
++    if (!(res=var->value->val_str(&str)) ||
++	 (var->save_result.ulong_value=
++          (ulong) (filter= msl_flag_resolve_by_name(this->flags, res->ptr(), this->none_val, 
++                                                    this->invalid_val))) == this->invalid_val)
++      goto err;
++    return 0;
++  }
++
++err:
++  my_error(ER_WRONG_ARGUMENTS, MYF(0), var->var->name);
++  return 1;
++}
++
++byte *sys_var_thd_msl_flag::value_ptr(THD *thd, enum_var_type type,
++					LEX_STRING *base)
++{
++  ulong val;
++  val= ((type == OPT_GLOBAL) ? global_system_variables.*offset :
++        thd->variables.*offset);
++  msl_flag_get_name(this->flags, this->flags_string, val);
++  return (byte *) this->flags_string;
++}
++
++
++void sys_var_thd_msl_flag::set_default(THD *thd, enum_var_type type)
++{
++  if (type == OPT_GLOBAL)
++    global_system_variables.*offset= (ulong) this->default_val;
++  else
++    thd->variables.*offset= (ulong) (global_system_variables.*offset);
++}
++
++
++bool sys_var_thd_msl_flag::update(THD *thd, set_var *var)
++{
++  if (var->type == OPT_GLOBAL)
++    global_system_variables.*offset= var->save_result.ulong_value;
++  else
++    thd->variables.*offset= var->save_result.ulong_value;
++  return 0;
++}
++
+ /****************************************************************************
+  Functions to handle table_type
+ ****************************************************************************/
+diff -r 069dc6d4f269 sql/set_var.h
+--- a/sql/set_var.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/set_var.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -132,6 +132,7 @@
+ };
+ 
+ 
++
+ class sys_var_ulonglong_ptr :public sys_var
+ {
+ public:
+@@ -168,6 +169,13 @@
+   bool check_update_type(Item_result type) { return 0; }
+ };
+ 
++class sys_var_log_slow :public sys_var_bool_ptr
++{
++public:
++  sys_var_log_slow(const char *name_arg, my_bool *value_arg)
++    :sys_var_bool_ptr(name_arg, value_arg) {}
++  bool update(THD *thd, set_var *var);
++};
+ 
+ class sys_var_bool_const_ptr : public sys_var
+ {
+@@ -340,7 +348,6 @@
+   }
+ };
+ 
+-
+ class sys_var_thd_ulong :public sys_var_thd
+ {
+   sys_check_func check_func;
+@@ -360,7 +367,6 @@
+   byte *value_ptr(THD *thd, enum_var_type type, LEX_STRING *base);
+ };
+ 
+-
+ class sys_var_thd_ha_rows :public sys_var_thd
+ {
+ public:
+@@ -378,7 +384,6 @@
+   byte *value_ptr(THD *thd, enum_var_type type, LEX_STRING *base);
+ };
+ 
+-
+ class sys_var_thd_ulonglong :public sys_var_thd
+ {
+ public:
+@@ -407,6 +412,19 @@
+   }
+ };
+ 
++class sys_var_thd_microtime :public sys_var_thd_ulonglong
++{
++public:
++  sys_var_thd_microtime(const char *name_arg, ulonglong SV::*offset_arg)
++    :sys_var_thd_ulonglong(name_arg, offset_arg)
++  {}
++  SHOW_TYPE show_type() { return SHOW_MICROTIME; }
++  bool check(THD *thd, set_var *var);
++  bool check_update_type(Item_result type)
++  {
++    return type != INT_RESULT && type != DECIMAL_RESULT;
++  }
++};
+ 
+ class sys_var_thd_bool :public sys_var_thd
+ {
+@@ -478,6 +496,66 @@
+ };
+ 
+ 
++class sys_var_thd_msl_option :public sys_var_thd
++{
++protected:
++  ulong SV::*offset;
++  const ulong none_val;
++  const ulong default_val;
++  const ulong invalid_val;
++  const struct msl_opts *opts;
++public:
++  sys_var_thd_msl_option(const char *name_arg, ulong SV::*offset_arg,
++                         const ulong none_val_arg,
++                         const ulong default_val_arg,
++                         const ulong invalid_val_arg,
++                         const struct msl_opts *opts_arg)
++    :sys_var_thd(name_arg), offset(offset_arg), none_val(none_val_arg),
++     default_val(default_val_arg), invalid_val(invalid_val_arg), 
++     opts(opts_arg)
++  {}
++  bool check(THD *thd, set_var *var);
++  SHOW_TYPE show_type() { return SHOW_CHAR; }
++  bool check_update_type(Item_result type)
++  {
++    return type != STRING_RESULT;		/* Only accept strings */
++  }
++  void set_default(THD *thd, enum_var_type type);
++  bool update(THD *thd, set_var *var);
++  byte *value_ptr(THD *thd, enum_var_type type, LEX_STRING *base);
++};
++
++
++class sys_var_thd_msl_flag :public sys_var_thd
++{
++protected:
++  char flags_string[2 * STRING_BUFFER_USUAL_SIZE];
++  ulong SV::*offset;
++  const ulong none_val;
++  const ulong default_val;
++  const ulong invalid_val;
++  const struct msl_opts *flags;
++public:
++  sys_var_thd_msl_flag(const char *name_arg, ulong SV::*offset_arg, 
++                       const ulong none_val_arg, 
++                       const ulong default_val_arg, 
++                       const ulong invalid_val_arg,
++                       const struct msl_opts *flags_arg)
++    :sys_var_thd(name_arg), offset(offset_arg), none_val(none_val_arg),
++     default_val(default_val_arg), invalid_val(invalid_val_arg), 
++     flags(flags_arg)
++  {}
++  bool check(THD *thd, set_var *var);
++  SHOW_TYPE show_type() { return SHOW_CHAR; }
++  bool check_update_type(Item_result type)
++  {
++    return type != STRING_RESULT;		/* Only accept strings */
++  }
++  void set_default(THD *thd, enum_var_type type);
++  bool update(THD *thd, set_var *var);
++  byte *value_ptr(THD *thd, enum_var_type type, LEX_STRING *base);
++};
++
+ class sys_var_thd_storage_engine :public sys_var_thd
+ {
+ protected:
+@@ -1087,3 +1165,11 @@
+ bool process_key_caches(int (* func) (const char *name, KEY_CACHE *));
+ void delete_elements(I_List<NAMED_LIST> *list,
+ 		     void (*free_element)(const char*, gptr));
++
++/* Slow log functions */
++
++ulong msl_option_resolve_by_name(const struct msl_opts *opts, const char *name, ulong len);
++ulong msl_flag_resolve_by_name(const struct msl_opts *opts, const char *names_list, 
++                               const ulong none_val, const ulong invalid_val);
++const char *msl_option_get_name(const struct msl_opts *opts, ulong val);
++char *msl_flag_get_name(const struct msl_opts *opts, char *buf, ulong val);
+diff -r 069dc6d4f269 sql/slave.cc
+--- a/sql/slave.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/slave.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -2975,6 +2975,12 @@
+     + MAX_LOG_EVENT_HEADER;  /* note, incr over the global not session var */
+   thd->slave_thread = 1;
+   set_slave_thread_options(thd);
++  if (opt_log_slow_slave_statements)
++  {
++    thd->enable_slow_log= TRUE;
++    /* Slave thread is excluded from rate limiting the slow log writes. */
++    thd->write_to_slow_log= TRUE;
++  }
+   thd->client_capabilities = CLIENT_LOCAL_FILES;
+   thd->real_id=pthread_self();
+   pthread_mutex_lock(&LOCK_thread_count);
+diff -r 069dc6d4f269 sql/sql_cache.cc
+--- a/sql/sql_cache.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_cache.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -1402,6 +1402,7 @@
+ 
+   thd->limit_found_rows = query->found_rows();
+   thd->status_var.last_query_cost= 0.0;
++  thd->query_plan_flags|= QPLAN_QC;
+ 
+   BLOCK_UNLOCK_RD(query_block);
+   DBUG_RETURN(1);				// Result sent to client
+@@ -1409,6 +1410,7 @@
+ err_unlock:
+   STRUCT_UNLOCK(&structure_guard_mutex);
+ err:
++  thd->query_plan_flags|= QPLAN_QC_NO;
+   DBUG_RETURN(0);				// Query was not cached
+ }
+ 
+diff -r 069dc6d4f269 sql/sql_class.cc
+--- a/sql/sql_class.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_class.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -190,7 +190,7 @@
+    table_map_for_update(0),
+    global_read_lock(0), is_fatal_error(0),
+    transaction_rollback_request(0), is_fatal_sub_stmt_error(0),
+-   rand_used(0), time_zone_used(0),
++   rand_used(0), time_zone_used(0), user_timer(0),
+    last_insert_id_used(0), last_insert_id_used_bin_log(0), insert_id_used(0),
+    clear_next_insert_id(0), in_lock_tables(0), bootstrap(0),
+    derived_tables_processing(FALSE), spcont(NULL),
+@@ -2251,6 +2251,12 @@
+   backup->cuted_fields=     cuted_fields;
+   backup->client_capabilities= client_capabilities;
+   backup->savepoints= transaction.savepoints;
++  backup->innodb_io_reads= innodb_io_reads;
++  backup->innodb_io_read= innodb_io_read;
++  backup->innodb_io_reads_wait_timer= innodb_io_reads_wait_timer;
++  backup->innodb_lock_que_wait_timer= innodb_lock_que_wait_timer;
++  backup->innodb_innodb_que_wait_timer= innodb_innodb_que_wait_timer;
++  backup->innodb_page_access= innodb_page_access;
+ 
+   if (!lex->requires_prelocking() || is_update_query(lex->sql_command))
+     options&= ~OPTION_BIN_LOG;
+@@ -2267,7 +2273,13 @@
+   sent_row_count= 0;
+   cuted_fields= 0;
+   transaction.savepoints= 0;
+-
++  innodb_io_reads= 0;
++  innodb_io_read= 0;
++  innodb_io_reads_wait_timer= 0;
++  innodb_lock_que_wait_timer= 0;
++  innodb_innodb_que_wait_timer= 0;
++  innodb_page_access= 0;
++  
+   /* Surpress OK packets in case if we will execute statements */
+   net.no_send_ok= TRUE;
+ }
+@@ -2320,6 +2332,12 @@
+   */
+   examined_row_count+= backup->examined_row_count;
+   cuted_fields+=       backup->cuted_fields;
++  innodb_io_reads+= backup->innodb_io_reads;
++  innodb_io_read+= backup->innodb_io_read;
++  innodb_io_reads_wait_timer+= backup->innodb_io_reads_wait_timer;
++  innodb_lock_que_wait_timer+= backup->innodb_lock_que_wait_timer;
++  innodb_innodb_que_wait_timer+= backup->innodb_innodb_que_wait_timer;
++  innodb_page_access+= backup->innodb_page_access;
+ }
+ 
+ 
+diff -r 069dc6d4f269 sql/sql_class.h
+--- a/sql/sql_class.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_class.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -43,6 +43,7 @@
+ extern char internal_table_name[2];
+ extern char empty_c_string[1];
+ extern const char **errmesg;
++extern ulonglong frequency;
+ 
+ #define TC_LOG_PAGE_SIZE   8192
+ #define TC_LOG_MIN_SIZE    (3*TC_LOG_PAGE_SIZE)
+@@ -321,7 +322,7 @@
+   bool write(THD *thd, enum enum_server_command command,
+ 	     const char *format, ...) ATTRIBUTE_FORMAT(printf, 4, 5);
+   bool write(THD *thd, const char *query, uint query_length,
+-	     time_t query_start=0);
++	     time_t query_start=0, ulonglong query_start_timer=0);
+   bool write(Log_event* event_info); // binary log write
+   bool write(THD *thd, IO_CACHE *cache, Log_event *commit_event);
+ 
+@@ -527,13 +528,14 @@
+   ulong auto_increment_increment, auto_increment_offset;
+   ulong bulk_insert_buff_size;
+   ulong join_buff_size;
+-  ulong long_query_time;
++  ulonglong long_query_time;
+   ulong max_allowed_packet;
+   ulong max_error_count;
+   ulong max_length_for_sort_data;
+   ulong max_sort_length;
+   ulong max_tmp_tables;
+   ulong max_insert_delayed_threads;
++  ulong min_examined_row_limit;
+   ulong multi_range_count;
+   ulong myisam_repair_threads;
+   ulong myisam_sort_buff_size;
+@@ -549,10 +551,13 @@
+   ulong preload_buff_size;
+   ulong profiling_history_size;
+   ulong query_cache_type;
++  ulong log_slow_rate_limit;
+   ulong read_buff_size;
+   ulong read_rnd_buff_size;
+   ulong div_precincrement;
+   ulong sortbuff_size;
++  ulong log_slow_filter;
++  ulong log_slow_verbosity;
+   ulong table_type;
+   ulong tx_isolation;
+   ulong completion_type;
+@@ -1129,6 +1134,12 @@
+   uint in_sub_stmt;
+   bool enable_slow_log, insert_id_used, clear_next_insert_id;
+   bool last_insert_id_used;
++  ulong      innodb_io_reads;
++  ulonglong  innodb_io_read;
++  ulong      innodb_io_reads_wait_timer;
++  ulong      innodb_lock_que_wait_timer;
++  ulong      innodb_innodb_que_wait_timer;
++  ulong      innodb_page_access;
+   my_bool no_send_ok;
+   SAVEPOINT *savepoints;
+ };
+@@ -1185,6 +1196,11 @@
+ class THD :public Statement,
+            public Open_tables_state
+ {
++private:
++  inline ulonglong query_start_timer() { return start_timer; }
++  inline void set_timer()    { if (user_timer) start_timer=timer_after_lock=user_timer; else timer_after_lock=my_timer(&start_timer, frequency); }
++  inline void end_timer()    { my_timer(&start_timer, frequency); }
++  inline void lock_timer()   { my_timer(&timer_after_lock, frequency); }
+ public:
+   /*
+     Constant for THD::where initialization in the beginning of every query.
+@@ -1293,10 +1309,24 @@
+   */
+   const char *where;
+   time_t     start_time,time_after_lock,user_time;
++  ulonglong start_timer,timer_after_lock, user_timer;
+   time_t     connect_time,thr_create_time; // track down slow pthread_create
+   thr_lock_type update_lock_default;
+   Delayed_insert *di;
+ 
++  bool       write_to_slow_log;
++
++  bool       innodb_was_used;
++  ulong      innodb_io_reads;
++  ulonglong  innodb_io_read;
++  ulong      innodb_io_reads_wait_timer;
++  ulong      innodb_lock_que_wait_timer;
++  ulong      innodb_innodb_que_wait_timer;
++  ulong      innodb_page_access;
++
++  ulong      query_plan_flags;
++  ulong      query_plan_fsort_passes;
++  
+   /* <> 0 if we are inside of trigger or stored function. */
+   uint in_sub_stmt;
+ 
+@@ -1696,11 +1726,11 @@
+       sql_print_information("time() failed with %d", errno);
+   }
+ 
+-  inline time_t query_start() { query_start_used=1; return start_time; }
+-  inline void	set_time()    { if (user_time) start_time=time_after_lock=user_time; else { safe_time(&start_time); time_after_lock= start_time; }}
+-  inline void	end_time()    { safe_time(&start_time); }
+-  inline void	set_time(time_t t) { time_after_lock=start_time=user_time=t; }
+-  inline void	lock_time()   { safe_time(&time_after_lock); }
++  inline time_t query_start() { query_start_timer(); query_start_used=1; return start_time; }
++  inline void set_time()    { set_timer(); if (user_time) start_time=time_after_lock=user_time; else { safe_time(&start_time); time_after_lock= start_time; }}
++  inline void	end_time()    { end_timer(); safe_time(&start_time); }
++  inline void	set_time(time_t t) { set_timer(); time_after_lock=start_time=user_time=t; }
++  inline void	lock_time()   { lock_timer(); safe_time(&time_after_lock); }
+   inline void	insert_id(ulonglong id_arg)
+   {
+     last_insert_id= id_arg;
+diff -r 069dc6d4f269 sql/sql_parse.cc
+--- a/sql/sql_parse.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_parse.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -20,6 +20,7 @@
+ #include <m_ctype.h>
+ #include <myisam.h>
+ #include <my_dir.h>
++#include <my_time.h>
+ 
+ #ifdef HAVE_INNOBASE_DB
+ #include "ha_innodb.h"
+@@ -1227,6 +1228,15 @@
+     my_net_set_read_timeout(net, thd->variables.net_read_timeout);
+     my_net_set_write_timeout(net, thd->variables.net_write_timeout);
+ 
++    /*
++      If rate limiting of slow log writes is enabled, decide whether to log this
++      new thread's queries or not. Uses extremely simple algorithm. :)
++    */
++    thd->write_to_slow_log= FALSE;
++    if (thd->variables.log_slow_rate_limit <= 1 || 
++        (thd->thread_id % thd->variables.log_slow_rate_limit) == 0)
++         thd->write_to_slow_log= TRUE;
++
+     while (!net->error && net->vio != 0 &&
+            !(thd->killed == THD::KILL_CONNECTION))
+     {
+@@ -2353,28 +2363,58 @@
+     return;                                     // Don't set time for sub stmt
+ 
+   start_of_query= thd->start_time;
+-  thd->end_time();				// Set start time
++  ulonglong start_of_query_timer= thd->start_timer;
++  thd->end_time();				// Set start timea
++
++
++  /* Follow the slow log filter configuration. */
++  if (thd->variables.log_slow_filter != SLOG_F_NONE &&
++      (!(thd->variables.log_slow_filter & thd->query_plan_flags) ||
++       ((thd->variables.log_slow_filter & SLOG_F_QC_NO) &&
++        (thd->query_plan_flags & QPLAN_QC))))
++    return;
++
++  /*
++    Low long_query_time value most likely means user is debugging stuff and even
++    though some thread's queries are not supposed to be logged b/c of the rate
++    limit, if one of them takes long enough (>= 1 second) it will be sensible
++    to make an exception and write to slow log anyway.
++  */
++
++  if (opt_use_global_long_query_time)
++    thd->variables.long_query_time = global_system_variables.long_query_time;
++
++  /* Do not log this thread's queries due to rate limiting. */
++  if (thd->write_to_slow_log != TRUE
++      && (thd->variables.long_query_time >= 1000000
++          || (ulong) (thd->start_timer - thd->timer_after_lock) < 1000000))
++    return;
++
+ 
+   /*
+     Do not log administrative statements unless the appropriate option is
+     set; do not log into slow log if reading from backup.
+   */
+-  if (thd->enable_slow_log && !thd->user_time)
++  if (thd->enable_slow_log &&
++      (!thd->user_time || (thd->slave_thread && opt_log_slow_slave_statements))
++     )
++
+   {
+     thd_proc_info(thd, "logging slow query");
+ 
+-    if ((thd->start_time > thd->time_after_lock && 
+-         (ulong) (thd->start_time - thd->time_after_lock) >
+-	thd->variables.long_query_time) ||
+-        (thd->server_status &
+-	  (SERVER_QUERY_NO_INDEX_USED | SERVER_QUERY_NO_GOOD_INDEX_USED)) &&
+-        opt_log_queries_not_using_indexes &&
+-        /* == SQLCOM_END unless this is a SHOW command */
+-        thd->lex->orig_sql_command == SQLCOM_END)
++    if (((ulong) (thd->start_timer - thd->timer_after_lock) >=
++         thd->variables.long_query_time ||
++         (thd->server_status &
++              (SERVER_QUERY_NO_INDEX_USED | SERVER_QUERY_NO_GOOD_INDEX_USED)) &&
++         opt_log_queries_not_using_indexes &&
++         /* == SQLCOM_END unless this is a SHOW command */
++         thd->lex->orig_sql_command == SQLCOM_END) &&
++        thd->examined_row_count >= thd->variables.min_examined_row_limit)
++
+     {
+       thd_proc_info(thd, "logging slow query");
+       thd->status_var.long_query_count++;
+-      mysql_slow_log.write(thd, thd->query, thd->query_length, start_of_query);
++      mysql_slow_log.write(thd, thd->query, thd->query_length, start_of_query, start_of_query_timer);
+     }
+   }
+ }
+@@ -2669,6 +2709,8 @@
+     context.resolve_in_table_list_only((TABLE_LIST*)select_lex->
+                                        table_list.first);
+ 
++  /* Reset the counter at all cases for the extended slow query log */
++  thd->row_count= 1;
+   /*
+     Reset warning count for each query that uses tables
+     A better approach would be to reset this for any commands
+@@ -6203,6 +6245,15 @@
+     thd->total_warn_count=0;			// Warnings for this query
+     thd->rand_used= 0;
+     thd->sent_row_count= thd->examined_row_count= 0;
++    thd->innodb_was_used= FALSE;
++    thd->innodb_io_reads= 0;
++    thd->innodb_io_read= 0;
++    thd->innodb_io_reads_wait_timer= 0;
++    thd->innodb_lock_que_wait_timer= 0;
++    thd->innodb_innodb_que_wait_timer= 0;
++    thd->innodb_page_access= 0;
++    thd->query_plan_flags= QPLAN_NONE;
++    thd->query_plan_fsort_passes= 0;
+   }
+   DBUG_VOID_RETURN;
+ }
+diff -r 069dc6d4f269 sql/sql_select.cc
+--- a/sql/sql_select.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_select.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -6262,8 +6262,11 @@
+ 	  {
+ 	    join->thd->server_status|=SERVER_QUERY_NO_INDEX_USED;
+ 	    if (statistics)
++	    {
+ 	      statistic_increment(join->thd->status_var.select_scan_count,
+ 				  &LOCK_status);
++				join->thd->query_plan_flags|= QPLAN_FULL_SCAN;
++      }
+ 	  }
+ 	}
+ 	else
+@@ -6278,8 +6281,11 @@
+ 	  {
+ 	    join->thd->server_status|=SERVER_QUERY_NO_INDEX_USED;
+ 	    if (statistics)
++	    {
+ 	      statistic_increment(join->thd->status_var.select_full_join_count,
+ 				  &LOCK_status);
++				join->thd->query_plan_flags|= QPLAN_FULL_JOIN;
++      }
+ 	  }
+ 	}
+ 	if (!table->no_keyread)
+@@ -9340,6 +9346,7 @@
+ 		      (ulong) rows_limit,test(group)));
+ 
+   statistic_increment(thd->status_var.created_tmp_tables, &LOCK_status);
++  thd->query_plan_flags|= QPLAN_TMP_TABLE;
+ 
+   if (use_temp_pool && !(test_flags & TEST_KEEP_TMP_TABLES))
+     temp_pool_slot = bitmap_set_next(&temp_pool);
+@@ -10200,6 +10207,7 @@
+   }
+   statistic_increment(table->in_use->status_var.created_tmp_disk_tables,
+ 		      &LOCK_status);
++	table->in_use->query_plan_flags|= QPLAN_TMP_DISK;
+   table->s->db_record_offset= 1;
+   DBUG_RETURN(0);
+  err:
+diff -r 069dc6d4f269 sql/sql_show.cc
+--- a/sql/sql_show.cc	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/sql_show.cc	Mon Jun 01 00:35:30 2009 -0700
+@@ -1560,6 +1560,12 @@
+         case SHOW_LONGLONG:
+           end= longlong10_to_str(*(longlong*) value, buff, 10);
+           break;
++        case SHOW_MICROTIME:
++          show_type= ((sys_var*) value)->show_type();
++          value=     (char*) ((sys_var*) value)->value_ptr(thd, value_type,
++                                                           &null_lex_str);
++          end= buff + sprintf(buff, "%f", (((double) (*(ulonglong*)value))) / 1000000.0);
++          break;
+         case SHOW_HA_ROWS:
+           end= longlong10_to_str((longlong) *(ha_rows*) value, buff, 10);
+           break;
+diff -r 069dc6d4f269 sql/structs.h
+--- a/sql/structs.h	Mon Jun 01 00:35:20 2009 -0700
++++ b/sql/structs.h	Mon Jun 01 00:35:30 2009 -0700
+@@ -168,8 +168,8 @@
+ enum SHOW_TYPE
+ {
+   SHOW_UNDEF,
+-  SHOW_LONG, SHOW_LONGLONG, SHOW_INT, SHOW_CHAR, SHOW_CHAR_PTR, 
+-  SHOW_DOUBLE_STATUS,
++  SHOW_LONG, SHOW_LONGLONG, SHOW_MICROTIME, SHOW_INT, SHOW_CHAR, SHOW_CHAR_PTR, 
++  SHOW_DOUBLE_STATUS, 
+   SHOW_BOOL, SHOW_MY_BOOL, SHOW_OPENTABLES, SHOW_STARTTIME, SHOW_QUERIES,
+   SHOW_LONG_CONST, SHOW_INT_CONST, SHOW_HAVE, SHOW_SYS, SHOW_HA_ROWS,
+   SHOW_VARS,

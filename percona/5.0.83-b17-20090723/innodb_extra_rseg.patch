@@ -1,0 +1,243 @@
+diff -r 85e7025cf2d1 innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	Fri Jul 03 15:41:41 2009 -0700
++++ b/innobase/include/srv0srv.h	Fri Jul 03 15:41:47 2009 -0700
+@@ -146,6 +146,8 @@
+ extern ulint	srv_enable_unsafe_group_commit;
+ extern uint	srv_read_ahead;
+ extern uint	srv_adaptive_checkpoint;
++
++extern ulint	srv_extra_rsegments;
+ 
+ extern ulint	srv_dict_size_limit;
+ 
+diff -r 85e7025cf2d1 innobase/include/trx0sys.h
+--- a/innobase/include/trx0sys.h	Fri Jul 03 15:41:41 2009 -0700
++++ b/innobase/include/trx0sys.h	Fri Jul 03 15:41:47 2009 -0700
+@@ -105,6 +105,13 @@
+ void
+ trx_sys_create(void);
+ /*================*/
++/*********************************************************************
++Create extra rollback segments when create_new_db */
++
++void
++trx_sys_create_extra_rseg(
++/*======================*/
++	ulint	num);	/* in: number of extra user rollback segments */
+ /********************************************************************
+ Looks for a free slot for a rollback segment in the trx system file copy. */
+ 
+diff -r 85e7025cf2d1 innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	Fri Jul 03 15:41:41 2009 -0700
++++ b/innobase/srv/srv0srv.c	Fri Jul 03 15:41:47 2009 -0700
+@@ -352,6 +352,8 @@
+ 
+ uint	srv_read_ahead = 3; /* 1: random  2: linear  3: Both */
+ uint	srv_adaptive_checkpoint = 0; /* 0: none  1: reflex  2: estimate */
++
++ulint	srv_extra_rsegments = 0; /* extra rseg for users */
+ 
+ ulint	srv_dict_size_limit = 0;
+ 
+diff -r 85e7025cf2d1 innobase/srv/srv0start.c
+--- a/innobase/srv/srv0start.c	Fri Jul 03 15:41:41 2009 -0700
++++ b/innobase/srv/srv0start.c	Fri Jul 03 15:41:47 2009 -0700
+@@ -1418,6 +1418,8 @@
+ 		dict_create();
+                 srv_startup_is_before_trx_rollback_phase = FALSE;
+ 
++		if (srv_extra_rsegments)
++			trx_sys_create_extra_rseg(srv_extra_rsegments);
+ #ifdef UNIV_LOG_ARCHIVE
+ 	} else if (srv_archive_recovery) {
+ 		fprintf(stderr,
+diff -r 85e7025cf2d1 innobase/trx/trx0sys.c
+--- a/innobase/trx/trx0sys.c	Fri Jul 03 15:41:41 2009 -0700
++++ b/innobase/trx/trx0sys.c	Fri Jul 03 15:41:47 2009 -0700
+@@ -944,3 +944,28 @@
+ 
+ 	trx_sys_init_at_db_start();
+ }
++
++/*********************************************************************
++Create extra rollback segments when create_new_db */
++
++void
++trx_sys_create_extra_rseg(
++/*======================*/
++	ulint	num)	/* in: number of extra user rollback segments */
++{
++	mtr_t	mtr;
++	ulint	slot_no;
++	ulint	i;
++
++	/* Craete extra rollback segments */
++	mtr_start(&mtr);
++	for (i = 1; i < num + 1; i++) {
++		if(!trx_rseg_create(TRX_SYS_SPACE, ULINT_MAX, &slot_no, &mtr)) {
++			fprintf(stderr,
++"InnoDB: Warning: Failed to create extra rollback segments.\n");
++			break;
++		}
++		ut_a(slot_no == i);
++	}
++	mtr_commit(&mtr);
++}
+diff -r 85e7025cf2d1 patch_info/innodb_extra_rseg.info
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patch_info/innodb_extra_rseg.info	Fri Jul 03 15:41:47 2009 -0700
+@@ -0,0 +1,6 @@
++File=innodb_extra_rseg.patch
++Name=allow to create extra rollback segments
++Version=1.0
++Author=Percona <info@percona.com>
++License=GPL
++Comment
+diff -r 85e7025cf2d1 sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	Fri Jul 03 15:41:41 2009 -0700
++++ b/sql/ha_innodb.cc	Fri Jul 03 15:41:47 2009 -0700
+@@ -152,6 +152,7 @@
+      innobase_open_files;
+ 
+ long innobase_read_io_threads, innobase_write_io_threads;
++long innobase_extra_rsegments;
+ longlong innobase_buffer_pool_size, innobase_log_file_size;
+ 
+ /* The default values for the following char* start-up parameters
+@@ -1521,6 +1522,8 @@
+ 	srv_n_read_io_threads = (ulint) innobase_read_io_threads;
+ 	srv_n_write_io_threads = (ulint) innobase_write_io_threads;
+ 
++	srv_extra_rsegments = (ulint) innobase_extra_rsegments;
++
+ 	srv_lock_wait_timeout = (ulint) innobase_lock_wait_timeout;
+ 	srv_force_recovery = (ulint) innobase_force_recovery;
+ 
+diff -r 85e7025cf2d1 sql/ha_innodb.h
+--- a/sql/ha_innodb.h	Fri Jul 03 15:41:41 2009 -0700
++++ b/sql/ha_innodb.h	Fri Jul 03 15:41:47 2009 -0700
+@@ -205,6 +205,7 @@
+ extern long innobase_buffer_pool_awe_mem_mb;
+ extern long innobase_file_io_threads, innobase_lock_wait_timeout;
+ extern long innobase_read_io_threads, innobase_write_io_threads;
++extern long innobase_extra_rsegments;
+ extern long innobase_force_recovery;
+ extern long innobase_open_files;
+ extern char *innobase_data_home_dir, *innobase_data_file_path;
+diff -r 85e7025cf2d1 sql/mysqld.cc
+--- a/sql/mysqld.cc	Fri Jul 03 15:41:41 2009 -0700
++++ b/sql/mysqld.cc	Fri Jul 03 15:41:47 2009 -0700
+@@ -5101,6 +5101,7 @@
+   OPT_INNODB_ADAPTIVE_CHECKPOINT,
+   OPT_INNODB_READ_IO_THREADS,
+   OPT_INNODB_WRITE_IO_THREADS,
++  OPT_INNODB_EXTRA_RSEGMENTS,
+   OPT_INNODB_DICT_SIZE_LIMIT,
+   OPT_INNODB_ADAPTIVE_HASH_INDEX,
+   OPT_FEDERATED,
+@@ -5465,6 +5466,10 @@
+    "Number of background write I/O threads in InnoDB.",
+    (gptr*) &innobase_write_io_threads, (gptr*) &innobase_write_io_threads,
+    0, GET_LONG, REQUIRED_ARG, 8, 1, 64, 0, 0, 0},
++  {"innodb_extra_rsegments", OPT_INNODB_EXTRA_RSEGMENTS,
++   "Number of extra user rollback segments when create new database.",
++   (gptr*) &innobase_extra_rsegments, (gptr*) &innobase_extra_rsegments,
++   0, GET_LONG, REQUIRED_ARG, 0, 0, 127, 0, 0, 0},
+   {"innodb_dict_size_limit", OPT_INNODB_DICT_SIZE_LIMIT,
+    "Limit the allocated memory for dictionary cache. (0: unlimited)",
+    (gptr*) &srv_dict_size_limit, (gptr*) &srv_dict_size_limit, 0,
+diff -r 85e7025cf2d1 sql/set_var.cc
+--- a/sql/set_var.cc	Fri Jul 03 15:41:41 2009 -0700
++++ b/sql/set_var.cc	Fri Jul 03 15:41:47 2009 -0700
+@@ -1087,6 +1087,7 @@
+   {sys_innodb_adaptive_checkpoint.name, (char*) &sys_innodb_adaptive_checkpoint, SHOW_SYS},
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG},
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG},
++  {"innodb_extra_rsegments", (char*) &innobase_extra_rsegments, SHOW_LONG},
+   {sys_innodb_dict_size_limit.name, (char*) &sys_innodb_dict_size_limit, SHOW_SYS},
+   {sys_innodb_io_pattern_trace.name, (char*) &sys_innodb_io_pattern_trace, SHOW_SYS},
+   {sys_innodb_io_pattern_trace_running.name, (char*) &sys_innodb_io_pattern_trace_running, SHOW_SYS},
+diff -r 85e7025cf2d1 sql/sql_show.cc
+--- a/sql/sql_show.cc	Fri Jul 03 15:41:41 2009 -0700
++++ b/sql/sql_show.cc	Fri Jul 03 15:41:47 2009 -0700
+@@ -39,6 +39,8 @@
+ #include "srv0srv.h"
+ #include "buf0buf.h"
+ #include "dict0dict.h"
++#include "trx0rseg.h" /* for trx_rseg_struct */
++#include "trx0sys.h" /* for trx_sys */
+ }
+ /* We need to undef it in InnoDB */
+ #undef byte
+@@ -4180,6 +4182,45 @@
+   DBUG_RETURN(returnable);
+ }
+ 
++int
++innodb_rseg_fill(
++/*=================*/
++	THD*		thd,	/* in: thread */
++	TABLE_LIST*	tables,	/* in/out: tables to fill */
++	COND*		cond)	/* in: condition (ignored) */
++{
++	TABLE*	table	= (TABLE *) tables->table;
++	int	status	= 0;
++	trx_rseg_t*	rseg;
++
++	DBUG_ENTER("innodb_rseg_fill");
++
++	/* deny access to non-superusers */
++	if (check_global_access(thd, PROCESS_ACL)) {
++
++		DBUG_RETURN(0);
++	}
++
++	rseg = UT_LIST_GET_FIRST(trx_sys->rseg_list);
++
++	while (rseg) {
++		table->field[0]->store(rseg->id);
++		table->field[1]->store(rseg->space);
++		table->field[2]->store(rseg->page_no);
++		table->field[3]->store(rseg->max_size);
++		table->field[4]->store(rseg->curr_size);
++
++		if (schema_table_store_record(thd, table)) {
++			status = 1;
++			break;
++		}
++
++		rseg = UT_LIST_GET_NEXT(rseg_list, rseg);
++	}
++
++	DBUG_RETURN(status);
++}
++
+ /*
+   Find schema_tables elment by name
+ 
+@@ -4996,6 +5037,16 @@
+   {"INDEX_NAME", 32, MYSQL_TYPE_STRING, 0, 0, "index name"},
+   {"N_READ", 11, MYSQL_TYPE_LONG, 0, 0, "read ios"},
+   {"N_WRITE", 11, MYSQL_TYPE_LONG, 0, 0, "write ios"},
++  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0}
++};
++
++ST_FIELD_INFO innodb_rseg_fields_info[]=
++{
++  {"RSEG_ID", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONG, 0, 0, ""},
++  {"SPACE_ID", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONG, 0, 0, ""},
++  {"PAGE_NO", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONG, 0, 0, ""},
++  {"MAX_SIZE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONG, 0, 0, ""},
++  {"CURR_SIZE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONG, 0, 0, ""},
+   {0, 0, MYSQL_TYPE_STRING, 0, 0, 0}
+ };
+ #endif
+@@ -5177,6 +5228,8 @@
+ #ifdef HAVE_INNOBASE_DB
+   {"INNODB_IO_PATTERN", innodb_io_pattern_field_info, create_schema_table,
+     innodb_io_pattern_fill_table, 0, 0, -1, -1, 0},
++  {"INNODB_RSEG", innodb_rseg_fields_info, create_schema_table,
++    innodb_rseg_fill, 0, 0, -1, -1, 0},
+ #endif
+   {0, 0, 0, 0, 0, 0, 0, 0, 0}
+ };

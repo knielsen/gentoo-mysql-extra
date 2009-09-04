@@ -1,0 +1,483 @@
+diff -r 6eeee157fd40 innobase/dict/dict0boot.c
+--- a/innobase/dict/dict0boot.c	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/dict/dict0boot.c	Fri Jul 03 15:41:41 2009 -0700
+@@ -247,6 +247,7 @@
+ 	system tables */
+ 	/*-------------------------*/
+ 	table = dict_mem_table_create("SYS_TABLES", DICT_HDR_SPACE, 8, FALSE);
++	table->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	dict_mem_table_add_col(table, "NAME", DATA_BINARY, 0, 0, 0);
+ 	dict_mem_table_add_col(table, "ID", DATA_BINARY, 0, 0, 0);
+@@ -283,6 +284,7 @@
+ 	ut_a(success);
+ 	/*-------------------------*/
+ 	table = dict_mem_table_create("SYS_COLUMNS", DICT_HDR_SPACE, 7, FALSE);
++	table->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	dict_mem_table_add_col(table, "TABLE_ID", DATA_BINARY,0,0,0);
+ 	dict_mem_table_add_col(table, "POS", DATA_INT, 0, 4, 0);
+@@ -309,6 +311,7 @@
+ 	ut_a(success);
+ 	/*-------------------------*/
+ 	table = dict_mem_table_create("SYS_INDEXES", DICT_HDR_SPACE, 7, FALSE);
++	table->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	dict_mem_table_add_col(table, "TABLE_ID", DATA_BINARY, 0,0,0);
+ 	dict_mem_table_add_col(table, "ID", DATA_BINARY, 0, 0, 0);
+@@ -345,6 +348,7 @@
+ 	ut_a(success);
+ 	/*-------------------------*/
+ 	table = dict_mem_table_create("SYS_FIELDS", DICT_HDR_SPACE, 3, FALSE);
++	table->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	dict_mem_table_add_col(table, "INDEX_ID", DATA_BINARY, 0,0,0);
+ 	dict_mem_table_add_col(table, "POS", DATA_INT, 0, 4, 0);
+diff -r 6eeee157fd40 innobase/dict/dict0crea.c
+--- a/innobase/dict/dict0crea.c	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/dict/dict0crea.c	Fri Jul 03 15:41:41 2009 -0700
+@@ -1178,6 +1178,9 @@
+             	/* Foreign constraint system tables have already been
+             	created, and they are ok */
+ 
++		table1->n_mysql_handles_opened = 1; /* for pin */
++		table2->n_mysql_handles_opened = 1; /* for pin */
++
+ 		mutex_exit(&(dict_sys->mutex));
+ 
+             	return(DB_SUCCESS);
+@@ -1266,6 +1269,11 @@
+ 	que_graph_free(graph);
+ 	
+ 	trx->op_info = "";
++
++	table1 = dict_table_get_low("SYS_FOREIGN");
++	table2 = dict_table_get_low("SYS_FOREIGN_COLS");
++	table1->n_mysql_handles_opened = 1; /* for pin */
++	table2->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	row_mysql_unlock_data_dictionary(trx);
+ 
+diff -r 6eeee157fd40 innobase/dict/dict0dict.c
+--- a/innobase/dict/dict0dict.c	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/dict/dict0dict.c	Fri Jul 03 15:41:41 2009 -0700
+@@ -638,6 +638,8 @@
+ 	mutex_enter(&(dict_sys->mutex));
+ 
+ 	table = dict_table_get_on_id_low(table_id, trx);
++
++	dict_table_LRU_trim(table);
+ 	
+ 	mutex_exit(&(dict_sys->mutex));
+ 
+@@ -752,6 +754,8 @@
+ 	
+ 	table = dict_table_get_low(table_name);
+ 
++	dict_table_LRU_trim(table);
++
+ 	mutex_exit(&(dict_sys->mutex));
+ 
+ 	if (table != NULL) {
+@@ -786,6 +790,8 @@
+ 
+ 	        table->n_mysql_handles_opened++;
+ 	}
++
++	dict_table_LRU_trim(table);
+ 
+ 	mutex_exit(&(dict_sys->mutex));
+ 
+@@ -1267,20 +1273,64 @@
+ too much space. Currently not used! */
+ 
+ void
+-dict_table_LRU_trim(void)
+-/*=====================*/
++dict_table_LRU_trim(
++/*================*/
++	dict_table_t*	self)
+ {
+ 	dict_table_t*	table;
+ 	dict_table_t*	prev_table;
+-
+-	ut_error;
+-
+-#ifdef UNIV_SYNC_DEBUG
+-	ut_ad(mutex_own(&(dict_sys->mutex)));
+-#endif /* UNIV_SYNC_DEBUG */
+-
++	dict_foreign_t*	foreign;
++	ulint		n_removed;
++	ulint		n_have_parent;
++	ulint		cached_foreign_tables;
++
++	//ut_error;
++
++#ifdef UNIV_SYNC_DEBUG
++	ut_ad(mutex_own(&(dict_sys->mutex)));
++#endif /* UNIV_SYNC_DEBUG */
++
++retry:
++	n_removed = n_have_parent = 0;
+ 	table = UT_LIST_GET_LAST(dict_sys->table_LRU);
+ 
++	while ( srv_dict_size_limit && table
++		&& ((dict_sys->table_hash->n_cells
++		     + dict_sys->table_id_hash->n_cells
++		     + dict_sys->col_hash->n_cells) * sizeof(hash_cell_t)
++		    + dict_sys->size) > srv_dict_size_limit ) {
++		prev_table = UT_LIST_GET_PREV(table_LRU, table);
++
++		if (table == self || table->n_mysql_handles_opened)
++			goto next_loop;
++
++		cached_foreign_tables = 0;
++		foreign = UT_LIST_GET_FIRST(table->foreign_list);
++		while (foreign != NULL) {
++			if (foreign->referenced_table)
++				cached_foreign_tables++;
++			foreign = UT_LIST_GET_NEXT(foreign_list, foreign);
++		}
++
++		/* TODO: use table->mem_fix also, if it becomes exact. */
++
++		if (cached_foreign_tables == 0) {
++			dict_table_remove_from_cache(table);
++			n_removed++;
++		} else {
++			n_have_parent++;
++		}
++next_loop:
++		table = prev_table;
++	}
++
++	if ( srv_dict_size_limit && n_have_parent && n_removed
++		&& ((dict_sys->table_hash->n_cells
++		     + dict_sys->table_id_hash->n_cells
++		     + dict_sys->col_hash->n_cells) * sizeof(hash_cell_t)
++		    + dict_sys->size) > srv_dict_size_limit )
++		goto retry;
++/*
+ 	while (table && (dict_sys->size >
+ 			 buf_pool_get_max_size() / DICT_POOL_PER_VARYING)) {
+ 
+@@ -1292,6 +1342,7 @@
+ 
+ 		table = prev_table;
+ 	}
++*/
+ }
+ 
+ /**************************************************************************
+diff -r 6eeee157fd40 innobase/ibuf/ibuf0ibuf.c
+--- a/innobase/ibuf/ibuf0ibuf.c	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/ibuf/ibuf0ibuf.c	Fri Jul 03 15:41:41 2009 -0700
+@@ -535,6 +535,7 @@
+ 	sprintf(buf, "SYS_IBUF_TABLE_%lu", (ulong) space);
+ 	/* use old-style record format for the insert buffer */
+ 	table = dict_mem_table_create(buf, space, 2, FALSE);
++	table->n_mysql_handles_opened = 1; /* for pin */
+ 
+ 	dict_mem_table_add_col(table, "PAGE_NO", DATA_BINARY, 0, 0, 0);
+ 	dict_mem_table_add_col(table, "TYPES", DATA_BINARY, 0, 0, 0);
+diff -r 6eeee157fd40 innobase/include/dict0dict.h
+--- a/innobase/include/dict0dict.h	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/include/dict0dict.h	Fri Jul 03 15:41:41 2009 -0700
+@@ -938,6 +938,11 @@
+ 	const char*	ptr,	/* in: scan from */
+ 	const char*	string);/* in: look for this */
+ 
++void
++dict_table_LRU_trim(
++/*================*/
++	dict_table_t*	self);
++
+ /* Buffers for storing detailed information about the latest foreign key
+ and unique key errors */
+ extern FILE*	dict_foreign_err_file;
+diff -r 6eeee157fd40 innobase/include/dict0dict.ic
+--- a/innobase/include/dict0dict.ic	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/include/dict0dict.ic	Fri Jul 03 15:41:41 2009 -0700
+@@ -533,6 +533,13 @@
+ 
+ 	HASH_SEARCH(name_hash, dict_sys->table_hash, table_fold, table,
+ 				ut_strcmp(table->name, table_name) == 0);
++
++	/* make young in table_LRU */
++	if (table) {
++		UT_LIST_REMOVE(table_LRU, dict_sys->table_LRU, table);
++		UT_LIST_ADD_FIRST(table_LRU, dict_sys->table_LRU, table);
++	}
++
+ 	return(table);
+ }
+ 
+@@ -592,6 +599,10 @@
+ 	if (table != NULL) {
+ 		table->mem_fix++;
+ 
++		/* make young in table_LRU */
++		UT_LIST_REMOVE(table_LRU, dict_sys->table_LRU, table);
++		UT_LIST_ADD_FIRST(table_LRU, dict_sys->table_LRU, table);
++
+ 		/* lock_push(trx, table, LOCK_DICT_MEM_FIX) */
+ 	}
+ 	
+diff -r 6eeee157fd40 innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/include/srv0srv.h	Fri Jul 03 15:41:41 2009 -0700
+@@ -146,6 +146,8 @@
+ extern ulint	srv_enable_unsafe_group_commit;
+ extern uint	srv_read_ahead;
+ extern uint	srv_adaptive_checkpoint;
++
++extern ulint	srv_dict_size_limit;
+ 
+ extern volatile ibool srv_io_pattern;
+ extern ulong	srv_io_pattern_trace;
+@@ -552,6 +554,7 @@
+         ulint innodb_data_writes;
+         ulint innodb_data_written;
+         ulint innodb_data_reads;
++        ulint innodb_dict_tables;
+         ulint innodb_buffer_pool_pages_total;
+         ulint innodb_buffer_pool_pages_data;
+         ulint innodb_buffer_pool_pages_dirty;
+diff -r 6eeee157fd40 innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	Fri Jul 03 15:41:34 2009 -0700
++++ b/innobase/srv/srv0srv.c	Fri Jul 03 15:41:41 2009 -0700
+@@ -352,6 +352,8 @@
+ 
+ uint	srv_read_ahead = 3; /* 1: random  2: linear  3: Both */
+ uint	srv_adaptive_checkpoint = 0; /* 0: none  1: reflex  2: estimate */
++
++ulint	srv_dict_size_limit = 0;
+ 
+ volatile ibool srv_io_pattern = FALSE;
+ ulint   srv_io_pattern_trace = 0;
+@@ -1953,6 +1955,7 @@
+         export_vars.innodb_data_reads= os_n_file_reads;
+         export_vars.innodb_data_writes= os_n_file_writes;
+         export_vars.innodb_data_written= srv_data_written;
++        export_vars.innodb_dict_tables= (dict_sys ? UT_LIST_GET_LEN(dict_sys->table_LRU) : 0);
+         export_vars.innodb_buffer_pool_read_requests= buf_pool->n_page_gets;
+         export_vars.innodb_buffer_pool_write_requests= srv_buf_pool_write_requests;
+         export_vars.innodb_buffer_pool_wait_free= srv_buf_pool_wait_free;
+diff -r 6eeee157fd40 mysql-test/r/innodb_dict_size_limit.result
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/mysql-test/r/innodb_dict_size_limit.result	Fri Jul 03 15:41:41 2009 -0700
+@@ -0,0 +1,60 @@
++DROP TABLE IF EXISTS `test_5`;
++DROP TABLE IF EXISTS `test_4`;
++DROP TABLE IF EXISTS `test_3`;
++DROP TABLE IF EXISTS `test_2`;
++DROP TABLE IF EXISTS `test_1`;
++SET storage_engine=InnoDB;
++SET GLOBAL innodb_dict_size_limit=1;
++FLUSH TABLES;
++CREATE TABLE `test_1` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_2` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_3` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_4` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_5` (`a` int, `b` int, PRIMARY KEY  (`a`));
++ALTER TABLE `test_5` ADD CONSTRAINT FOREIGN KEY(`b`) REFERENCES `test_4`(`a`);
++ALTER TABLE `test_4` ADD CONSTRAINT FOREIGN KEY(`b`) REFERENCES `test_3`(`a`);
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	9
++FLUSH TABLES;
++SELECT * FROM `test_1`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	8
++SELECT * FROM `test_3`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	11
++FLUSH TABLES;
++SELECT * FROM `test_2`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	8
++SELECT * FROM `test_1`;
++a	b
++FLUSH TABLES;
++SELECT * FROM `test_4`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	9
++SELECT * FROM `test_3`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	10
++SET GLOBAL innodb_dict_size_limit=0;
++FLUSH TABLES;
++SELECT * FROM `test_2`;
++a	b
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++Variable_name	Value
++Innodb_dict_tables	11
++DROP TABLE `test_5`;
++DROP TABLE `test_4`;
++DROP TABLE `test_3`;
++DROP TABLE `test_2`;
++DROP TABLE `test_1`;
+diff -r 6eeee157fd40 mysql-test/t/innodb_dict_size_limit.test
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/mysql-test/t/innodb_dict_size_limit.test	Fri Jul 03 15:41:41 2009 -0700
+@@ -0,0 +1,63 @@
++#
++# Test for new variable innodb_dict_size_limit;
++#
++-- source include/have_innodb.inc
++
++--disable_warnings
++DROP TABLE IF EXISTS `test_5`;
++DROP TABLE IF EXISTS `test_4`;
++DROP TABLE IF EXISTS `test_3`;
++DROP TABLE IF EXISTS `test_2`;
++DROP TABLE IF EXISTS `test_1`;
++--enable_warnings
++
++SET storage_engine=InnoDB;
++SET GLOBAL innodb_dict_size_limit=1;
++
++FLUSH TABLES;
++
++CREATE TABLE `test_1` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_2` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_3` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_4` (`a` int, `b` int, PRIMARY KEY  (`a`));
++CREATE TABLE `test_5` (`a` int, `b` int, PRIMARY KEY  (`a`));
++
++ALTER TABLE `test_5` ADD CONSTRAINT FOREIGN KEY(`b`) REFERENCES `test_4`(`a`);
++ALTER TABLE `test_4` ADD CONSTRAINT FOREIGN KEY(`b`) REFERENCES `test_3`(`a`);
++
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++FLUSH TABLES;
++SELECT * FROM `test_1`;
++
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++SELECT * FROM `test_3`;
++
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++FLUSH TABLES;
++SELECT * FROM `test_2`;
++
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++SELECT * FROM `test_1`;
++FLUSH TABLES;
++SELECT * FROM `test_4`;
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++SELECT * FROM `test_3`;
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++SET GLOBAL innodb_dict_size_limit=0;
++FLUSH TABLES;
++SELECT * FROM `test_2`;
++
++SHOW GLOBAL STATUS LIKE 'Innodb_dict_tables';
++
++DROP TABLE `test_5`;
++DROP TABLE `test_4`;
++DROP TABLE `test_3`;
++DROP TABLE `test_2`;
++DROP TABLE `test_1`;
++
+diff -r 6eeee157fd40 patch_info/innodb_dict_size_limit.info
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patch_info/innodb_dict_size_limit.info	Fri Jul 03 15:41:41 2009 -0700
+@@ -0,0 +1,9 @@
++File=innodb_dict_size_limit.patch
++Name=Limit dictionary cache size
++Version=1.0
++Author=Percona
++License=GPL
++Comment=Variable innodb_dict_size_limit in bytes
++ChangeLog=
++2009-01-26
++YK: Initial release
+diff -r 6eeee157fd40 sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	Fri Jul 03 15:41:34 2009 -0700
++++ b/sql/ha_innodb.cc	Fri Jul 03 15:41:41 2009 -0700
+@@ -288,6 +288,8 @@
+   (char*) &export_vars.innodb_dblwr_pages_written,        SHOW_LONG},
+   {"dblwr_writes",
+   (char*) &export_vars.innodb_dblwr_writes,               SHOW_LONG},
++  {"dict_tables",
++  (char*) &export_vars.innodb_dict_tables,                SHOW_LONG},
+   {"log_waits",
+   (char*) &export_vars.innodb_log_waits,                  SHOW_LONG},
+   {"log_write_requests",
+diff -r 6eeee157fd40 sql/ha_innodb.h
+--- a/sql/ha_innodb.h	Fri Jul 03 15:41:34 2009 -0700
++++ b/sql/ha_innodb.h	Fri Jul 03 15:41:41 2009 -0700
+@@ -243,6 +243,7 @@
+ extern ulong srv_enable_unsafe_group_commit;
+ extern uint srv_read_ahead;
+ extern uint srv_adaptive_checkpoint;
++extern ulong srv_dict_size_limit;
+ extern ulong srv_show_locks_held;
+ extern ulong srv_show_verbose_locks;
+ extern ulong srv_io_pattern_trace;
+diff -r 6eeee157fd40 sql/mysqld.cc
+--- a/sql/mysqld.cc	Fri Jul 03 15:41:34 2009 -0700
++++ b/sql/mysqld.cc	Fri Jul 03 15:41:41 2009 -0700
+@@ -5101,6 +5101,7 @@
+   OPT_INNODB_ADAPTIVE_CHECKPOINT,
+   OPT_INNODB_READ_IO_THREADS,
+   OPT_INNODB_WRITE_IO_THREADS,
++  OPT_INNODB_DICT_SIZE_LIMIT,
+   OPT_INNODB_ADAPTIVE_HASH_INDEX,
+   OPT_FEDERATED,
+   OPT_INNODB_USE_LEGACY_CARDINALITY_ALGORITHM
+@@ -5464,6 +5465,10 @@
+    "Number of background write I/O threads in InnoDB.",
+    (gptr*) &innobase_write_io_threads, (gptr*) &innobase_write_io_threads,
+    0, GET_LONG, REQUIRED_ARG, 8, 1, 64, 0, 0, 0},
++  {"innodb_dict_size_limit", OPT_INNODB_DICT_SIZE_LIMIT,
++   "Limit the allocated memory for dictionary cache. (0: unlimited)",
++   (gptr*) &srv_dict_size_limit, (gptr*) &srv_dict_size_limit, 0,
++   GET_ULONG, REQUIRED_ARG, 0, 0, ULONG_MAX, 0, 0 ,0},
+   {"innodb_io_pattern_trace", OPT_INNODB_IO_PATTERN_TRACE,
+    "Create/Drop the internal hash table for IO pattern tracing.",
+    (gptr*) &srv_io_pattern_trace, (gptr*) &srv_io_pattern_trace,
+diff -r 6eeee157fd40 sql/set_var.cc
+--- a/sql/set_var.cc	Fri Jul 03 15:41:34 2009 -0700
++++ b/sql/set_var.cc	Fri Jul 03 15:41:41 2009 -0700
+@@ -540,6 +540,8 @@
+ sys_var_enum	sys_innodb_adaptive_checkpoint("innodb_adaptive_checkpoint",
+                            &srv_adaptive_checkpoint,
+                            &innodb_adaptive_checkpoint_typelib, fix_innodb_adaptive_checkpoint);
++sys_var_long_ptr	sys_innodb_dict_size_limit("innodb_dict_size_limit",
++                                                   &srv_dict_size_limit);
+ sys_var_long_ptr  sys_innodb_show_locks_held(
+                                         "innodb_show_locks_held",
+                                         &srv_show_locks_held);
+@@ -930,6 +932,7 @@
+   &sys_innodb_read_ahead,
+   &sys_innodb_enable_unsafe_group_commit,
+   &sys_innodb_adaptive_checkpoint,
++  &sys_innodb_dict_size_limit,
+   &sys_innodb_show_locks_held,
+   &sys_innodb_show_verbose_locks,
+   &sys_innodb_io_pattern_trace,
+@@ -1084,6 +1087,7 @@
+   {sys_innodb_adaptive_checkpoint.name, (char*) &sys_innodb_adaptive_checkpoint, SHOW_SYS},
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG},
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG},
++  {sys_innodb_dict_size_limit.name, (char*) &sys_innodb_dict_size_limit, SHOW_SYS},
+   {sys_innodb_io_pattern_trace.name, (char*) &sys_innodb_io_pattern_trace, SHOW_SYS},
+   {sys_innodb_io_pattern_trace_running.name, (char*) &sys_innodb_io_pattern_trace_running, SHOW_SYS},
+   {sys_innodb_io_pattern_size_limit.name, (char*) &sys_innodb_io_pattern_size_limit, SHOW_SYS},
