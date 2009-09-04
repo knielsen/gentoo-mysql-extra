@@ -1,0 +1,217 @@
+diff -ruN a/innobase/buf/buf0flu.c b/innobase/buf/buf0flu.c
+--- a/innobase/buf/buf0flu.c	2009-08-04 16:53:42.000000000 +0900
++++ b/innobase/buf/buf0flu.c	2009-08-04 17:02:36.000000000 +0900
+@@ -85,6 +85,22 @@
+ 	prev_b = NULL;
+ 	b = UT_LIST_GET_FIRST(buf_pool->flush_list);
+ 
++	if (srv_fast_recovery) {
++	/* speed hack */
++	if (b == NULL || (ut_dulint_cmp(b->oldest_modification,
++					block->oldest_modification) < 0)) {
++		UT_LIST_ADD_FIRST(flush_list, buf_pool->flush_list, block);
++	} else {
++		b = UT_LIST_GET_LAST(buf_pool->flush_list);
++		if (ut_dulint_cmp(b->oldest_modification,
++					block->oldest_modification) < 0) {
++			/* align oldest_modification not to sort */
++			block->oldest_modification = b->oldest_modification;
++		}
++		UT_LIST_ADD_LAST(flush_list, buf_pool->flush_list, block);
++	}
++	} else {
++	/* normal */
+ 	while (b && (ut_dulint_cmp(b->oldest_modification,
+ 					block->oldest_modification) > 0)) {
+ 		prev_b = b;
+@@ -97,6 +113,7 @@
+ 		UT_LIST_INSERT_AFTER(flush_list, buf_pool->flush_list, prev_b,
+ 								block);
+ 	}
++	}
+ 
+ 	ut_ad(buf_flush_validate_low());
+ }
+diff -ruN a/innobase/buf/buf0rea.c b/innobase/buf/buf0rea.c
+--- a/innobase/buf/buf0rea.c	2009-08-04 16:53:42.000000000 +0900
++++ b/innobase/buf/buf0rea.c	2009-08-04 17:11:41.000000000 +0900
+@@ -127,6 +127,46 @@
+ 	block = buf_page_init_for_read(err, mode, space, tablespace_version,
+ 								offset);
+ 	if (block == NULL) {
++		/* bugfix: http://bugs.mysql.com/bug.php?id=43948 */
++		if (recv_recovery_is_on() && *err == DB_TABLESPACE_DELETED) {
++			/* hashed log recs must be treated here */
++			recv_addr_t*    recv_addr;
++
++			mutex_enter(&(recv_sys->mutex));
++
++			if (recv_sys->apply_log_recs == FALSE) {
++				mutex_exit(&(recv_sys->mutex));
++				goto not_to_recover;
++			}
++
++			/* recv_get_fil_addr_struct() */
++			recv_addr = HASH_GET_FIRST(recv_sys->addr_hash,
++					hash_calc_hash(ut_fold_ulint_pair(space, offset),
++						recv_sys->addr_hash));
++			while (recv_addr) {
++				if ((recv_addr->space == space)
++					&& (recv_addr->page_no == offset)) {
++					break;
++				}
++				recv_addr = HASH_GET_NEXT(addr_hash, recv_addr);
++			}
++
++			if ((recv_addr == NULL)
++			    || (recv_addr->state == RECV_BEING_PROCESSED)
++			    || (recv_addr->state == RECV_PROCESSED)) {
++				mutex_exit(&(recv_sys->mutex));
++				goto not_to_recover;
++			}
++
++			fprintf(stderr, " (space:%lu is deleted)", space);
++			recv_addr->state = RECV_PROCESSED;
++
++			ut_a(recv_sys->n_addrs);
++			recv_sys->n_addrs--;
++
++			mutex_exit(&(recv_sys->mutex));
++		}
++not_to_recover:
+ 		
+ 		return(0);
+ 	}
+@@ -697,11 +737,11 @@
+ 		while (buf_pool->n_pend_reads >= recv_n_pool_free_frames / 2) {
+ 
+ 			os_aio_simulated_wake_handler_threads();
+-			os_thread_sleep(500000);
++			os_thread_sleep(10000);
+ 
+ 			count++;
+ 
+-			if (count > 100) {
++			if (count > 5000) {
+ 				fprintf(stderr,
+ "InnoDB: Error: InnoDB has waited for 50 seconds for pending\n"
+ "InnoDB: reads to the buffer pool to be finished.\n"
+diff -ruN a/innobase/include/srv0srv.h b/innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	2009-08-04 16:53:42.000000000 +0900
++++ b/innobase/include/srv0srv.h	2009-08-04 17:39:51.000000000 +0900
+@@ -59,6 +59,8 @@
+ extern ibool	srv_file_per_table;
+ extern ibool    srv_locks_unsafe_for_binlog;
+ 
++extern ibool	srv_fast_recovery;
++
+ extern ulint	srv_n_data_files;
+ extern char**	srv_data_file_names;
+ extern ulint*	srv_data_file_sizes;
+diff -ruN a/innobase/log/log0recv.c b/innobase/log/log0recv.c
+--- a/innobase/log/log0recv.c	2009-07-07 21:54:08.000000000 +0900
++++ b/innobase/log/log0recv.c	2009-08-04 17:15:15.000000000 +0900
+@@ -101,7 +101,7 @@
+ use these free frames to read in pages when we start applying the
+ log records to the database. */
+ 
+-ulint  recv_n_pool_free_frames         = 256;
++ulint  recv_n_pool_free_frames         = 1024;
+ 
+ /* The maximum lsn we see for a page during the recovery process. If this
+ is bigger than the lsn we are able to scan up to, that is an indication that
+@@ -1135,6 +1135,8 @@
+ 	recv_addr = recv_get_fil_addr_struct(space, page_no);
+ 
+ 	if ((recv_addr == NULL)
++		/* bugfix: http://bugs.mysql.com/bug.php?id=44140 */
++	    || (recv_addr->state == RECV_BEING_READ && !just_read_in)
+ 	    || (recv_addr->state == RECV_BEING_PROCESSED)
+ 	    || (recv_addr->state == RECV_PROCESSED)) {
+ 
+diff -ruN a/innobase/srv/srv0srv.c b/innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	2009-08-04 16:53:42.000000000 +0900
++++ b/innobase/srv/srv0srv.c	2009-08-04 17:41:05.000000000 +0900
+@@ -88,6 +88,8 @@
+                                                 i.e. do not use next-key locking
+                                                 except on duplicate key checking and
+                                                 foreign key checking */
++ibool	srv_fast_recovery = FALSE;
++
+ ulint	srv_n_data_files = 0;
+ char**	srv_data_file_names = NULL;
+ ulint*	srv_data_file_sizes = NULL;	/* size in database pages */ 
+diff -ruN a/patch_info/innodb_recovery_patches.info b/patch_info/innodb_recovery_patches.info
+--- /dev/null	1970-01-01 09:00:00.000000000 +0900
++++ b/patch_info/innodb_recovery_patches.info	2009-08-04 16:58:07.000000000 +0900
+@@ -0,0 +1,6 @@
++File=innodb_recovery_patches.patch
++Name=Bugfixes and adjustments about recovery process
++Version=1.0
++Author=Percona <info@percona.com>
++License=GPL
++Comment=
+diff -ruN a/sql/ha_innodb.cc b/sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	2009-08-04 16:53:42.000000000 +0900
++++ b/sql/ha_innodb.cc	2009-08-04 17:35:44.000000000 +0900
+@@ -182,6 +182,7 @@
+ my_bool innobase_rollback_on_timeout		= FALSE;
+ my_bool innobase_create_status_file		= FALSE;
+ my_bool innobase_adaptive_hash_index		= TRUE;
++my_bool innobase_fast_recovery			= FALSE;
+ 
+ static char *internal_innobase_data_file_path	= NULL;
+ 
+@@ -1534,6 +1535,8 @@
+ 	srv_lock_wait_timeout = (ulint) innobase_lock_wait_timeout;
+ 	srv_force_recovery = (ulint) innobase_force_recovery;
+ 
++	srv_fast_recovery = (ibool) innobase_fast_recovery;
++
+ 	srv_use_doublewrite_buf = (ibool) innobase_use_doublewrite;
+ 	srv_use_checksums = (ibool) innobase_use_checksums;
+ 
+diff -ruN a/sql/ha_innodb.h b/sql/ha_innodb.h
+--- a/sql/ha_innodb.h	2009-08-04 16:53:42.000000000 +0900
++++ b/sql/ha_innodb.h	2009-08-04 17:37:18.000000000 +0900
+@@ -220,6 +220,7 @@
+                innobase_use_large_pages,
+                innobase_use_native_aio,
+ 	       innobase_file_per_table, innobase_locks_unsafe_for_binlog,
++	       innobase_fast_recovery,
+ 	       innobase_rollback_on_timeout,
+                innobase_create_status_file,
+                innobase_adaptive_hash_index;
+diff -ruN a/sql/mysqld.cc b/sql/mysqld.cc
+--- a/sql/mysqld.cc	2009-08-04 16:53:42.000000000 +0900
++++ b/sql/mysqld.cc	2009-08-04 17:48:25.000000000 +0900
+@@ -5102,6 +5102,7 @@
+   OPT_INNODB_READ_IO_THREADS,
+   OPT_INNODB_WRITE_IO_THREADS,
+   OPT_INNODB_USE_SYS_MALLOC,
++  OPT_INNODB_FAST_RECOVERY,
+   OPT_INNODB_THREAD_CONCURRENCY_TIMER_BASED,
+   OPT_INNODB_EXTRA_RSEGMENTS,
+   OPT_INNODB_DICT_SIZE_LIMIT,
+@@ -5347,6 +5348,10 @@
+   {"innodb_doublewrite", OPT_INNODB_DOUBLEWRITE, "Enable InnoDB doublewrite buffer (enabled by default). \
+ Disable with --skip-innodb-doublewrite.", (gptr*) &innobase_use_doublewrite,
+    (gptr*) &innobase_use_doublewrite, 0, GET_BOOL, NO_ARG, 1, 0, 0, 0, 0, 0},
++  {"innodb_fast_recovery", OPT_INNODB_FAST_RECOVERY,
++   "Enable to use speed hack of recovery avoiding flush list sorting.",
++   (gptr*) &innobase_fast_recovery, (gptr*) &innobase_fast_recovery,
++   0, GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0},
+   {"innodb_fast_shutdown", OPT_INNODB_FAST_SHUTDOWN,
+    "Speeds up the shutdown process of the InnoDB storage engine. Possible "
+    "values are 0, 1 (faster)"
+diff -ruN a/sql/set_var.cc b/sql/set_var.cc
+--- a/sql/set_var.cc	2009-08-04 16:53:42.000000000 +0900
++++ b/sql/set_var.cc	2009-08-04 17:51:49.000000000 +0900
+@@ -1088,6 +1088,7 @@
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG},
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG},
+   {"innodb_use_sys_malloc", (char*) &innobase_use_sys_malloc, SHOW_MY_BOOL},
++  {"innodb_fast_recovery", (char*) &innobase_fast_recovery, SHOW_MY_BOOL},
+   {"innodb_thread_concurrency_timer_based", (char*) &innobase_thread_concurrency_timer_based, SHOW_MY_BOOL},
+   {"innodb_extra_rsegments", (char*) &innobase_extra_rsegments, SHOW_LONG},
+   {sys_innodb_dict_size_limit.name, (char*) &sys_innodb_dict_size_limit, SHOW_SYS},

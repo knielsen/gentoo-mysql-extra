@@ -1,0 +1,1357 @@
+diff -ruN a/innobase/btr/btr0sea.c b/innobase/btr/btr0sea.c
+--- a/innobase/btr/btr0sea.c	2009-05-20 14:21:44.000000000 +0900
++++ b/innobase/btr/btr0sea.c	2009-05-20 14:39:34.000000000 +0900
+@@ -773,7 +773,7 @@
+ 		rw_lock_s_lock(&btr_search_latch);
+ 	}
+ 
+-	ut_ad(btr_search_latch.writer != RW_LOCK_EX);
++	ut_ad(btr_search_latch.writer_count == 0);
+ 	ut_ad(btr_search_latch.reader_count > 0);
+ 
+ 	rec = ha_search_and_get_data(btr_search_sys->hash_index, fold);
+diff -ruN a/innobase/include/sync0rw.h b/innobase/include/sync0rw.h
+--- a/innobase/include/sync0rw.h	2009-01-30 06:42:20.000000000 +0900
++++ b/innobase/include/sync0rw.h	2009-04-16 16:15:28.000000000 +0900
+@@ -325,7 +325,17 @@
+ Accessor functions for rw lock. */
+ UNIV_INLINE
+ ulint
+-rw_lock_get_waiters(
++rw_lock_get_s_waiters(
++/*==================*/
++	rw_lock_t*	lock);
++UNIV_INLINE
++ulint
++rw_lock_get_x_waiters(
++/*==================*/
++	rw_lock_t*	lock);
++UNIV_INLINE
++ulint
++rw_lock_get_wx_waiters(
+ /*================*/
+ 	rw_lock_t*	lock);
+ UNIV_INLINE
+@@ -408,6 +418,17 @@
+ 	rw_lock_debug_t*	info);	/* in: debug struct */
+ #endif /* UNIV_SYNC_DEBUG */
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++/* This value means NOT_LOCKED */
++#define RW_LOCK_BIAS		0x00100000
++#else
++#error HAVE_ATOMIC_BUILTINS is not defined. Do you use enough new GCC or compatibles?
++#error Or do you use exact options for CFLAGS?
++#error e.g. (for x86_32): "-m32 -march=i586 -mtune=i686"
++#error e.g. (for Sparc_64): "-m64 -mcpu=v9"
++#error Otherwise, this build may be slower than normal version.
++#endif
++
+ /* NOTE! The structure appears here only for the compiler to know its size.
+ Do not use its fields directly! The structure used in the spin lock
+ implementation of a read-write lock. Several threads may have a shared lock
+@@ -417,9 +438,9 @@
+ field. Then no new readers are allowed in. */
+ 
+ struct rw_lock_struct {
+-	os_event_t	event;	/* Used by sync0arr.c for thread queueing */
+-
+-#ifdef __WIN__
++			/* Used by sync0arr.c for thread queueing */
++	os_event_t	s_event;	/* Used for s_lock */
++	os_event_t	x_event;	/* Used for x_lock */
+ 	os_event_t	wait_ex_event;	/* This windows specific event is
+ 				used by the thread which has set the
+ 				lock state to RW_LOCK_WAIT_EX. The
+@@ -427,31 +448,35 @@
+ 				thread will be the next one to proceed
+ 				once the current the event gets
+ 				signalled. See LEMMA 2 in sync0sync.c */
++
++#ifdef HAVE_ATOMIC_BUILTINS
++	volatile lint	lock_word;	/* Used by using atomic builtin */
+ #endif
+ 
+-	ulint	reader_count;	/* Number of readers who have locked this
++	volatile ulint	reader_count;	/* Number of readers who have locked this
+ 				lock in the shared mode */
+-	ulint	writer; 	/* This field is set to RW_LOCK_EX if there
++	volatile ulint	writer; 	/* This field is set to RW_LOCK_EX if there
+ 				is a writer owning the lock (in exclusive
+ 				mode), RW_LOCK_WAIT_EX if a writer is
+ 				queueing for the lock, and
+ 				RW_LOCK_NOT_LOCKED, otherwise. */
+-	os_thread_id_t	writer_thread;
++	volatile os_thread_id_t	writer_thread;
+ 				/* Thread id of a possible writer thread */
+-	ulint	writer_count;	/* Number of times the same thread has
++	volatile ulint	writer_count;	/* Number of times the same thread has
+ 				recursively locked the lock in the exclusive
+ 				mode */
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_t	mutex;		/* The mutex protecting rw_lock_struct */
++#endif
+ 	ulint	pass; 		/* Default value 0. This is set to some
+ 				value != 0 given by the caller of an x-lock
+ 				operation, if the x-lock is to be passed to
+ 				another thread to unlock (which happens in
+ 				asynchronous i/o). */
+-	ulint	waiters;	/* This ulint is set to 1 if there are
+-				waiters (readers or writers) in the global
+-				wait array, waiting for this rw_lock.
+-				Otherwise, == 0. */
+-	ibool	writer_is_wait_ex;
++	volatile ulint	s_waiters; /* 1: there are waiters (s_lock) */
++	volatile ulint	x_waiters; /* 1: there are waiters (x_lock) */
++	volatile ulint	wait_ex_waiters; /* 1: there are waiters (wait_ex) */
++	volatile ibool	writer_is_wait_ex;
+ 				/* This is TRUE if the writer field is
+ 				RW_LOCK_WAIT_EX; this field is located far
+ 				from the memory update hotspot fields which
+diff -ruN a/innobase/include/sync0rw.ic b/innobase/include/sync0rw.ic
+--- a/innobase/include/sync0rw.ic	2009-01-30 06:42:20.000000000 +0900
++++ b/innobase/include/sync0rw.ic	2009-04-16 17:06:53.000000000 +0900
+@@ -47,20 +47,64 @@
+ Accessor functions for rw lock. */
+ UNIV_INLINE
+ ulint
+-rw_lock_get_waiters(
++rw_lock_get_s_waiters(
+ /*================*/
+ 	rw_lock_t*	lock)
+ {
+-	return(lock->waiters);
++	return(lock->s_waiters);
+ }
+ UNIV_INLINE
+-void
+-rw_lock_set_waiters(
++ulint
++rw_lock_get_x_waiters(
+ /*================*/
++	rw_lock_t*	lock)
++{
++	return(lock->x_waiters);
++}
++UNIV_INLINE
++ulint
++rw_lock_get_wx_waiters(
++/*================*/
++	rw_lock_t*      lock)
++{
++	return(lock->wait_ex_waiters);
++}
++UNIV_INLINE
++void
++rw_lock_set_s_waiters(
+ 	rw_lock_t*	lock,
+ 	ulint		flag)
+ {
+-	lock->waiters = flag;
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_lock_test_and_set(&lock->s_waiters, flag);
++#else
++	lock->s_waiters = flag;
++#endif
++}
++UNIV_INLINE
++void
++rw_lock_set_x_waiters(
++	rw_lock_t*	lock,
++	ulint		flag)
++{
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_lock_test_and_set(&lock->x_waiters, flag);
++#else
++	lock->x_waiters = flag;
++#endif
++}
++UNIV_INLINE
++void
++rw_lock_set_wx_waiters(
++/*================*/
++	rw_lock_t*      lock,
++	ulint           flag)
++{
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_lock_test_and_set(&lock->wait_ex_waiters, flag);
++#else
++	lock->wait_ex_waiters = flag;
++#endif
+ }
+ UNIV_INLINE
+ ulint
+@@ -68,7 +112,19 @@
+ /*===============*/
+ 	rw_lock_t*	lock)
+ {
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (lock->writer == RW_LOCK_NOT_LOCKED) {
++		return(RW_LOCK_NOT_LOCKED);
++	}
++
++	if (lock->writer_is_wait_ex) {
++		return(RW_LOCK_WAIT_EX);
++	} else {
++		return(RW_LOCK_EX);
++	}
++#else
+ 	return(lock->writer);
++#endif
+ }
+ UNIV_INLINE
+ void
+@@ -96,6 +152,7 @@
+ {
+ 	lock->reader_count = count;
+ }
++#ifndef HAVE_ATOMIC_BUILTINS
+ UNIV_INLINE
+ mutex_t*
+ rw_lock_get_mutex(
+@@ -104,6 +161,7 @@
+ {
+ 	return(&(lock->mutex));
+ }
++#endif
+ 
+ /**********************************************************************
+ Returns the value of writer_count for the lock. Does not reserve the lock
+@@ -133,14 +191,26 @@
+ 	const char*	file_name, /* in: file name where lock requested */
+ 	ulint		line)	/* in: line where requested */
+ {
+-#ifdef UNIV_SYNC_DEBUG
++#if defined(UNIV_SYNC_DEBUG) && !defined(HAVE_ATOMIC_BUILTINS)
+ 	ut_ad(mutex_own(rw_lock_get_mutex(lock)));
+ #endif /* UNIV_SYNC_DEBUG */
+ 	/* Check if the writer field is free */
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (UNIV_LIKELY(rw_lock_get_writer(lock) == RW_LOCK_NOT_LOCKED)) {
++		/* try s-lock */
++		if(__sync_sub_and_fetch(&(lock->lock_word),1) <= 0) {
++			/* fail */
++			__sync_fetch_and_add(&(lock->lock_word),1);
++			return(FALSE);	/* locking did not succeed */
++		}
++		/* success */
++		__sync_fetch_and_add(&(lock->reader_count),1);
++#else
+ 	if (UNIV_LIKELY(lock->writer == RW_LOCK_NOT_LOCKED)) {
+ 		/* Set the shared lock by incrementing the reader count */
+ 		lock->reader_count++;
++#endif
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 		rw_lock_add_debug_info(lock, pass, RW_LOCK_SHARED, file_name,
+@@ -167,11 +237,15 @@
+ 	const char*	file_name,	/* in: file name where requested */
+ 	ulint		line)		/* in: line where lock requested */
+ {
+-	ut_ad(lock->writer == RW_LOCK_NOT_LOCKED);
++	ut_ad(rw_lock_get_writer(lock) == RW_LOCK_NOT_LOCKED);
+ 	ut_ad(rw_lock_get_reader_count(lock) == 0);
+ 	
+ 	/* Set the shared lock by incrementing the reader count */
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_fetch_and_add(&(lock->reader_count),1);
++#else
+ 	lock->reader_count++;
++#endif
+ 
+ 	lock->last_s_file_name = file_name;
+ 	lock->last_s_line = line;
+@@ -199,7 +273,11 @@
+ 
+ 	rw_lock_set_writer(lock, RW_LOCK_EX);
+ 	lock->writer_thread = os_thread_get_curr_id();
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_fetch_and_add(&(lock->writer_count),1);
++#else
+ 	lock->writer_count++;
++#endif
+ 	lock->pass = 0;
+ 			
+ 	lock->last_x_file_name = file_name;
+@@ -241,15 +319,21 @@
+ 	ut_ad(!rw_lock_own(lock, RW_LOCK_SHARED)); /* see NOTE above */
+ #endif /* UNIV_SYNC_DEBUG */
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	if (UNIV_LIKELY(rw_lock_s_lock_low(lock, pass, file_name, line))) {
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		return; /* Success */
+ 	} else {
+ 		/* Did not succeed, try spin wait */
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		rw_lock_s_lock_spin(lock, pass, file_name, line);
+ 
+@@ -272,11 +356,23 @@
+ {
+ 	ibool	success	= FALSE;
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (rw_lock_get_writer(lock) == RW_LOCK_NOT_LOCKED) {
++		/* try s-lock */
++		if(__sync_sub_and_fetch(&(lock->lock_word),1) <= 0) {
++			/* fail */
++			__sync_fetch_and_add(&(lock->lock_word),1);
++			return(FALSE);	/* locking did not succeed */
++		}
++		/* success */
++		__sync_fetch_and_add(&(lock->reader_count),1);
++#else
+ 	mutex_enter(rw_lock_get_mutex(lock));
+ 
+ 	if (lock->writer == RW_LOCK_NOT_LOCKED) {
+ 		/* Set the shared lock by incrementing the reader count */
+ 		lock->reader_count++;
++#endif
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 		rw_lock_add_debug_info(lock, 0, RW_LOCK_SHARED, file_name,
+@@ -289,7 +385,9 @@
+ 		success = TRUE;
+ 	}
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	return(success);
+ }
+@@ -309,6 +407,54 @@
+ {
+ 	ibool		success		= FALSE;
+ 	os_thread_id_t	curr_thread	= os_thread_get_curr_id();
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (lock->reader_count == 0) {
++		/* try to lock writer */
++		if(__sync_lock_test_and_set(&(lock->writer),RW_LOCK_EX)
++				== RW_LOCK_NOT_LOCKED) {
++			/* success */
++retry_x_lock:
++			/* try x-lock */
++			if(__sync_sub_and_fetch(&(lock->lock_word),
++					RW_LOCK_BIAS) == 0) {
++				/* success */
++				lock->writer_thread = curr_thread;
++				lock->pass = 0;
++				lock->writer_is_wait_ex = FALSE;
++				/* next function may work as memory barrier */
++			relock:
++				__sync_fetch_and_add(&(lock->writer_count),1);
++
++#ifdef UNIV_SYNC_DEBUG
++				rw_lock_add_debug_info(lock, 0, RW_LOCK_EX, file_name, line);
++#endif
++
++				lock->last_x_file_name = file_name;
++				lock->last_x_line = line;
++
++				ut_ad(rw_lock_validate(lock));
++
++				return(TRUE);
++			} else {
++				/* fail (x-lock) */
++				if (__sync_fetch_and_add(&(lock->lock_word),RW_LOCK_BIAS)
++						== 0)
++					goto retry_x_lock;
++			}
++
++			__sync_lock_test_and_set(&(lock->writer),RW_LOCK_NOT_LOCKED);
++		}
++	}
++
++	if (lock->pass == 0
++			&& os_thread_eq(lock->writer_thread, curr_thread)) {
++		goto relock;
++	}
++
++	//ut_ad(rw_lock_validate(lock));
++
++	return(FALSE);
++#else
+ 	mutex_enter(rw_lock_get_mutex(lock));
+ 
+ 	if (UNIV_UNLIKELY(rw_lock_get_reader_count(lock) != 0)) {
+@@ -339,6 +485,7 @@
+         ut_ad(rw_lock_validate(lock));
+ 
+ 	return(success);
++#endif
+ }
+ 
+ /**********************************************************************
+@@ -354,16 +501,33 @@
+ #endif
+ 	)
+ {
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_t*	mutex	= &(lock->mutex);
+-	ibool		sg 	= FALSE;
++#endif
++	ibool		x_sg 	= FALSE;
++	ibool		wx_sg	= FALSE;
++#ifdef HAVE_ATOMIC_BUILTINS
++	ibool		last	= FALSE;
++#endif
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+         /* Acquire the mutex protecting the rw-lock fields */
+ 	mutex_enter(mutex);
++#endif
+ 
+ 	/* Reset the shared lock by decrementing the reader count */
+ 
+ 	ut_a(lock->reader_count > 0);
++#ifdef HAVE_ATOMIC_BUILTINS
++	/* unlock lock_word */
++	__sync_fetch_and_add(&(lock->lock_word),1);
++
++	if(__sync_sub_and_fetch(&(lock->reader_count),1) == 0) {
++		last = TRUE;
++	}
++#else
+ 	lock->reader_count--;
++#endif
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 	rw_lock_remove_debug_info(lock, pass, RW_LOCK_SHARED);
+@@ -372,22 +536,39 @@
+ 	/* If there may be waiters and this was the last s-lock,
+ 	signal the object */
+ 
+-	if (UNIV_UNLIKELY(lock->waiters)
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (UNIV_UNLIKELY(last && __sync_lock_test_and_set(&lock->wait_ex_waiters, 0))) {
++		os_event_set(lock->wait_ex_event);
++		sync_array_object_signalled(sync_primary_wait_array);
++	}
++	else if (UNIV_UNLIKELY(last && __sync_lock_test_and_set(&lock->x_waiters, 0))) {
++		os_event_set(lock->x_event);
++		sync_array_object_signalled(sync_primary_wait_array);
++	}
++#else
++	if (UNIV_UNLIKELY(lock->wait_ex_waiters)
+ 			&& lock->reader_count == 0) {
+-	       	sg = TRUE;
++	       	wx_sg = TRUE;
+ 
+-		rw_lock_set_waiters(lock, 0);
++		rw_lock_set_wx_waiters(lock, 0);
++	}
++	else if (UNIV_UNLIKELY(lock->x_waiters)
++			&& lock->reader_count == 0) {
++		x_sg = TRUE;
++
++		rw_lock_set_x_waiters(lock, 0);
+ 	}
+ 	
+ 	mutex_exit(mutex);
+ 
+-	if (UNIV_UNLIKELY(sg)) {
+-#ifdef __WIN__
++	if (UNIV_UNLIKELY(wx_sg)) {
+ 		os_event_set(lock->wait_ex_event);
+-#endif
+-		os_event_set(lock->event);
++		sync_array_object_signalled(sync_primary_wait_array);
++	} else if (UNIV_UNLIKELY(x_sg)) {
++		os_event_set(lock->x_event);
+ 		sync_array_object_signalled(sync_primary_wait_array);
+ 	}
++#endif
+ 
+         ut_ad(rw_lock_validate(lock));
+ 
+@@ -409,13 +590,22 @@
+ 
+ 	ut_ad(lock->reader_count > 0);
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_sub_and_fetch(&(lock->reader_count),1);
++#else
+ 	lock->reader_count--;
++#endif
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 	rw_lock_remove_debug_info(lock, 0, RW_LOCK_SHARED);
+ #endif
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	ut_ad(!lock->s_waiters);
++	ut_ad(!lock->x_waiters);
++#else
+ 	ut_ad(!lock->waiters);
++#endif
+         ut_ad(rw_lock_validate(lock));
+ #ifdef UNIV_SYNC_PERF_STAT
+ 	rw_s_exit_count++;
+@@ -435,41 +625,83 @@
+ #endif
+ 	)
+ {
+-	ibool	sg 	= FALSE;
++#ifdef HAVE_ATOMIC_BUILTINS
++	ibool	last	= FALSE;
++#endif
++	ibool	s_sg	= FALSE;
++	ibool	x_sg	= FALSE;
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+         /* Acquire the mutex protecting the rw-lock fields */
+ 	mutex_enter(&(lock->mutex));
++#endif
+ 
+ 	/* Reset the exclusive lock if this thread no longer has an x-mode
+ 	lock */
+ 
+ 	ut_ad(lock->writer_count > 0);
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if(__sync_sub_and_fetch(&(lock->writer_count),1) == 0) {
++		last = TRUE;
++	}
++
++	if (last) {
++		/* unlock lock_word */
++		__sync_fetch_and_add(&(lock->lock_word),RW_LOCK_BIAS);
++
++		/* FIXME: It is a value of bad manners for pthread.
++		          But we shouldn't keep an ID of not-owner. */
++		lock->writer_thread = -1;
++		__sync_lock_test_and_set(&(lock->writer),RW_LOCK_NOT_LOCKED);
++	}
++#else
+ 	lock->writer_count--;
+ 
+ 	if (lock->writer_count == 0) {
+ 		rw_lock_set_writer(lock, RW_LOCK_NOT_LOCKED);
+ 	}
++#endif
+ 
+ #ifdef UNIV_SYNC_DEBUG
+ 	rw_lock_remove_debug_info(lock, pass, RW_LOCK_EX);
+ #endif
+ 	
+ 	/* If there may be waiters, signal the lock */
+-	if (UNIV_UNLIKELY(lock->waiters)
+-			&& lock->writer_count == 0) {
+-
+-	       	sg = TRUE;
+-		rw_lock_set_waiters(lock, 0);
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (last) {
++		if(__sync_lock_test_and_set(&lock->s_waiters, 0)){
++			s_sg = TRUE;
++		}
++		if(__sync_lock_test_and_set(&lock->x_waiters, 0)){
++			x_sg = TRUE;
++		}
++	}
++#else
++	if (lock->writer_count == 0) {
++		if(lock->s_waiters){
++			s_sg = TRUE;
++			rw_lock_set_s_waiters(lock, 0);
++		}
++		if(lock->x_waiters){
++			x_sg = TRUE;
++			rw_lock_set_x_waiters(lock, 0);
++		}
+ 	}
+ 	
+ 	mutex_exit(&(lock->mutex));
++#endif
+ 
+-	if (UNIV_UNLIKELY(sg)) {
++	if (UNIV_UNLIKELY(s_sg)) {
++		os_event_set(lock->s_event);
++		sync_array_object_signalled(sync_primary_wait_array);
++	}
++	if (UNIV_UNLIKELY(x_sg)) {
+ #ifdef __WIN__
++		/* I doubt the necessity of it. */
+ 		os_event_set(lock->wait_ex_event);
+ #endif
+-		os_event_set(lock->event);
++		os_event_set(lock->x_event);
+ 		sync_array_object_signalled(sync_primary_wait_array);
+ 	}
+ 
+@@ -494,9 +726,13 @@
+ 
+ 	ut_ad(lock->writer_count > 0);
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if(__sync_sub_and_fetch(&(lock->writer_count),1) == 0) {
++#else
+ 	lock->writer_count--;
+ 
+ 	if (lock->writer_count == 0) {
++#endif
+ 		rw_lock_set_writer(lock, RW_LOCK_NOT_LOCKED);
+ 	}
+ 
+@@ -504,7 +740,12 @@
+ 	rw_lock_remove_debug_info(lock, 0, RW_LOCK_EX);
+ #endif
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	ut_ad(!lock->s_waiters);
++	ut_ad(!lock->x_waiters);
++#else
+ 	ut_ad(!lock->waiters);
++#endif
+         ut_ad(rw_lock_validate(lock));
+ 
+ #ifdef UNIV_SYNC_PERF_STAT
+diff -ruN a/innobase/sync/sync0arr.c b/innobase/sync/sync0arr.c
+--- a/innobase/sync/sync0arr.c	2009-01-30 06:42:24.000000000 +0900
++++ b/innobase/sync/sync0arr.c	2009-04-16 16:15:28.000000000 +0900
+@@ -309,13 +309,13 @@
+ {
+ 	if (type == SYNC_MUTEX) {
+ 		return(os_event_reset(((mutex_t *) object)->event));
+-#ifdef __WIN__
+ 	} else if (type == RW_LOCK_WAIT_EX) {
+ 		return(os_event_reset(
+ 		       ((rw_lock_t *) object)->wait_ex_event));
+-#endif
+-	} else {
+-		return(os_event_reset(((rw_lock_t *) object)->event));
++	} else if (type == RW_LOCK_SHARED) {
++		return(os_event_reset(((rw_lock_t *) object)->s_event));
++	} else { /* RW_LOCK_EX */
++		return(os_event_reset(((rw_lock_t *) object)->x_event));
+ 	}
+ }		
+ 
+@@ -415,15 +415,12 @@
+ 
+ 	if (cell->request_type == SYNC_MUTEX) {
+ 		event = ((mutex_t*) cell->wait_object)->event;
+-#ifdef __WIN__
+-	/* On windows if the thread about to wait is the one which
+-	has set the state of the rw_lock to RW_LOCK_WAIT_EX, then
+-	it waits on a special event i.e.: wait_ex_event. */
+ 	} else if (cell->request_type == RW_LOCK_WAIT_EX) {
+ 		event = ((rw_lock_t*) cell->wait_object)->wait_ex_event;
+-#endif
+-	} else {	
+-		event = ((rw_lock_t*) cell->wait_object)->event;
++	} else if (cell->request_type == RW_LOCK_SHARED) {
++		event = ((rw_lock_t*) cell->wait_object)->s_event;
++	} else {
++		event = ((rw_lock_t*) cell->wait_object)->x_event;
+ 	}
+ 
+        	cell->waiting = TRUE;
+@@ -464,6 +461,7 @@
+ 	mutex_t*	mutex;
+ 	rw_lock_t*	rwlock;
+ 	ulint		type;
++	ulint		writer;
+ 
+ 	type = cell->request_type;
+ 
+@@ -492,12 +490,10 @@
+ 			(ulong) mutex->waiters);
+ 
+ 	} else if (type == RW_LOCK_EX
+-#ifdef __WIN__
+ 		   || type == RW_LOCK_WAIT_EX
+-#endif
+ 		   || type == RW_LOCK_SHARED) {
+ 
+-		fputs(type == RW_LOCK_EX ? "X-lock on" : "S-lock on", file);
++		fputs(type == RW_LOCK_SHARED ? "S-lock on" : "X-lock on", file);
+ 
+ 		rwlock = cell->old_wait_rw_lock;
+ 
+@@ -505,21 +501,23 @@
+ 			" RW-latch at %p created in file %s line %lu\n",
+ 			rwlock, rwlock->cfile_name,
+ 			(ulong) rwlock->cline);
+-		if (rwlock->writer != RW_LOCK_NOT_LOCKED) {
++		writer = rw_lock_get_writer(rwlock);
++		if (writer != RW_LOCK_NOT_LOCKED) {
+ 			fprintf(file,
+ 			"a writer (thread id %lu) has reserved it in mode %s",
+ 				(ulong) os_thread_pf(rwlock->writer_thread),
+-				rwlock->writer == RW_LOCK_EX
++				writer == RW_LOCK_EX
+ 				? " exclusive\n"
+ 				: " wait exclusive\n");
+ 		}
+ 		
+ 		fprintf(file,
+-			"number of readers %lu, waiters flag %lu\n"
++			"number of readers %lu, s_waiters flag %lu, x_waiters flag %lu\n"
+ 			"Last time read locked in file %s line %lu\n"
+ 			"Last time write locked in file %s line %lu\n",
+ 			(ulong) rwlock->reader_count,
+-			(ulong) rwlock->waiters,
++			(ulong) rwlock->s_waiters,
++			(ulong) (rwlock->x_waiters || rwlock->wait_ex_waiters),
+ 			rwlock->last_s_file_name,
+ 			(ulong) rwlock->last_s_line,
+ 			rwlock->last_x_file_name,
+@@ -839,11 +837,15 @@
+ /*========================*/
+ 	sync_array_t*	arr)	/* in: wait array */
+ {
++#ifdef HAVE_ATOMIC_BUILTINS
++	__sync_fetch_and_add(&(arr->sg_count),1);
++#else
+         sync_array_enter(arr);
+ 
+ 	arr->sg_count++;
+ 
+         sync_array_exit(arr);
++#endif
+ }
+ 
+ /**************************************************************************
+@@ -880,19 +882,23 @@
+ 
+ 					mutex = cell->wait_object;
+ 					os_event_set(mutex->event);
+-#ifdef __WIN__
+ 				} else if (cell->request_type
+ 					   == RW_LOCK_WAIT_EX) {
+ 					rw_lock_t*	lock;
+ 
+ 					lock = cell->wait_object;
+ 					os_event_set(lock->wait_ex_event);
+-#endif
+-				} else {
++				} else if (cell->request_type
++					   == RW_LOCK_SHARED) {
+ 					rw_lock_t*	lock;
+ 
+ 					lock = cell->wait_object;
+-					os_event_set(lock->event);
++					os_event_set(lock->s_event);
++				} else {
++					rw_lock_t*      lock;
++
++					lock = cell->wait_object;
++					os_event_set(lock->x_event);
+ 				}
+                         }
+                 }
+diff -ruN a/innobase/sync/sync0rw.c b/innobase/sync/sync0rw.c
+--- a/innobase/sync/sync0rw.c	2009-01-30 06:42:24.000000000 +0900
++++ b/innobase/sync/sync0rw.c	2009-04-16 17:33:59.000000000 +0900
+@@ -99,6 +99,7 @@
+ 	object is created, then the following call initializes
+ 	the sync system. */
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_create(rw_lock_get_mutex(lock));
+ 	mutex_set_level(rw_lock_get_mutex(lock), SYNC_NO_ORDER_CHECK);
+ 
+@@ -108,8 +109,14 @@
+ 	lock->mutex.cmutex_name = cmutex_name;
+ 	lock->mutex.mutex_type = 1;
+ #endif /* UNIV_DEBUG && !UNIV_HOTBACKUP */
++#endif /* !HAVE_ATOMIC_BUILTINS */
+   
+-	rw_lock_set_waiters(lock, 0);
++#ifdef HAVE_ATOMIC_BUILTINS
++	lock->lock_word = RW_LOCK_BIAS;
++#endif
++	rw_lock_set_s_waiters(lock, 0);
++	rw_lock_set_x_waiters(lock, 0);
++	rw_lock_set_wx_waiters(lock, 0);
+ 	rw_lock_set_writer(lock, RW_LOCK_NOT_LOCKED);
+ 	lock->writer_count = 0;
+ 	rw_lock_set_reader_count(lock, 0);
+@@ -130,11 +137,9 @@
+ 	lock->last_x_file_name = "not yet reserved";
+ 	lock->last_s_line = 0;
+ 	lock->last_x_line = 0;
+-	lock->event = os_event_create(NULL);
+-
+-#ifdef __WIN__
++	lock->s_event = os_event_create(NULL);
++	lock->x_event = os_event_create(NULL);
+ 	lock->wait_ex_event = os_event_create(NULL);
+-#endif
+ 
+ 	mutex_enter(&rw_lock_list_mutex);
+ 	
+@@ -162,19 +167,21 @@
+ 	ut_a(rw_lock_validate(lock));
+ #endif /* UNIV_DEBUG */
+ 	ut_a(rw_lock_get_writer(lock) == RW_LOCK_NOT_LOCKED);
+-	ut_a(rw_lock_get_waiters(lock) == 0);
++	ut_a(rw_lock_get_s_waiters(lock) == 0);
++	ut_a(rw_lock_get_x_waiters(lock) == 0);
++	ut_a(rw_lock_get_wx_waiters(lock) == 0);
+ 	ut_a(rw_lock_get_reader_count(lock) == 0);
+ 	
+ 	lock->magic_n = 0;
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_free(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	mutex_enter(&rw_lock_list_mutex);
+-	os_event_free(lock->event);
+-
+-#ifdef __WIN__
++	os_event_free(lock->s_event);
++	os_event_free(lock->x_event);
+ 	os_event_free(lock->wait_ex_event);
+-#endif
+ 
+ 	if (UT_LIST_GET_PREV(list, lock)) {
+ 		ut_a(UT_LIST_GET_PREV(list, lock)->magic_n == RW_LOCK_MAGIC_N);
+@@ -192,26 +199,43 @@
+ Checks that the rw-lock has been initialized and that there are no
+ simultaneous shared and exclusive locks. */
+ 
++/* MEMO: If HAVE_ATOMIC_BUILTINS, we should use this function statically. */
++
+ ibool
+ rw_lock_validate(
+ /*=============*/
+ 	rw_lock_t*	lock)
+ {
++	ulint	test;
+ 	ut_a(lock);
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	ut_a(lock->magic_n == RW_LOCK_MAGIC_N);
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	ut_a((rw_lock_get_reader_count(lock) == 0)
+ 	     || (rw_lock_get_writer(lock) != RW_LOCK_EX));
+-	ut_a((rw_lock_get_writer(lock) == RW_LOCK_EX)
+-	     || (rw_lock_get_writer(lock) == RW_LOCK_WAIT_EX)
+-	     || (rw_lock_get_writer(lock) == RW_LOCK_NOT_LOCKED));
+-	ut_a((rw_lock_get_waiters(lock) == 0)
+-	     || (rw_lock_get_waiters(lock) == 1));
++#endif
++	test = rw_lock_get_writer(lock);
++	ut_a((test == RW_LOCK_EX)
++	     || (test == RW_LOCK_WAIT_EX)
++	     || (test == RW_LOCK_NOT_LOCKED));
++	test = rw_lock_get_s_waiters(lock);
++	ut_a((test == 0)
++	     || (test == 1));
++	test = rw_lock_get_x_waiters(lock);
++	ut_a((test == 0)
++	     || (test == 1));
++	test = rw_lock_get_wx_waiters(lock);
++	ut_a((test == 0)
++	     || (test == 1));
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	ut_a((lock->writer != RW_LOCK_EX) || (lock->writer_count > 0));
+ 	     
+ 	mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	return(TRUE);
+ }
+@@ -237,13 +261,14 @@
+         ut_ad(rw_lock_validate(lock));
+ 
+ lock_loop:
++        i = 0;
++spin_loop:
+ 	rw_s_spin_wait_count++;
+ 
+ 	/* Spin waiting for the writer field to become free */
+-        i = 0;
+ 
+-        while (rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED
+-						&& i < SYNC_SPIN_ROUNDS) {
++        while (i < SYNC_SPIN_ROUNDS
++			&& rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED) {
+         	if (srv_spin_wait_delay) {
+         		ut_delay(ut_rnd_interval(0, srv_spin_wait_delay));
+         	}
+@@ -262,15 +287,27 @@
+ 		lock->cfile_name, (ulong) lock->cline, (ulong) i);
+ 	}
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(rw_lock_get_mutex(lock));
++#endif
+ 
+         /* We try once again to obtain the lock */
+ 
+ 	if (TRUE == rw_lock_s_lock_low(lock, pass, file_name, line)) {
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		return; /* Success */
+ 	} else {
++#ifdef HAVE_ATOMIC_BUILTINS
++		/* like sync0sync.c doing */
++		i++;
++
++		if (i < SYNC_SPIN_ROUNDS) {
++			goto spin_loop;
++		}
++#endif
+ 		/* If we get here, locking did not succeed, we may
+ 		suspend the thread to wait in the wait array */
+ 
+@@ -281,9 +318,26 @@
+ 				file_name, line,
+ 				&index);
+ 
+-		rw_lock_set_waiters(lock, 1);
++		rw_lock_set_s_waiters(lock, 1);
++
++#ifdef HAVE_ATOMIC_BUILTINS
++		/* like sync0sync.c doing */
++		for (i = 0; i < 4; i++) {
++			if (TRUE == rw_lock_s_lock_low(lock, pass, file_name, line)) {
++				sync_array_free_cell(sync_primary_wait_array, index);
++				return; /* Success */
++			}
++		}
+ 
++		/* If wait_ex_waiter stalls, wakes it. */
++		if (lock->reader_count == 0
++		    && __sync_lock_test_and_set(&lock->wait_ex_waiters, 0)) {
++			os_event_set(lock->wait_ex_event);
++			sync_array_object_signalled(sync_primary_wait_array);
++		}
++#else
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		if (srv_print_latch_waits) {
+ 			fprintf(stderr,
+@@ -318,13 +372,19 @@
+ {
+ 	ut_ad(rw_lock_is_locked(lock, RW_LOCK_EX));
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(&(lock->mutex));
++#endif
+ 
+ 	lock->writer_thread = os_thread_get_curr_id();
+ 
+ 	lock->pass = 0;
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_exit(&(lock->mutex));
++#else
++	__sync_synchronize();
++#endif
+ }
+ 
+ /**********************************************************************
+@@ -342,6 +402,89 @@
+ 	const char*	file_name,/* in: file name where lock requested */
+ 	ulint		line)	/* in: line where requested */
+ {
++#ifdef HAVE_ATOMIC_BUILTINS
++	os_thread_id_t	curr_thread	= os_thread_get_curr_id();
++retry_writer:
++	/* try to lock writer */
++	if(__sync_lock_test_and_set(&(lock->writer),RW_LOCK_EX)
++			== RW_LOCK_NOT_LOCKED) {
++		/* success */
++		/* obtain RW_LOCK_WAIT_EX right */
++		lock->writer_thread = curr_thread;
++		lock->pass = pass;
++		lock->writer_is_wait_ex = TRUE;
++		/* atomic operation may be safer about memory order. */
++		__sync_synchronize();
++#ifdef UNIV_SYNC_DEBUG
++		rw_lock_add_debug_info(lock, pass, RW_LOCK_WAIT_EX,
++					file_name, line);
++#endif
++	}
++
++	if (!os_thread_eq(lock->writer_thread, curr_thread)) {
++		return(RW_LOCK_NOT_LOCKED);
++	}
++
++	switch(rw_lock_get_writer(lock)) {
++	    case RW_LOCK_WAIT_EX:
++		/* have right to try x-lock */
++retry_x_lock:
++		/* try x-lock */
++		if(__sync_sub_and_fetch(&(lock->lock_word),
++				RW_LOCK_BIAS) == 0) {
++			/* success */
++			lock->pass = pass;
++			lock->writer_is_wait_ex = FALSE;
++			__sync_fetch_and_add(&(lock->writer_count),1);
++
++#ifdef UNIV_SYNC_DEBUG
++			rw_lock_remove_debug_info(lock, pass, RW_LOCK_WAIT_EX);
++			rw_lock_add_debug_info(lock, pass, RW_LOCK_EX,
++						file_name, line);
++#endif
++
++			lock->last_x_file_name = file_name;
++			lock->last_x_line = line;
++
++			/* Locking succeeded, we may return */
++			return(RW_LOCK_EX);
++		} else if(__sync_fetch_and_add(&(lock->lock_word),
++				RW_LOCK_BIAS) == 0) {
++			/* retry x-lock */
++			goto retry_x_lock;
++		}
++
++		/* There are readers, we have to wait */
++		return(RW_LOCK_WAIT_EX);
++
++		break;
++
++	    case RW_LOCK_EX:
++		/* already have x-lock */
++		if ((lock->pass == 0)&&(pass == 0)) {
++			__sync_fetch_and_add(&(lock->writer_count),1);
++
++#ifdef UNIV_SYNC_DEBUG
++			rw_lock_add_debug_info(lock, pass, RW_LOCK_EX, file_name,
++						line);
++#endif
++
++			lock->last_x_file_name = file_name;
++			lock->last_x_line = line;
++
++			/* Locking succeeded, we may return */
++			return(RW_LOCK_EX);
++		}
++
++		return(RW_LOCK_NOT_LOCKED);
++
++		break;
++
++	    default: /* RW_LOCK_NOT_LOCKED? maybe impossible */
++		goto retry_writer;
++	}
++#else /* HAVE_ATOMIC_BUILTINS */
++
+ #ifdef UNIV_SYNC_DEBUG
+ 	ut_ad(mutex_own(rw_lock_get_mutex(lock)));
+ #endif /* UNIV_SYNC_DEBUG */
+@@ -423,6 +566,7 @@
+ 		/* Locking succeeded, we may return */
+ 		return(RW_LOCK_EX);
+ 	}
++#endif /* HAVE_ATOMIC_BUILTINS */
+ 
+ 	/* Locking did not succeed */
+ 	return(RW_LOCK_NOT_LOCKED);
+@@ -448,19 +592,33 @@
+ 	ulint		line)	/* in: line where requested */
+ {
+         ulint	index;  /* index of the reserved wait cell */
+-        ulint	state;	/* lock state acquired */
++        ulint	state = RW_LOCK_NOT_LOCKED;	/* lock state acquired */
++#ifdef HAVE_ATOMIC_BUILTINS
++	ulint	prev_state = RW_LOCK_NOT_LOCKED;
++#endif
+         ulint	i;	/* spin round count */
+         
+         ut_ad(rw_lock_validate(lock));
+ 
+ lock_loop:
++	i = 0;
++
++#ifdef HAVE_ATOMIC_BUILTINS
++	prev_state = state;
++#else
+         /* Acquire the mutex protecting the rw-lock fields */
+ 	mutex_enter_fast(&(lock->mutex));
++#endif
+ 
+ 	state = rw_lock_x_lock_low(lock, pass, file_name, line);
+ 		
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (state != prev_state) i=0; /* if progress, reset counter. */
++#else
+ 	mutex_exit(&(lock->mutex));
++#endif
+         
++spin_loop:
+ 	if (state == RW_LOCK_EX) {
+ 
+ 		return;	/* Locking succeeded */
+@@ -468,10 +626,9 @@
+ 	} else if (state == RW_LOCK_NOT_LOCKED) {
+ 
+  		/* Spin waiting for the writer field to become free */
+-		i = 0;
+ 
+-        	while (rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED 
+-               					&& i < SYNC_SPIN_ROUNDS) {
++        	while (i < SYNC_SPIN_ROUNDS
++			&& lock->lock_word != RW_LOCK_BIAS) {
+         		if (srv_spin_wait_delay) {
+ 				ut_delay(ut_rnd_interval(0,
+ 							srv_spin_wait_delay));
+@@ -485,9 +642,12 @@
+         } else if (state == RW_LOCK_WAIT_EX) {
+ 
+  		/* Spin waiting for the reader count field to become zero */
+-		i = 0;
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++		while (lock->lock_word != RW_LOCK_BIAS
++#else
+         	while (rw_lock_get_reader_count(lock) != 0 
++#endif
+                					&& i < SYNC_SPIN_ROUNDS) {
+         		if (srv_spin_wait_delay) {
+ 				ut_delay(ut_rnd_interval(0,
+@@ -500,7 +660,6 @@
+ 			os_thread_yield();
+ 		}
+         } else {
+-		i = 0; /* Eliminate a compiler warning */
+ 		ut_error;
+ 	}	
+ 
+@@ -516,34 +675,69 @@
+         /* We try once again to obtain the lock. Acquire the mutex protecting
+ 	the rw-lock fields */
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	prev_state = state;
++#else
+ 	mutex_enter(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	state = rw_lock_x_lock_low(lock, pass, file_name, line);
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	if (state != prev_state) i=0; /* if progress, reset counter. */
++#endif
++
+ 	if (state == RW_LOCK_EX) {
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		return;	/* Locking succeeded */
+ 	}
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	/* like sync0sync.c doing */
++	i++;
++
++	if (i < SYNC_SPIN_ROUNDS) {
++		goto spin_loop;
++	}
++#endif
++
+ 	rw_x_system_call_count++;
+ 
+         sync_array_reserve_cell(sync_primary_wait_array,
+ 				lock,
+-#ifdef __WIN__
+-				/* On windows RW_LOCK_WAIT_EX signifies
+-				that this thread should wait on the
+-				special wait_ex_event. */
+ 				(state == RW_LOCK_WAIT_EX)
+ 				 ? RW_LOCK_WAIT_EX :
+-#endif
+ 				RW_LOCK_EX,
+ 				file_name, line,
+ 				&index);
+ 
+-	rw_lock_set_waiters(lock, 1);
++	if (state == RW_LOCK_WAIT_EX) {
++		rw_lock_set_wx_waiters(lock, 1);
++	} else {
++		rw_lock_set_x_waiters(lock, 1);
++	}
+ 
++#ifdef HAVE_ATOMIC_BUILTINS
++	/* like sync0sync.c doing */
++	for (i = 0; i < 4; i++) {
++		prev_state = state;
++		state = rw_lock_x_lock_low(lock, pass, file_name, line);
++		if (state == RW_LOCK_EX) {
++			sync_array_free_cell(sync_primary_wait_array, index);
++			return; /* Locking succeeded */
++		}
++		if (state != prev_state) {
++			/* retry! */
++			sync_array_free_cell(sync_primary_wait_array, index);
++			goto lock_loop;
++		}
++	}
++#else
+ 	mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 
+ 	if (srv_print_latch_waits) {
+ 		fprintf(stderr,
+@@ -718,7 +912,9 @@
+ 	ut_ad(lock);
+ 	ut_ad(rw_lock_validate(lock));
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(&(lock->mutex));
++#endif
+ 
+ 	info = UT_LIST_GET_FIRST(lock->debug_list);
+ 
+@@ -728,7 +924,9 @@
+ 		    && (info->pass == 0)
+ 		    && (info->lock_type == lock_type)) {
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 			mutex_exit(&(lock->mutex));
++#endif
+ 		    	/* Found! */
+ 
+ 		    	return(TRUE);
+@@ -736,7 +934,9 @@
+ 
+ 		info = UT_LIST_GET_NEXT(list, info);
+ 	}
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_exit(&(lock->mutex));
++#endif
+ 
+ 	return(FALSE);
+ }
+@@ -758,21 +958,25 @@
+ 	ut_ad(lock);
+ 	ut_ad(rw_lock_validate(lock));
+ 	
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_enter(&(lock->mutex));
++#endif
+ 
+ 	if (lock_type == RW_LOCK_SHARED) {
+ 		if (lock->reader_count > 0) {
+ 			ret = TRUE;
+ 		}
+ 	} else if (lock_type == RW_LOCK_EX) {
+-		if (lock->writer == RW_LOCK_EX) {
++		if (rw_lock_get_writer(lock) == RW_LOCK_EX) {
+ 			ret = TRUE;
+ 		}
+ 	} else {
+ 		ut_error;
+ 	}
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 	mutex_exit(&(lock->mutex));
++#endif
+ 
+ 	return(ret);
+ }
+@@ -801,16 +1005,26 @@
+ 
+ 		count++;
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_enter(&(lock->mutex));
++#endif
+ 
+ 		if ((rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED)
+ 		    || (rw_lock_get_reader_count(lock) != 0)
+-		    || (rw_lock_get_waiters(lock) != 0)) {
++		    || (rw_lock_get_s_waiters(lock) != 0)
++		    || (rw_lock_get_x_waiters(lock) != 0)
++		    || (rw_lock_get_wx_waiters(lock) != 0)) {
+ 
+ 			fprintf(stderr, "RW-LOCK: %p ", lock);
+ 
+-			if (rw_lock_get_waiters(lock)) {
+-				fputs(" Waiters for the lock exist\n", stderr);
++			if (rw_lock_get_s_waiters(lock)) {
++				fputs(" s_waiters for the lock exist,", stderr);
++			}
++			if (rw_lock_get_x_waiters(lock)) {
++				fputs(" x_waiters for the lock exist\n", stderr);
++			}
++			if (rw_lock_get_wx_waiters(lock)) {
++				fputs(" wait_ex_waiters for the lock exist\n", stderr);
+ 			} else {
+ 				putc('\n', stderr);
+ 			}
+@@ -822,7 +1036,9 @@
+ 			}
+ 		}
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(&(lock->mutex));
++#endif
+ 		lock = UT_LIST_GET_NEXT(list, lock);
+ 	}
+ 
+@@ -847,10 +1063,18 @@
+ 
+ 	if ((rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED)
+ 	    || (rw_lock_get_reader_count(lock) != 0)
+-	    || (rw_lock_get_waiters(lock) != 0)) {
++	    || (rw_lock_get_s_waiters(lock) != 0)
++	    || (rw_lock_get_x_waiters(lock) != 0)
++	    || (rw_lock_get_wx_waiters(lock) != 0)) {
+ 
+-		if (rw_lock_get_waiters(lock)) {
+-			fputs(" Waiters for the lock exist\n", stderr);
++		if (rw_lock_get_s_waiters(lock)) {
++			fputs(" s_waiters for the lock exist,", stderr);
++		}
++		if (rw_lock_get_x_waiters(lock)) {
++			fputs(" x_waiters for the lock exist\n", stderr);
++		}
++		if (rw_lock_get_wx_waiters(lock)) {
++			fputs(" wait_ex_waiters for the lock exist\n", stderr);
+ 		} else {
+ 			putc('\n', stderr);
+ 		}
+@@ -909,14 +1133,18 @@
+ 	lock = UT_LIST_GET_FIRST(rw_lock_list);
+ 
+ 	while (lock != NULL) {
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_enter(rw_lock_get_mutex(lock));
++#endif
+ 
+ 		if ((rw_lock_get_writer(lock) != RW_LOCK_NOT_LOCKED)
+ 				|| (rw_lock_get_reader_count(lock) != 0)) {
+ 			count++;
+ 		}
+ 
++#ifndef HAVE_ATOMIC_BUILTINS
+ 		mutex_exit(rw_lock_get_mutex(lock));
++#endif
+ 		lock = UT_LIST_GET_NEXT(list, lock);
+ 	}
+ 
+diff -ruN a/patch_info/innodb_rw_lock.info b/patch_info/innodb_rw_lock.info
+--- /dev/null	1970-01-01 09:00:00.000000000 +0900
++++ b/patch_info/innodb_rw_lock.info	2009-04-16 16:15:28.000000000 +0900
+@@ -0,0 +1,6 @@
++File=innodb_rw_lock.patch
++Name=Fix of InnoDB rw_locks
++Version=1.0
++Author=Yasufumi Kinoshita
++License=BSD
++Comment=
