@@ -1,0 +1,7 @@
+The following patches, while distributed by Percona, are NOT applied in their
+specfile. As such, we do not apply them in Gentoo either:
+=========
+innodb_extra_status.patch
+innodb_io_tune.patch
+innodb_show_hashed_memory_standalone.patch
+mirror_binlog.patch
