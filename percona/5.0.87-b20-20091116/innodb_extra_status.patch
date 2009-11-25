@@ -1,0 +1,747 @@
+diff -r b059d02ec814 innobase/buf/buf0buf.c
+--- a/innobase/buf/buf0buf.c	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/buf/buf0buf.c	Mon Nov 03 05:09:34 2008 -0800
+@@ -2353,6 +2353,7 @@
+ 		"AWE: Database pages and free buffers mapped in frames %lu\n",
+ 				(ulong) UT_LIST_GET_LEN(buf_pool->awe_LRU_free_mapped));
+ 	}
++	if (file) {
+ 	fprintf(file,
+ 		"Buffer pool size   %lu\n"
+ 		"Free buffers       %lu\n"
+@@ -2371,11 +2372,13 @@
+ 			+ buf_pool->init_flush[BUF_FLUSH_LIST],
+ 		(ulong) buf_pool->n_flush[BUF_FLUSH_SINGLE_PAGE]);
+ 
++	} // if (file)
+ 	current_time = time(NULL);
+ 	time_elapsed = 0.001 + difftime(current_time,
+ 						buf_pool->last_printout_time);
+ 	buf_pool->last_printout_time = current_time;
+ 
++	if (file) {
+ 	fprintf(file,
+ 		"Pages read %lu, created %lu, written %lu\n"
+ 		"%.2f reads/s, %.2f creates/s, %.2f writes/s\n",
+@@ -2405,6 +2408,7 @@
+ 	} else {
+ 		fputs("No buffer pool page gets since the last printout\n",
+ 			file);
++	}
+ 	}
+ 
+ 	buf_pool->n_page_gets_old = buf_pool->n_page_gets;
+diff -r b059d02ec814 innobase/ibuf/ibuf0ibuf.c
+--- a/innobase/ibuf/ibuf0ibuf.c	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/ibuf/ibuf0ibuf.c	Mon Nov 03 05:09:34 2008 -0800
+@@ -3519,9 +3519,15 @@
+ 
+ 	mutex_enter(&ibuf_mutex);
+ 
++	inno_ibuf_size = 0;
++	inno_ibuf_inserts = 0;
++	inno_ibuf_merged_recs = 0;
++	inno_ibuf_merges = 0;
++
+ 	data = UT_LIST_GET_FIRST(ibuf->data_list);
+ 
+ 	while (data) {
++		if (file) {
+ 		fprintf(file,
+ 	"Ibuf: size %lu, free list len %lu, seg size %lu,\n"
+ 	"%lu inserts, %lu merged recs, %lu merges\n",
+@@ -3542,6 +3548,12 @@
+ 			}
+ 		}
+ #endif
++		} // if (file)
++		inno_ibuf_size += (ulong) data->size;
++		inno_ibuf_inserts += (ulong) data->n_inserts;
++		inno_ibuf_merged_recs += (ulong) data->n_merged_recs;
++		inno_ibuf_merges += (ulong) data->n_merges;
++
+ 		data = UT_LIST_GET_NEXT(data_list, data);
+ 	}
+ 
+diff -r b059d02ec814 innobase/include/lock0lock.h
+--- a/innobase/include/lock0lock.h	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/include/lock0lock.h	Mon Nov 03 05:09:34 2008 -0800
+@@ -24,6 +24,10 @@
+ #endif /* UNIV_DEBUG */
+ /* Buffer for storing information about the most recent deadlock error */
+ extern FILE*	lock_latest_err_file;
++
++/* number of deadlocks happened so far */
++extern ulint	innodb_deadlocks;
++
+ 
+ /*************************************************************************
+ Gets the size of a lock struct. */
+diff -r b059d02ec814 innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/include/srv0srv.h	Mon Nov 03 05:09:34 2008 -0800
+@@ -261,6 +261,12 @@
+ /* variable to count the number of random read-aheads were done */
+ extern ulint srv_read_ahead_rnd;
+ 
++/* variable to identify if there is currently a long semaphore wait */
++extern ibool srv_long_lock_wait;
++
++/* variable to count the number long semaphore waits noticed */
++extern ulint srv_long_lock_waits;
++
+ /* Number of IO operations read/write done for all threads */
+ extern ulint os_aio_read_requests;
+ extern ulint os_aio_write_requests;
+@@ -278,6 +284,26 @@
+ extern ulint inno_pending_ibuf_aio_reads;
+ extern ulint inno_pending_log_ios;
+ extern ulint inno_pending_sync_ios;
++
++/* all 24 innodb status variables, exported to status */
++extern ulint inno_transaction_count;
++extern ulint inno_transaction_purge_count;
++extern ulint inno_transaction_purge_lag;
++extern ulint inno_num_active_transactions;
++extern ulint inno_summed_transaction_age;
++extern ulint inno_longest_transaction_age;
++extern ulint inno_lock_wait_timeouts;
++extern ulint inno_num_lock_waiters;
++extern ulint inno_summed_lock_wait_time;
++extern ulint inno_longest_lock_wait;
++extern ulint inno_os_reads;
++extern ulint inno_os_writes;
++extern ulint inno_os_fsyncs;
++extern ulint inno_ibuf_size;
++extern ulint inno_ibuf_inserts;
++extern ulint inno_ibuf_merged_recs;
++extern ulint inno_ibuf_merges;
++extern ulint inno_log_ios_done;
+ 
+ /* In this structure we store status variables to be passed to MySQL */
+ typedef struct export_var_struct export_struc;
+@@ -552,6 +578,7 @@
+         ulint innodb_data_writes;
+         ulint innodb_data_written;
+         ulint innodb_data_reads;
++        ulint innodb_dict_size;
+         ulint innodb_buffer_pool_pages_total;
+         ulint innodb_buffer_pool_pages_data;
+         ulint innodb_buffer_pool_pages_dirty;
+@@ -587,6 +614,43 @@
+         ulint innodb_rows_inserted;
+         ulint innodb_rows_updated;
+         ulint innodb_rows_deleted;
++        ibool innodb_long_lock_wait;
++        ulint innodb_long_lock_waits;
++
++        ulint innodb_os_aio_read_requests;
++        ulint innodb_os_aio_write_requests;
++        ulint innodb_os_aio_pages_read;
++        ulint innodb_os_aio_pages_written;
++        ib_longlong innodb_os_aio_read_time;
++        ib_longlong innodb_os_aio_write_time;
++        ib_longlong innodb_os_aio_read_time_avg;
++        ib_longlong innodb_os_aio_write_time_avg;
++        ulint innodb_deadlocks;
++
++        // the following 24 variables are exported to "show status"
++        ulint inno_transaction_count;
++        ulint inno_transaction_purge_count;
++        ulint inno_transaction_purge_lag;
++        ulint inno_num_active_transactions;
++        ulint inno_summed_transaction_age;
++        ulint inno_longest_transaction_age;
++        ulint inno_lock_wait_timeouts;
++        ulint inno_num_lock_waiters;
++        ulint inno_summed_lock_wait_time;
++        ulint inno_longest_lock_wait;
++        ulint inno_pending_normal_aio_reads;
++        ulint inno_pending_normal_aio_writes;
++        ulint inno_pending_ibuf_aio_reads;
++        ulint inno_pending_log_ios;
++        ulint inno_pending_sync_ios;
++        ulint inno_os_reads;
++        ulint inno_os_writes;
++        ulint inno_os_fsyncs;
++        ulint inno_ibuf_size;
++        ulint inno_ibuf_inserts;
++        ulint inno_ibuf_merged_recs;
++        ulint inno_ibuf_merges;
++        ulint inno_log_ios_done;
+ };
+ 
+ /* The server system struct */
+diff -r b059d02ec814 innobase/lock/lock0lock.c
+--- a/innobase/lock/lock0lock.c	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/lock/lock0lock.c	Mon Nov 03 05:09:34 2008 -0800
+@@ -360,6 +360,9 @@
+ ibool	lock_deadlock_found = FALSE;
+ FILE*	lock_latest_err_file;
+ 
++/* number of deadlocks happened so far */
++ulint innodb_deadlocks = 0;
++
+ /* Flags for recursive deadlock search */
+ #define LOCK_VICTIM_IS_START	1
+ #define LOCK_VICTIM_IS_OTHER	2
+@@ -3304,6 +3307,7 @@
+ 
+ 				FILE*	ef = lock_latest_err_file;
+ 				
++				innodb_deadlocks++;
+ 				rewind(ef);
+ 				ut_print_timestamp(ef);
+ 
+@@ -4238,6 +4242,7 @@
+ 	innobase_mysql_prepare_print_arbitrary_thd();
+ 	lock_mutex_enter_kernel();
+ 
++	if (file) {
+ 	if (lock_deadlock_found) {
+ 		fputs(
+ "------------------------\n" 
+@@ -4269,6 +4274,12 @@
+ 	fprintf(file,
+ 		"Total number of lock structs in row lock hash table %lu\n",
+ 					 (ulong) lock_get_n_rec_locks());
++	} // if (file)
++	inno_transaction_purge_count =
++            (ulong) ut_dulint_get_low(purge_sys->purge_trx_no);
++	inno_transaction_count =
++            (ulong) ut_dulint_get_low(trx_sys->max_trx_id);
++	inno_transaction_purge_lag = (ulong) trx_sys->rseg_history_len;
+ }
+ 
+ /*************************************************************************
+@@ -4289,7 +4300,17 @@
+ 	ulint	i;
+ 	mtr_t	mtr;
+ 	trx_t*	trx;
+-
++	time_t  current_time = time(NULL);
++
++        /* init all counters to be updated */
++        inno_num_lock_waiters = 0;
++        inno_summed_lock_wait_time = 0;
++        inno_longest_lock_wait = 0;
++        inno_num_active_transactions = 0;
++        inno_summed_transaction_age = 0;
++        inno_longest_transaction_age = 0;
++
++	if (file) {
+ 	fprintf(file, "LIST OF TRANSACTIONS FOR EACH SESSION:\n");
+ 
+ 	/* First print info on non-active transactions */
+@@ -4304,6 +4325,7 @@
+ 			
+ 		trx = UT_LIST_GET_NEXT(mysql_trx_list, trx);
+ 	}
++	} // if (file)
+ 
+ loop:
+ 	trx = UT_LIST_GET_FIRST(trx_sys->trx_list);
+@@ -4330,6 +4352,7 @@
+ 	}
+ 
+ 	if (nth_lock == 0) {
++		if (file) {
+ 		fputs("---", file);
+ 		trx_print(file, trx, 600);
+ 		
+@@ -4341,11 +4364,27 @@
+        		      (ulong) ut_dulint_get_high(trx->read_view->up_limit_id),
+        		      (ulong) ut_dulint_get_low(trx->read_view->up_limit_id));
+ 	        }
++	        } // if (file)
++
++		if (trx->conc_state == TRX_ACTIVE) {
++			ulong trx_age = (ulong)difftime(time(NULL), trx->start_time);
++			inno_num_active_transactions++;
++			inno_summed_transaction_age += trx_age;
++			if (inno_longest_transaction_age > trx_age)
++				inno_longest_transaction_age = trx_age;
++		}
+ 
+ 		if (trx->que_state == TRX_QUE_LOCK_WAIT) {
++			ulong wait_time = (ulong)difftime(current_time,
++							  trx->wait_started);
++			inno_num_lock_waiters++;
++			inno_summed_lock_wait_time += wait_time;
++			if (inno_longest_lock_wait < wait_time)
++				inno_longest_lock_wait = wait_time;
++			if (file) {
+ 			fprintf(file,
+  "------- TRX HAS BEEN WAITING %lu SEC FOR THIS LOCK TO BE GRANTED:\n",
+-		   (ulong)difftime(time(NULL), trx->wait_started));
++				wait_time);
+ 
+ 			if (lock_get_type(trx->wait_lock) == LOCK_REC) {
+ 				lock_rec_print(file, trx->wait_lock);
+@@ -4354,10 +4393,16 @@
+ 			}
+ 
+ 			fputs("------------------\n", file);
+-		}
+-	}
+-
+-	if (!srv_print_innodb_lock_monitor) {
++			} // if (file)
++		}
++	}
++
++  /* don't print locks per transaction if either
++     1) srv_print_innodb_lock_monitor is NOT set,
++        ie no magic table innodb_lock_monitor is created, or
++     2) file == NULL, ie, at counter updating stage from "show status"
++  */
++    if (!srv_print_innodb_lock_monitor || !file) {
+ 	  	nth_trx++;
+ 	  	goto loop;
+ 	}
+diff -r b059d02ec814 innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	Mon Nov 03 05:08:52 2008 -0800
++++ b/innobase/srv/srv0srv.c	Mon Nov 03 05:09:34 2008 -0800
+@@ -267,6 +267,35 @@
+ ulint inno_pending_log_ios = 0;
+ ulint inno_pending_sync_ios = 0;
+ 
++/* variable to identify if there is currently a long semaphore wait */
++ibool srv_long_lock_wait = FALSE;
++
++/* variable to count the number long semaphore waits noticed */
++ulint srv_long_lock_waits = 0;
++
++/* time interval in seconds allowed to calling innodb_show_status functions */
++extern long innobase_min_status_update_time_interval;
++
++/* all 24 innodb status variables, exported to status */
++ulint inno_transaction_count = 0;
++ulint inno_transaction_purge_count = 0;
++ulint inno_transaction_purge_lag = 0;
++ulint inno_num_active_transactions = 0;
++ulint inno_summed_transaction_age = 0;
++ulint inno_longest_transaction_age = 0;
++ulint inno_lock_wait_timeouts = 0;  /* Counts number of lock wait timeouts. */
++ulint inno_num_lock_waiters = 0;
++ulint inno_summed_lock_wait_time = 0;
++ulint inno_longest_lock_wait = 0;
++ulint inno_os_reads = 0;
++ulint inno_os_writes = 0;
++ulint inno_os_fsyncs = 0;
++ulint inno_ibuf_size = 0;
++ulint inno_ibuf_inserts = 0;
++ulint inno_ibuf_merged_recs = 0;
++ulint inno_ibuf_merges = 0;
++ulint inno_log_ios_done = 0;
++
+ /* structure to pass status variables to MySQL */
+ export_struc export_vars;
+ 
+@@ -419,6 +448,10 @@
+ const char* srv_io_thread_function[SRV_MAX_N_IO_THREADS];
+ 
+ time_t	srv_last_monitor_time;
++
++/* last time innodb status were updated thru show status */
++time_t  srv_last_innodb_status_time = 0;
++
+ 
+ mutex_t	srv_innodb_monitor_mutex;
+ 
+@@ -677,6 +710,24 @@
+ 
+ ulint	srv_n_threads_active[SRV_MASTER + 1];
+ ulint	srv_n_threads[SRV_MASTER + 1];
++
++/*************************************************************************
++Prints counters for work done by srv_master_thread. */
++
++static
++void
++srv_print_extra(
++/*===================*/
++	FILE  *file)    /* in: output stream */
++{
++	fprintf(file, "srv_master_thread loops: %lu 1_second, %lu sleeps, "
++		"%lu 10_second, %lu background, %lu flush\n",
++		srv_main_1_second_loops, srv_main_sleeps,
++		srv_main_10_second_loops, srv_main_background_loops,
++		srv_main_flush_loops);
++	fprintf(file, "srv_master_thread log flush: %lu sync, %lu async\n",
++		srv_sync_flush, srv_async_flush);
++}
+ 
+ /*************************************************************************
+ Sets the info describing an i/o thread current state. */
+@@ -1685,12 +1736,13 @@
+ 	fputs("----------\n"
+                "BACKGROUND THREAD\n"
+                "----------\n", file);
++        srv_print_extra(file);
+         fil_print(file);
+-
+ 
+ 	fputs("----------\n"
+ 		"SEMAPHORES\n"
+ 		"----------\n", file);
++        fprintf(file, "Lock wait timeouts %lu\n", inno_lock_wait_timeouts);
+ 	sync_print(file);
+ 
+ 	/* Conceptually, srv_innodb_monitor_mutex has a very high latching
+@@ -1709,24 +1761,6 @@
+ 
+ 	mutex_exit(&dict_foreign_err_mutex);
+ 
+-	lock_print_info_summary(file);
+-	if (trx_start) {
+-		long	t = ftell(file);
+-		if (t < 0) {
+-			*trx_start = ULINT_UNDEFINED;
+-		} else {
+-			*trx_start = (ulint) t;
+-		}
+-	}
+-	lock_print_info_all_transactions(file);
+-	if (trx_end) {
+-		long	t = ftell(file);
+-		if (t < 0) {
+-			*trx_end = ULINT_UNDEFINED;
+-		} else {
+-			*trx_end = (ulint) t;
+-		}
+-	}
+ 	fputs("--------\n"
+ 		"FILE I/O\n"
+ 		"--------\n", file);
+@@ -1815,6 +1849,27 @@
+ 			(srv_n_rows_read - srv_n_rows_read_old)
+ 						/ time_elapsed);
+ 
++        /* Print open transaction details */
++	lock_print_info_summary(file);
++
++	if (trx_start) {
++		long	t = ftell(file);
++		if (t < 0) {
++			*trx_start = ULINT_UNDEFINED;
++		} else {
++			*trx_start = (ulint) t;
++		}
++	}
++	lock_print_info_all_transactions(file);
++	if (trx_end) {
++		long	t = ftell(file);
++		if (t < 0) {
++			*trx_end = ULINT_UNDEFINED;
++		} else {
++			*trx_end = (ulint) t;
++		}
++	}
++
+   srv_n_rows_inserted_old = srv_n_rows_inserted;
+ 	srv_n_rows_updated_old = srv_n_rows_updated;
+ 	srv_n_rows_deleted_old = srv_n_rows_deleted;
+@@ -1833,7 +1888,8 @@
+ void
+ srv_export_innodb_status(void)
+ {
+-
++	long		time_elapsed;
++	time_t          current_time;
+         mutex_enter(&srv_innodb_monitor_mutex);
+         export_vars.innodb_data_pending_reads= os_n_pending_reads;
+         export_vars.innodb_data_pending_writes= os_n_pending_writes;
+@@ -1844,6 +1900,7 @@
+         export_vars.innodb_data_reads= os_n_file_reads;
+         export_vars.innodb_data_writes= os_n_file_writes;
+         export_vars.innodb_data_written= srv_data_written;
++        export_vars.innodb_dict_size= dict_sys->size;
+         export_vars.innodb_buffer_pool_read_requests= buf_pool->n_page_gets;
+         export_vars.innodb_buffer_pool_write_requests= srv_buf_pool_write_requests;
+         export_vars.innodb_buffer_pool_wait_free= srv_buf_pool_wait_free;
+@@ -1854,10 +1911,12 @@
+         export_vars.innodb_buffer_pool_pages_data= UT_LIST_GET_LEN(buf_pool->LRU);
+         export_vars.innodb_buffer_pool_pages_dirty= UT_LIST_GET_LEN(buf_pool->flush_list);
+         export_vars.innodb_buffer_pool_pages_free= UT_LIST_GET_LEN(buf_pool->free);
+-        export_vars.innodb_buffer_pool_pages_latched= buf_get_latched_pages_number();
++        /* This function uses too much CPU for large buffer caches. */
++        export_vars.innodb_buffer_pool_pages_latched= 1; /* buf_get_latched_pages_number(); */
+         export_vars.innodb_buffer_pool_pages_total= buf_pool->curr_size;
+         export_vars.innodb_buffer_pool_pages_misc= buf_pool->max_size -
+           UT_LIST_GET_LEN(buf_pool->LRU) - UT_LIST_GET_LEN(buf_pool->free);
++
+         export_vars.innodb_page_size= UNIV_PAGE_SIZE;
+         export_vars.innodb_log_waits= srv_log_waits;
+         export_vars.innodb_os_log_written= srv_os_log_written;
+@@ -1885,6 +1944,103 @@
+         export_vars.innodb_rows_inserted= srv_n_rows_inserted;
+         export_vars.innodb_rows_updated= srv_n_rows_updated;
+         export_vars.innodb_rows_deleted= srv_n_rows_deleted;
++        export_vars.innodb_long_lock_wait = srv_long_lock_wait;
++        export_vars.innodb_long_lock_waits = srv_long_lock_waits;
++
++        export_vars.innodb_os_aio_read_requests = os_aio_read_requests;
++        export_vars.innodb_os_aio_write_requests = os_aio_write_requests;
++
++        export_vars.innodb_os_aio_pages_read = os_aio_pages_read;
++        export_vars.innodb_os_aio_pages_written = os_aio_pages_written;
++
++        export_vars.innodb_os_aio_read_time = os_aio_read_time;
++        export_vars.innodb_os_aio_write_time = os_aio_write_time;
++
++        if (os_aio_read_requests > 0 ) {
++          export_vars.innodb_os_aio_read_time_avg
++              = os_aio_read_time / os_aio_read_requests;
++        } else {
++          export_vars.innodb_os_aio_read_time_avg = 0;
++        }
++        if (os_aio_write_requests > 0 ) {
++          export_vars.innodb_os_aio_write_time_avg
++              = os_aio_write_time / os_aio_write_requests;
++        } else {
++          export_vars.innodb_os_aio_write_time_avg = 0;
++        }
++
++        export_vars.innodb_deadlocks = innodb_deadlocks;
++
++        // simulate srv_printf_innodb_monitor, invoked by innodb_show_status
++        // 0. direct printout inno_lock_wait_timeouts, declared in srv0srv.c
++        // total # of variable(s) updated: 1
++        export_vars.inno_lock_wait_timeouts = inno_lock_wait_timeouts;
++
++        // *_print functions are allowed to be called once every
++        // some seconds to prevent too frequent invocation.
++        // the number is innobase_min_status_update_time_interval
++        current_time = time(NULL);
++        time_elapsed = difftime(current_time, srv_last_innodb_status_time);
++        if (time_elapsed >= innobase_min_status_update_time_interval) {
++          os_aio_print(NULL);
++          ibuf_print(NULL);
++          buf_print_io(NULL);
++          lock_print_info_summary(NULL);
++          lock_print_info_all_transactions(NULL);
++
++          srv_last_innodb_status_time = current_time;
++        }
++
++        // 1. os_aio_print
++        // the following were filled by calling os_aio_print
++        // total # of variable(s) updated: 8
++
++        export_vars.inno_pending_normal_aio_reads =
++            inno_pending_normal_aio_reads;
++        export_vars.inno_pending_normal_aio_writes =
++            inno_pending_normal_aio_writes;
++        export_vars.inno_pending_ibuf_aio_reads = inno_pending_ibuf_aio_reads;
++        export_vars.inno_pending_log_ios = inno_pending_log_ios;
++        export_vars.inno_pending_sync_ios = inno_pending_sync_ios;
++        export_vars.inno_os_reads = os_n_file_reads;
++        export_vars.inno_os_writes = os_n_file_writes;
++        export_vars.inno_os_fsyncs = os_n_fsyncs;
++
++        // 2. ibuf_print()
++        // total # of variable(s) updated: 4
++
++        export_vars.inno_ibuf_size = inno_ibuf_size;
++        export_vars.inno_ibuf_inserts = inno_ibuf_inserts;
++        export_vars.inno_ibuf_merged_recs = inno_ibuf_merged_recs;
++        export_vars.inno_ibuf_merges = inno_ibuf_merges;
++
++        // 3. log_print
++        // total # of variable(s) updated: 1
++        export_vars.inno_log_ios_done = (ulong) log_sys->n_log_ios;
++
++        // 5. lock_print_info_summary
++        // it enters the mutexes
++        //   1) innobase_mysql_prepare_print_arbitrary_thd()
++        //   2) lock_mutex_enter_kernel()
++        // total # of variable(s) updated: 3
++
++        export_vars.inno_transaction_count = inno_transaction_count;
++        export_vars.inno_transaction_purge_count =
++            inno_transaction_purge_count;
++        export_vars.inno_transaction_purge_lag = inno_transaction_purge_lag;
++
++        // 6. lock_print_info_all_transactions(NULL)
++        // it exits two mutexes entered from lock_print_info_summary(NULL)
++        // total # of variable(s) updated: 6
++
++        export_vars.inno_num_active_transactions = inno_num_active_transactions;
++        export_vars.inno_summed_transaction_age = inno_summed_transaction_age;
++        export_vars.inno_longest_transaction_age = inno_longest_transaction_age;
++
++        export_vars.inno_num_lock_waiters = inno_num_lock_waiters;
++        export_vars.inno_summed_lock_wait_time = inno_summed_lock_wait_time;
++        export_vars.inno_longest_lock_wait = inno_longest_lock_wait;
++
+         mutex_exit(&srv_innodb_monitor_mutex);
+ 
+ }
+@@ -2026,6 +2182,7 @@
+ 			        if (thr_get_trx(slot->thr)->wait_lock) {
+ 				        lock_cancel_waiting_and_release(
+ 				          thr_get_trx(slot->thr)->wait_lock);
++                                        ++inno_lock_wait_timeouts;
+ 			        }
+ 			}
+ 		}
+diff -r b059d02ec814 patch_info/innodb_extra_status.info
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patch_info/innodb_extra_status.info	Mon Nov 03 05:09:34 2008 -0800
+@@ -0,0 +1,9 @@
++File=innodb_extra_status.patch
++Name=Adds additional information of InnoDB counters into SHOW STATUS
++Version=1.0
++Author=Google
++License=GPL
++Comment=
++ChangeLog=
++2008-11-03
++VT: Initial porting
+diff -r b059d02ec814 sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	Mon Nov 03 05:08:52 2008 -0800
++++ b/sql/ha_innodb.cc	Mon Nov 03 05:09:34 2008 -0800
+@@ -299,12 +299,36 @@
+   (char*) &export_vars.innodb_dblwr_pages_written,        SHOW_LONG},
+   {"dblwr_writes",
+   (char*) &export_vars.innodb_dblwr_writes,               SHOW_LONG},
++  {"dict_size",
++  (char*) &export_vars.innodb_dict_size,                  SHOW_LONG},
+   {"log_waits",
+   (char*) &export_vars.innodb_log_waits,                  SHOW_LONG},
+   {"log_write_requests",
+   (char*) &export_vars.innodb_log_write_requests,         SHOW_LONG},
+   {"log_writes",
+   (char*) &export_vars.innodb_log_writes,                 SHOW_LONG},
++  {"long_lock_wait",
++  (char*) &export_vars.innodb_long_lock_wait,             SHOW_BOOL},
++  {"long_lock_waits",
++  (char*) &export_vars.innodb_long_lock_waits,            SHOW_LONG},
++
++  {"os_read_requests",
++  (char*) &export_vars.innodb_os_aio_read_requests,       SHOW_LONG},
++  {"os_write_requests",
++  (char*) &export_vars.innodb_os_aio_write_requests,      SHOW_LONG},
++  {"os_pages_read",
++  (char*) &export_vars.innodb_os_aio_pages_read,          SHOW_LONG},
++  {"os_pages_written",
++  (char*) &export_vars.innodb_os_aio_pages_written,       SHOW_LONG},
++  {"os_read_time",
++  (char*) &export_vars.innodb_os_aio_read_time,           SHOW_LONGLONG},
++  {"os_write_time",
++  (char*) &export_vars.innodb_os_aio_write_time,          SHOW_LONGLONG},
++  {"time_per_read",
++  (char*) &export_vars.innodb_os_aio_read_time_avg,       SHOW_LONGLONG},
++  {"time_per_write",
++  (char*) &export_vars.innodb_os_aio_write_time_avg,      SHOW_LONGLONG},
++
+   {"os_log_fsyncs",
+   (char*) &export_vars.innodb_os_log_fsyncs,              SHOW_LONG},
+   {"os_log_pending_fsyncs",
+@@ -339,6 +363,56 @@
+   (char*) &export_vars.innodb_rows_read,                  SHOW_LONG},
+   {"rows_updated",
+   (char*) &export_vars.innodb_rows_updated,               SHOW_LONG},
++  {"deadlocks",
++  (char*) &export_vars.innodb_deadlocks,                  SHOW_LONG},
++
++  /* 24 innodb status variables exported to status */
++  {"transaction_count",
++  (char*) &export_vars.inno_transaction_count,            SHOW_LONG},
++  {"transaction_purge_count",
++  (char*) &export_vars.inno_transaction_purge_count,      SHOW_LONG},
++  {"transaction_purge_lag",
++  (char*) &export_vars.inno_transaction_purge_lag,        SHOW_LONG},
++  {"active_transactions",
++  (char*) &export_vars.inno_num_active_transactions,      SHOW_LONG},
++  {"summed_transaction_age",
++  (char*) &export_vars.inno_summed_transaction_age,       SHOW_LONG},
++  {"longest_transaction_age",
++  (char*) &export_vars.inno_longest_transaction_age,      SHOW_LONG},
++  {"lock_wait_timeouts",
++  (char*) &export_vars.inno_lock_wait_timeouts,           SHOW_LONG},
++  {"lock_waiters",
++  (char*) &export_vars.inno_num_lock_waiters,             SHOW_LONG},
++  {"summed_lock_wait_time",
++  (char*) &export_vars.inno_summed_lock_wait_time,        SHOW_LONG},
++  {"longest_lock_wait",
++  (char*) &export_vars.inno_longest_lock_wait,            SHOW_LONG},
++  {"pending_normal_aio_reads",
++  (char*) &export_vars.inno_pending_normal_aio_reads,     SHOW_LONG},
++  {"pending_normal_aio_writes",
++  (char*) &export_vars.inno_pending_normal_aio_writes,    SHOW_LONG},
++  {"pending_ibuf_aio_reads",
++  (char*) &export_vars.inno_pending_ibuf_aio_reads,       SHOW_LONG},
++  {"pending_log_ios",
++  (char*) &export_vars.inno_pending_log_ios,              SHOW_LONG},
++  {"pending_sync_ios",
++  (char*) &export_vars.inno_pending_sync_ios,             SHOW_LONG},
++  {"os_reads",
++  (char*) &export_vars.inno_os_reads,                     SHOW_LONG},
++  {"os_writes",
++  (char*) &export_vars.inno_os_writes,                    SHOW_LONG},
++  {"os_fsyncs",
++  (char*) &export_vars.inno_os_fsyncs,                    SHOW_LONG},
++  {"ibuf_inserts",
++  (char*) &export_vars.inno_ibuf_size,                    SHOW_LONG},
++  {"ibuf_size",
++  (char*) &export_vars.inno_ibuf_inserts,                  SHOW_LONG},
++  {"ibuf_merged_recs",
++  (char*) &export_vars.inno_ibuf_merged_recs,              SHOW_LONG},
++  {"ibuf_merges",
++  (char*) &export_vars.inno_ibuf_merges,                   SHOW_LONG},
++  {"log_ios_done",
++  (char*) &export_vars.inno_log_ios_done,                 SHOW_LONG},
+   {NullS, NullS, SHOW_LONG}};
+ 
+ /* General functions */
+diff -r b059d02ec814 sql/ha_innodb.h
+--- a/sql/ha_innodb.h	Mon Nov 03 05:08:52 2008 -0800
++++ b/sql/ha_innodb.h	Mon Nov 03 05:09:34 2008 -0800
+@@ -198,6 +198,7 @@
+ extern struct show_var_st innodb_status_variables[];
+ extern ulong innobase_fast_shutdown;
+ extern long innobase_max_merged_io;
++extern long innobase_min_status_update_time_interval;
+ extern ulong innobase_large_page_size;
+ extern long innobase_mirrored_log_groups, innobase_log_files_in_group;
+ extern longlong innobase_buffer_pool_size, innobase_log_file_size;
+diff -r b059d02ec814 sql/mysqld.cc
+--- a/sql/mysqld.cc	Mon Nov 03 05:08:52 2008 -0800
++++ b/sql/mysqld.cc	Mon Nov 03 05:09:34 2008 -0800
+@@ -4950,6 +4950,7 @@
+   OPT_INNODB_SYNC_SPIN_LOOPS,
+   OPT_INNODB_CONCURRENCY_TICKETS,
+   OPT_INNODB_THREAD_SLEEP_DELAY,
++  OPT_INNODB_MIN_STATUS_UPDATE_TIME_INTERVAL,
+   OPT_BDB_CACHE_SIZE,
+   OPT_BDB_LOG_BUFFER_SIZE,
+   OPT_BDB_MAX_LOCK,
+@@ -6031,6 +6032,14 @@
+    (gptr*) &srv_thread_sleep_delay,
+    (gptr*) &srv_thread_sleep_delay,
+    0, GET_ULONG, REQUIRED_ARG, 10000L, 0L, ULONG_MAX, 0, 1L, 0},
++  {"innodb_status_update_interval",
++   OPT_INNODB_MIN_STATUS_UPDATE_TIME_INTERVAL,
++   "Minimum time interval in seconds before InnoDB status counters "
++   "are updated during SHOW STATUS. "
++   "InnoDB counters are always updated during SHOW INNODB STATUS.",
++   (gptr*) &innobase_min_status_update_time_interval,
++   (gptr*) &innobase_min_status_update_time_interval,
++   0, GET_LONG, REQUIRED_ARG, 30, 0, 3600, 0, 1, 0},
+ #endif /* HAVE_INNOBASE_DB */
+   {"interactive_timeout", OPT_INTERACTIVE_TIMEOUT,
+    "The number of seconds the server waits for activity on an interactive connection before closing it.",
+diff -r b059d02ec814 sql/set_var.cc
+--- a/sql/set_var.cc	Mon Nov 03 05:08:52 2008 -0800
++++ b/sql/set_var.cc	Mon Nov 03 05:09:34 2008 -0800
+@@ -948,6 +948,8 @@
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG },
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG },
+   {"innodb_max_merged_io", (char*) &innobase_max_merged_io, SHOW_LONG},
++  {"innodb_status_update_interval",
++   (char*) &innobase_min_status_update_time_interval, SHOW_LONG},
+ #endif
+   {sys_interactive_timeout.name,(char*) &sys_interactive_timeout,   SHOW_SYS},
+   {sys_join_buffer_size.name,   (char*) &sys_join_buffer_size,	    SHOW_SYS},
