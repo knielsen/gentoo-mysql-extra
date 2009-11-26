@@ -981,7 +981,7 @@
 @@ Percona 5.0.87-b20-20091116:  Fix of InnoDB rw_locks
 
 @patch 15000_all_mysql_gcc-4.4_5.0.77.patch
-@ver 5.00.77.00 to 5.00.99.99
+@ver 5.00.77.00 to 5.00.87.99
 @pn mysql
 @pn mysql-community
 @@ GCC4.4 Fixup for Percona Patch
