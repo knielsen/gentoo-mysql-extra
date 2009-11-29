@@ -212,7 +212,7 @@
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
 @patch 01050_all_mysql_config_cleanup-5.1.41.patch
-@ver 5.01.41.00 to 5.01.21.99
+@ver 5.01.41.00 to 5.01.99.99
 @pn mysql
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
