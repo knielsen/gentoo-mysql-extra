@@ -375,7 +375,7 @@
 @@ Fix for InnoDB 'CONTAINS' DoS (gentoo bug #198988, upstream bug #32125)
 
 @patch 07090_all_innodb_spatial_crash_mybug_32125_5.1.patch
-@ver 5.01.22.00 to 5.01.99.99
+@ver 5.01.22.00 to 5.01.40.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
