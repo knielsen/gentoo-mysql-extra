@@ -413,7 +413,7 @@
 
 @patch 07110_all_mysql_gcc-4.2.patch
 @ver 5.00.42.00 to 5.00.50.99
-@ver 5.01.21.99 to 5.01.22.99
+@ver 5.01.21.99 to 5.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
