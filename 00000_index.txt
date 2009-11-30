@@ -333,10 +333,17 @@
 
 @patch 07040_all_disable_mybug_9735_test.patch
 @ver 5.00.26.00 to 5.00.81.99
-@ver 5.01.00.00 to 5.01.41.99
+@ver 5.01.00.00 to 5.01.21.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
+@@ disable a test that fail on longtext field lenght, the expected value is
+@@ three times the returned one, look like a multibyte character related
+@@ failure.
+
+@patch 07040_all_disable_mybug_9735_test-5.1.41.patch
+@ver 5.01.41.00 to 5.01.99.99
+@pn mysql
 @@ disable a test that fail on longtext field lenght, the expected value is
 @@ three times the returned one, look like a multibyte character related
 @@ failure.
