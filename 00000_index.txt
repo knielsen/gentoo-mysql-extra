@@ -201,6 +201,7 @@
 @pn mysql-slotted
 @@ prevent loading of modules from plugin table when in bootstrap mode
 @@ Thanks solar, bug #158777
+@@ TODO: Need to check the status with 5.1.41
 
 @patch 01050_all_mysql_config_cleanup.patch
 @ver 4.01.22.00 to 4.01.99.99
@@ -332,7 +333,7 @@
 
 @patch 07040_all_disable_mybug_9735_test.patch
 @ver 5.00.26.00 to 5.00.81.99
-@ver 5.01.00.00 to 5.01.21.99
+@ver 5.01.00.00 to 5.01.41.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
