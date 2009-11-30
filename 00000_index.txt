@@ -100,6 +100,14 @@
 @@ here is the remaining.
 @@ _many_ thanks to pageexec@freemail.hu
 
+@patch 00350_x86_asm-pic-fixes-5.1.41.patch
+@ver 5.01.41.00 to 5.01.99.99
+@pn mysql
+@@ remove page relocations
+@@ Most part of the original patch has already been accepted by MysQL,
+@@ here is the remaining.
+@@ _many_ thanks to pageexec@freemail.hu
+
 @patch 00400_all_tcpd-vars-fix-4.0.14.patch
 @ver 4.00.14.00 to 4.01.99.99
 @pn mysql

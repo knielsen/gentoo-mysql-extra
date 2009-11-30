@@ -1,0 +1,30 @@
+diff -Naur mysql.old/strings/longlong2str-x86.s mysql.new/strings/longlong2str-x86.s
+--- mysql.old/strings/longlong2str-x86.s	2005-08-27 22:33:11.000000000 +0200
++++ mysql.new/strings/longlong2str-x86.s	2005-09-05 18:46:04.000000000 +0200
+@@ -214,3 +214,6 @@
+
+ .L10end:
+ 	.size	 longlong10_to_str,.L10end-longlong10_to_str
++
++	.section	.note.GNU-stack,"",@progbits
++
+diff -Naur mysql.old/strings/my_strtoll10-x86.s mysql.new/strings/my_strtoll10-x86.s
+--- mysql.old/strings/my_strtoll10-x86.s	2005-08-27 22:33:19.000000000 +0200
++++ mysql.new/strings/my_strtoll10-x86.s	2005-09-05 18:46:10.000000000 +0200
+@@ -416,3 +416,6 @@
+         .comm   end_ptr,120,32
+         .comm   error,120,32
+ 	.ident	"Monty"
++
++	.section	.note.GNU-stack,"",@progbits
++
+diff -Naur mysql.old/strings/strings-x86.s mysql.new/strings/strings-x86.s
+--- mysql.old/strings/strings-x86.s	2005-08-27 22:33:36.000000000 +0200
++++ mysql.new/strings/strings-x86.s	2005-09-05 18:46:22.000000000 +0200
+@@ -414,3 +414,6 @@
+ 	ret
+ .strxmov_end:
+ 	.size	 strxmov,.strxmov_end-strxmov
++
++	.section	.note.GNU-stack,"",@progbits
++
