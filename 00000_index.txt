@@ -421,13 +421,18 @@
 
 @patch 07110_all_mysql_gcc-4.2_5.0.54.patch
 @ver 5.00.54.00 to 5.00.55.99
-@ver 5.01.41.00 to 5.01.99.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
 @@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
 # 5.0..56 and newer, as well as 5.0.51a do not need the MYSQL_MIN gcc-4.2 fix
 # anymore.
+
+@patch 07110_all_mysql_gcc-4.2_5.1.41.patch
+@ver 5.01.41.00 to 5.01.99.99
+@pn mysql
+@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
+@@ FIXME: Testing patch
 
 @patch 07120_all_openssl_handshake_mybug_33050.patch
 @ver 5.00.50.00 to 5.00.54.99
