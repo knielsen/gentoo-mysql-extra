@@ -82,7 +82,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysql_upgrade.c ./client/mysql_upgrad
  
      /* Chop off last dir part */
      dirname_part(path, path, &path_len);
-@@ -492,7 +492,7 @@
+@@ -527,7 +527,7 @@
    if ((value_end= strchr(value_start, '\n')) == NULL)
      return 1; /* Unexpected result */
  
@@ -185,7 +185,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/extra/yassl/taocrypt/src/dh.cpp ./extra/yass
 diff -uNr ../mysql-5.1.22-beta.orig/include/my_global.h ./include/my_global.h
 --- ../mysql-5.1.22-beta.orig/include/my_global.h	2007-10-04 21:42:20.000000000 +0200
 +++ ./include/my_global.h	2007-10-04 21:43:01.000000000 +0200
-@@ -563,10 +563,8 @@
+@@ -572,10 +572,8 @@
  #endif
  
  /* Define some useful general macros */
@@ -273,7 +273,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/array.c ./mysys/array.c
      if (init_alloc > 8 && alloc_increment > init_alloc * 2)
        alloc_increment=init_alloc*2;
    }
-@@ -313,7 +313,7 @@
+@@ -341,7 +341,7 @@
  
  void freeze_size(DYNAMIC_ARRAY *array)
  {
@@ -309,7 +309,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/mf_format.c ./mysys/mf_format.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/mf_iocache.c ./mysys/mf_iocache.c
 --- ../mysql-5.1.22-beta.orig/mysys/mf_iocache.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/mf_iocache.c	2007-10-04 21:43:01.000000000 +0200
-@@ -1091,7 +1091,7 @@
+@@ -1097,7 +1097,7 @@
    */
    while (write_length)
    {
@@ -318,7 +318,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/mf_iocache.c ./mysys/mf_iocache.c
      int  __attribute__((unused)) rc;
  
      rc= lock_io_cache(write_cache, write_cache->pos_in_file);
-@@ -1250,7 +1250,7 @@
+@@ -1256,7 +1256,7 @@
        TODO: figure out if the assert below is needed or correct.
      */
      DBUG_ASSERT(pos_in_file == info->end_of_file);
@@ -327,7 +327,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/mf_iocache.c ./mysys/mf_iocache.c
      memcpy(Buffer, info->append_read_pos, copy_len);
      info->append_read_pos += copy_len;
      Count -= copy_len;
-@@ -1359,7 +1359,7 @@
+@@ -1365,7 +1365,7 @@
      }
  #endif
  	/* Copy found bytes to buffer */
@@ -336,7 +336,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/mf_iocache.c ./mysys/mf_iocache.c
      memcpy(Buffer,info->read_pos,(size_t) length);
      Buffer+=length;
      Count-=length;
-@@ -1393,7 +1393,7 @@
+@@ -1399,7 +1399,7 @@
        if ((read_length=my_read(info->file,info->request_pos,
  			       read_length, info->myflags)) == (size_t) -1)
          return info->error= -1;
@@ -360,7 +360,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_alloc.c ./mysys/my_alloc.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_bitmap.c ./mysys/my_bitmap.c
 --- ../mysql-5.1.22-beta.orig/mysys/my_bitmap.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/my_bitmap.c	2007-10-04 21:43:01.000000000 +0200
-@@ -364,7 +364,7 @@
+@@ -365,7 +365,7 @@
  
    DBUG_ASSERT(map->bitmap && map2->bitmap);
  
@@ -372,7 +372,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_bitmap.c ./mysys/my_bitmap.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_compress.c ./mysys/my_compress.c
 --- ../mysql-5.1.22-beta.orig/mysys/my_compress.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/my_compress.c	2007-10-04 21:43:01.000000000 +0200
-@@ -243,7 +243,7 @@
+@@ -244,7 +244,7 @@
  
     if (ver != 1)
       DBUG_RETURN(1);
@@ -446,7 +446,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_getopt.c ./mysys/my_getopt.c
  }
  
  /*
-@@ -833,7 +833,7 @@
+@@ -973,7 +973,7 @@
    }
    if (optp->max_value && num > (double) optp->max_value)
      num= (double) optp->max_value;
@@ -458,7 +458,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_getopt.c ./mysys/my_getopt.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_handler.c ./mysys/my_handler.c
 --- ../mysql-5.1.22-beta.orig/mysys/my_handler.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/my_handler.c	2007-10-04 21:43:01.000000000 +0200
-@@ -33,7 +33,7 @@
+@@ -38,7 +38,7 @@
  static int compare_bin(uchar *a, uint a_length, uchar *b, uint b_length,
                         my_bool part_key, my_bool skip_end_space)
  {
@@ -467,7 +467,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_handler.c ./mysys/my_handler.c
    uchar *end= a+ length;
    int flag;
  
-@@ -161,7 +161,7 @@
+@@ -166,7 +166,7 @@
          continue;                               /* To next key part */
        }
      }
@@ -479,7 +479,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_handler.c ./mysys/my_handler.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/safemalloc.c ./mysys/safemalloc.c
 --- ../mysql-5.1.22-beta.orig/mysys/safemalloc.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/safemalloc.c	2007-10-04 21:43:01.000000000 +0200
-@@ -237,7 +237,7 @@
+@@ -238,7 +238,7 @@
  
    if ((data= _mymalloc(size,filename,lineno,MyFlags))) /* Allocate new area */
    {
@@ -538,7 +538,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/client.c ./sql/client.c
 diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
 --- ../mysql-5.1.22-beta.orig/sql/field.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/field.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -49,7 +49,7 @@
+@@ -54,7 +54,7 @@
  #define LONGLONG_TO_STRING_CONVERSION_BUFFER_SIZE 128
  #define DECIMAL_TO_STRING_CONVERSION_BUFFER_SIZE 128
  #define BLOB_PACK_LENGTH_TO_MAX_LENGH(arg) \
@@ -547,7 +547,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
  
  #define ASSERT_COLUMN_MARKED_FOR_READ DBUG_ASSERT(!table || (!table->read_set || bitmap_is_set(table->read_set, field_index)))
  #define ASSERT_COLUMN_MARKED_FOR_WRITE DBUG_ASSERT(!table || (!table->write_set || bitmap_is_set(table->write_set, field_index)))
-@@ -1980,7 +1980,7 @@
+@@ -2071,7 +2071,7 @@
      tmp_uint=tmp_dec+(uint)(int_digits_end-int_digits_from);
    else if (expo_sign_char == '-') 
    {
@@ -556,7 +556,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
      frac_digits_added_zeros=exponent-tmp_uint;
      int_digits_end -= tmp_uint;
      frac_digits_head_end=int_digits_end+tmp_uint;
-@@ -1988,7 +1988,7 @@
+@@ -2079,7 +2079,7 @@
    }
    else // (expo_sign_char=='+') 
    {
@@ -565,7 +565,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
      int_digits_added_zeros=exponent-tmp_uint;
      int_digits_tail_from=frac_digits_from;
      frac_digits_from=frac_digits_from+tmp_uint;
-@@ -2876,7 +2876,7 @@
+@@ -3045,7 +3045,7 @@
    ASSERT_COLUMN_MARKED_FOR_READ;
    CHARSET_INFO *cs= &my_charset_bin;
    uint length;
@@ -574,7 +574,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(mlength);
    char *to=(char*) val_buffer->ptr();
  
-@@ -3088,7 +3088,7 @@
+@@ -3257,7 +3257,7 @@
    ASSERT_COLUMN_MARKED_FOR_READ;
    CHARSET_INFO *cs= &my_charset_bin;
    uint length;
@@ -583,7 +583,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(mlength);
    char *to=(char*) val_buffer->ptr();
    short j;
-@@ -3305,7 +3305,7 @@
+@@ -3474,7 +3474,7 @@
    ASSERT_COLUMN_MARKED_FOR_READ;
    CHARSET_INFO *cs= &my_charset_bin;
    uint length;
@@ -592,7 +592,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(mlength);
    char *to=(char*) val_buffer->ptr();
    long j= unsigned_flag ? (long) uint3korr(ptr) : sint3korr(ptr);
-@@ -3524,7 +3524,7 @@
+@@ -3693,7 +3693,7 @@
    ASSERT_COLUMN_MARKED_FOR_READ;
    CHARSET_INFO *cs= &my_charset_bin;
    uint length;
@@ -601,7 +601,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(mlength);
    char *to=(char*) val_buffer->ptr();
    int32 j;
-@@ -3765,7 +3765,7 @@
+@@ -3934,7 +3934,7 @@
  {
    CHARSET_INFO *cs= &my_charset_bin;
    uint length;
@@ -610,7 +610,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(mlength);
    char *to=(char*) val_buffer->ptr();
    longlong j;
-@@ -3947,7 +3947,7 @@
+@@ -4157,7 +4157,7 @@
  #endif
      memcpy_fixed((uchar*) &nr,ptr,sizeof(nr));
  
@@ -619,7 +619,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    val_buffer->alloc(to_length);
    char *to=(char*) val_buffer->ptr();
  
-@@ -4289,7 +4289,7 @@
+@@ -4515,7 +4515,7 @@
  #endif
      doubleget(nr,ptr);
  
@@ -644,7 +644,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
                                      local_char_length),
                                     nr));
    /*
-@@ -6357,7 +6357,7 @@
+@@ -6680,7 +6680,7 @@
  
  uchar *Field_string::pack(uchar *to, const uchar *from, uint max_length)
  {
@@ -653,7 +653,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    uint local_char_length= max_length/field_charset->mbmaxlen;
    if (length > local_char_length)
      local_char_length= my_charpos(field_charset, from, from+length,
-@@ -7292,7 +7292,7 @@
+@@ -7675,7 +7675,7 @@
      from= tmpstr.ptr();
    }
  
@@ -662,7 +662,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    if (value.alloc(new_length))
      goto oom_error;
  
-@@ -7447,7 +7447,7 @@
+@@ -7835,7 +7835,7 @@
    b_length=get_length(b_ptr);
    if (b_length > max_length)
      b_length=max_length;
@@ -671,7 +671,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    return diff ? diff : (int) (a_length - b_length);
  }
  
-@@ -8569,7 +8569,7 @@
+@@ -9067,7 +9067,7 @@
  {
    ASSERT_COLUMN_MARKED_FOR_READ;
    char buff[sizeof(longlong)];
@@ -680,7 +680,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    ulonglong bits= val_int();
    mi_int8store(buff,bits);
  
-@@ -8655,7 +8655,7 @@
+@@ -9153,7 +9153,7 @@
      *buff++= bits;
      length--;
    }
@@ -689,7 +689,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
    memcpy(buff, ptr, data_length);
    return data_length + 1;
  }
-@@ -8698,7 +8698,7 @@
+@@ -9270,7 +9270,7 @@
      uchar bits= get_rec_bits(bit_ptr + (from - ptr), bit_ofs, bit_len);
      *to++= bits;
    }
