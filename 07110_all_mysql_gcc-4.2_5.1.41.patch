@@ -1,7 +1,7 @@
 diff -uNr ../mysql-5.1.22-beta.orig/client/mysqlbinlog.cc ./client/mysqlbinlog.cc
 --- ../mysql-5.1.22-beta.orig/client/mysqlbinlog.cc	2007-10-04 21:42:21.000000000 +0200
 +++ ./client/mysqlbinlog.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -1465,7 +1465,7 @@
+@@ -1941,7 +1941,7 @@
        my_off_t length,tmp;
        for (length= start_position_mot ; length > 0 ; length-=tmp)
        {
@@ -13,7 +13,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysqlbinlog.cc ./client/mysqlbinlog.c
 diff -uNr ../mysql-5.1.22-beta.orig/client/mysql.cc ./client/mysql.cc
 --- ../mysql-5.1.22-beta.orig/client/mysql.cc	2007-10-04 21:42:21.000000000 +0200
 +++ ./client/mysql.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -2398,9 +2398,9 @@
+@@ -3295,9 +3295,9 @@
    {
      uint length= column_names ? field->name_length : 0;
      if (quick)
@@ -25,7 +25,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysql.cc ./client/mysql.cc
      if (length < 4 && !IS_NOT_NULL(field->flags))
        length=4;					// Room for "NULL"
      field->max_length=length;
-@@ -2420,7 +2420,7 @@
+@@ -3317,7 +3317,7 @@
                                                    field->name,
                                                    field->name + name_length);
        uint display_length= field->max_length + name_length - numcells;
@@ -37,7 +37,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysql.cc ./client/mysql.cc
 diff -uNr ../mysql-5.1.22-beta.orig/client/mysqldump.c ./client/mysqldump.c
 --- ../mysql-5.1.22-beta.orig/client/mysqldump.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./client/mysqldump.c	2007-10-04 21:43:01.000000000 +0200
-@@ -790,7 +790,7 @@
+@@ -808,7 +808,7 @@
                                      &err_ptr, &err_len);
        if (err_len)
        {
@@ -46,7 +46,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysqldump.c ./client/mysqldump.c
          fprintf(stderr, "Invalid mode to --compatible: %s\n", buff);
          exit(1);
        }
-@@ -4389,7 +4389,7 @@
+@@ -4486,7 +4486,7 @@
  
        for (; pos != end && *pos != ','; pos++) ;
        var_len= (uint) (pos - start);
@@ -94,7 +94,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysql_upgrade.c ./client/mysql_upgrad
 diff -uNr ../mysql-5.1.22-beta.orig/client/sql_string.cc ./client/sql_string.cc
 --- ../mysql-5.1.22-beta.orig/client/sql_string.cc	2007-10-04 21:42:21.000000000 +0200
 +++ ./client/sql_string.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -662,7 +662,7 @@
+@@ -659,7 +659,7 @@
  {
    if (Alloced_length < str_length + space_needed)
    {
@@ -103,7 +103,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/sql_string.cc ./client/sql_string.cc
        return TRUE;
    }
    return FALSE;
-@@ -748,7 +748,7 @@
+@@ -745,7 +745,7 @@
  
  int stringcmp(const String *s,const String *t)
  {
@@ -112,7 +112,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/sql_string.cc ./client/sql_string.cc
    int cmp= memcmp(s->ptr(), t->ptr(), len);
    return (cmp) ? cmp : (int) (s_len - t_len);
  }
-@@ -765,7 +765,7 @@
+@@ -762,7 +762,7 @@
    }
    if (to->realloc(from_length))
      return from;				// Actually an error
@@ -124,7 +124,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/sql_string.cc ./client/sql_string.cc
 diff -uNr ../mysql-5.1.22-beta.orig/dbug/dbug.c ./dbug/dbug.c
 --- ../mysql-5.1.22-beta.orig/dbug/dbug.c	2007-10-04 21:42:20.000000000 +0200
 +++ ./dbug/dbug.c	2007-10-04 21:43:01.000000000 +0200
-@@ -1177,7 +1177,7 @@
+@@ -1202,7 +1202,7 @@
      if (TRACING)
      {
        Indent(cs, cs->level + 1);
@@ -133,7 +133,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/dbug/dbug.c ./dbug/dbug.c
      }
      else
      {
-@@ -1662,7 +1662,7 @@
+@@ -1687,7 +1687,7 @@
  {
    REGISTER int count;
  
@@ -201,7 +201,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/include/my_global.h ./include/my_global.h
 diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
 --- ../mysql-5.1.22-beta.orig/libmysql/libmysql.c	2007-10-04 21:42:20.000000000 +0200
 +++ ./libmysql/libmysql.c	2007-10-04 21:43:01.000000000 +0200
-@@ -1541,7 +1541,7 @@
+@@ -1570,7 +1570,7 @@
    my_net_set_read_timeout(net, CLIENT_NET_READ_TIMEOUT);
    my_net_set_write_timeout(net, CLIENT_NET_WRITE_TIMEOUT);
    net->retry_count=  1;
@@ -210,7 +210,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
  }
  
  /*
-@@ -3616,7 +3616,7 @@
+@@ -3617,7 +3617,7 @@
        copy_length= end - start;
        /* We've got some data beyond offset: copy up to buffer_length bytes */
        if (param->buffer_length)
@@ -231,7 +231,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
        end= strcend(buff, ' ');
        *end= 0;
      }
-@@ -4156,7 +4156,7 @@
+@@ -4170,7 +4170,7 @@
                               uchar **row)
  {
    ulong length= net_field_length(row);
@@ -240,7 +240,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
    memcpy(param->buffer, (char *)*row, copy_length);
    *param->length= length;
    *param->error= copy_length < length;
-@@ -4168,7 +4168,7 @@
+@@ -4182,7 +4182,7 @@
                               uchar **row)
  {
    ulong length= net_field_length(row);
