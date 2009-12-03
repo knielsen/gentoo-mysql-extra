@@ -55,10 +55,10 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysqldump.c ./client/mysqldump.c
        find= find_type(buff, lib, var_len);
        if (!find)
        {
-diff -uNr ../mysql-5.1.22-beta.orig/client/mysqltest.c ./client/mysqltest.c
---- ../mysql-5.1.22-beta.orig/client/mysqltest.c	2007-10-04 21:42:21.000000000 +0200
-+++ ./client/mysqltest.c	2007-10-04 21:43:01.000000000 +0200
-@@ -4099,9 +4099,9 @@
+diff -uNr ../mysql-5.1.22-beta.orig/client/mysqltest.cc ./client/mysqltest.cc
+--- ../mysql-5.1.22-beta.orig/client/mysqltest.cc	2007-10-04 21:42:21.000000000 +0200
++++ ./client/mysqltest.cc	2007-10-04 21:43:01.000000000 +0200
+@@ -5366,9 +5366,9 @@
        }
        else if ((c == '{' &&
                  (!my_strnncoll_simple(charset_info, (const uchar*) "while", 5,
@@ -73,15 +73,6 @@ diff -uNr ../mysql-5.1.22-beta.orig/client/mysqltest.c ./client/mysqltest.c
 diff -uNr ../mysql-5.1.22-beta.orig/client/mysql_upgrade.c ./client/mysql_upgrade.c
 --- ../mysql-5.1.22-beta.orig/client/mysql_upgrade.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./client/mysql_upgrade.c	2007-10-04 21:43:01.000000000 +0200
-@@ -401,7 +401,7 @@
-     DBUG_PRINT("enter", ("path: %s", path));
- 
-     /* Chop off last char(since it might be a /) */
--    path[max((strlen(path)-1), 0)]= 0;
-+    path[MYSQL_MAX((strlen(path)-1), 0)]= 0;
- 
-     /* Chop off last dir part */
-     dirname_part(path, path, &path_len);
 @@ -527,7 +527,7 @@
    if ((value_end= strchr(value_start, '\n')) == NULL)
      return 1; /* Unexpected result */
@@ -226,7 +217,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
 -      sprintf(buff, "%-*.*g", (int) min(sizeof(buff)-1,
 +      sprintf(buff, "%-*.*g", (int) MYSQL_MIN(sizeof(buff)-1,
                                          param->buffer_length),
--	      min(14,width), value);
+-	      min(DBL_DIG, width), value);
 +	      MYSQL_MIN(14,width), value);
        end= strcend(buff, ' ');
        *end= 0;
