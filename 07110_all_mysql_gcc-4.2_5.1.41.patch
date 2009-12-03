@@ -285,7 +285,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/array.c ./mysys/array.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/default.c ./mysys/default.c
 --- ../mysql-5.1.22-beta.orig/mysys/default.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/default.c	2007-10-04 21:43:01.000000000 +0200
-@@ -722,7 +722,7 @@
+@@ -793,7 +793,7 @@
        for ( ; my_isspace(&my_charset_latin1,end[-1]) ; end--) ;
        end[0]=0;
  
@@ -710,7 +710,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/filesort.cc ./sql/filesort.cc
 --- ../mysql-5.1.22-beta.orig/sql/filesort.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/filesort.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -181,7 +181,7 @@
+@@ -191,7 +191,7 @@
  #ifdef CAN_TRUST_RANGE
    if (select && select->quick && select->quick->records > 0L)
    {
@@ -719,7 +719,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/filesort.cc ./sql/filesort.cc
  		table->file->stats.records)+EXTRA_RECORDS;
      selected_records_file=0;
    }
-@@ -203,12 +203,12 @@
+@@ -213,12 +213,12 @@
      goto err;
  
    memavl= thd->variables.sortbuff_size;
@@ -734,7 +734,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/filesort.cc ./sql/filesort.cc
      if ((table_sort.sort_keys=
  	 (uchar **) make_char_array((char **) table_sort.sort_keys,
                                      param.keys, param.rec_length, MYF(0))))
-@@ -1049,7 +1049,7 @@
+@@ -1113,7 +1113,7 @@
    register uint count;
    uint length;
  
@@ -743,7 +743,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/filesort.cc ./sql/filesort.cc
    {
      if (my_pread(fromfile->file,(uchar*) buffpek->base,
  		 (length= rec_length*count),buffpek->file_pos,MYF_RW))
-@@ -1312,7 +1312,7 @@
+@@ -1376,7 +1376,7 @@
           != -1 && error != 0);
  
  end:
@@ -755,7 +755,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/filesort.cc ./sql/filesort.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/ha_ndbcluster.cc ./sql/ha_ndbcluster.cc
 --- ../mysql-5.1.22-beta.orig/sql/ha_ndbcluster.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/ha_ndbcluster.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -804,7 +804,7 @@
+@@ -800,7 +800,7 @@
  
        DBUG_PRINT("value", ("set blob ptr: 0x%lx  len: %u",
                             (long) blob_ptr, blob_len));
@@ -767,7 +767,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/ha_ndbcluster.cc ./sql/ha_ndbcluster.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/handler.h ./sql/handler.h
 --- ../mysql-5.1.22-beta.orig/sql/handler.h	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/handler.h	2007-10-04 21:43:01.000000000 +0200
-@@ -1565,15 +1565,15 @@
+@@ -1598,15 +1598,15 @@
    { return (HA_ERR_WRONG_COMMAND); }
  
    uint max_record_length() const
@@ -791,7 +791,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/handler.h ./sql/handler.h
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item_buff.cc ./sql/item_buff.cc
 --- ../mysql-5.1.22-beta.orig/sql/item_buff.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item_buff.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -51,7 +51,7 @@
+@@ -58,7 +58,7 @@
  */
  
  Cached_item_str::Cached_item_str(THD *thd, Item *arg)
@@ -800,7 +800,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_buff.cc ./sql/item_buff.cc
  {}
  
  bool Cached_item_str::cmp(void)
-@@ -60,7 +60,7 @@
+@@ -67,7 +67,7 @@
    bool tmp;
  
    if ((res=item->val_str(&tmp_value)))
@@ -812,7 +812,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_buff.cc ./sql/item_buff.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
 --- ../mysql-5.1.22-beta.orig/sql/item.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -73,7 +73,7 @@
+@@ -74,7 +74,7 @@
  Hybrid_type_traits_decimal::fix_length_and_dec(Item *item, Item *arg) const
  {
    item->decimals= arg->decimals;
@@ -833,7 +833,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
  }
  
  
-@@ -728,7 +728,7 @@
+@@ -739,7 +739,7 @@
  				   &res_length);
    }
    else
@@ -842,7 +842,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
  }
  
  
-@@ -4805,7 +4805,7 @@
+@@ -5349,7 +5349,7 @@
    // following assert is redundant, because fixed=1 assigned in constructor
    DBUG_ASSERT(fixed == 1);
    char *end=(char*) str_value.ptr()+str_value.length(),
@@ -867,7 +867,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
                         + decimals, DECIMAL_MAX_PRECISION);
      unsigned_flag&= item->unsigned_flag;
      max_length= my_decimal_precision_to_length(precision, decimals,
-@@ -6733,7 +6733,7 @@
+@@ -7388,7 +7388,7 @@
       */
      if (collation.collation != &my_charset_bin)
      {
@@ -876,7 +876,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
                        display_length(item) /
                        item->collation.collation->mbmaxlen *
                        collation.collation->mbmaxlen);
-@@ -6748,7 +6748,7 @@
+@@ -7428,7 +7428,7 @@
      {
        int delta1= max_length_orig - decimals_orig;
        int delta2= item->max_length - item->decimals;
@@ -897,7 +897,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
 --- ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item_cmpfunc.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -560,7 +560,7 @@
+@@ -622,7 +622,7 @@
    {
      if ((*a)->decimals < NOT_FIXED_DEC && (*b)->decimals < NOT_FIXED_DEC)
      {
@@ -906,7 +906,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
        if (func == &Arg_comparator::compare_real)
          func= &Arg_comparator::compare_real_fixed;
        else if (func == &Arg_comparator::compare_e_real)
-@@ -1032,7 +1032,7 @@
+@@ -1154,7 +1154,7 @@
        owner->null_value= 0;
        uint res1_length= res1->length();
        uint res2_length= res2->length();
@@ -941,7 +941,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  }
  
  
-@@ -2203,7 +2203,7 @@
+@@ -2357,7 +2357,7 @@
  Item_func_if::fix_length_and_dec()
  {
    maybe_null=args[1]->maybe_null || args[2]->maybe_null;
@@ -973,7 +973,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  }
  
  
-@@ -2641,7 +2641,7 @@
+@@ -2821,7 +2821,7 @@
  
    if (else_expr_num != -1) 
      set_if_bigger(max_int_part, args[else_expr_num]->decimal_int_part());
@@ -982,7 +982,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  }
  
  
-@@ -4489,7 +4489,7 @@
+@@ -4711,7 +4711,7 @@
        else
        {
  	if (i < g)
@@ -991,7 +991,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  	f = i;
  	while (g >= 0 && pattern[g] == pattern[g + plm1 - f])
  	  g--;
-@@ -4508,7 +4508,7 @@
+@@ -4730,7 +4730,7 @@
        else
        {
  	if (i < g)
@@ -1000,7 +1000,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  	f = i;
  	while (g >= 0 &&
  	       likeconv(cs, pattern[g]) == likeconv(cs, pattern[g + plm1 - f]))
-@@ -4629,14 +4629,14 @@
+@@ -4851,14 +4851,14 @@
        register const int v = plm1 - i;
        turboShift = u - v;
        bcShift    = bmBc[(uint) (uchar) text[i + j]] - plm1 + i;
@@ -1019,7 +1019,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
  	u = 0;
        }
        j+= shift;
-@@ -4660,14 +4660,14 @@
+@@ -4882,14 +4882,14 @@
        register const int v = plm1 - i;
        turboShift = u - v;
        bcShift    = bmBc[(uint) likeconv(cs, text[i + j])] - plm1 + i;
@@ -1092,7 +1092,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_func.cc ./sql/item_func.cc
    max_length= my_decimal_precision_to_length(precision, decimals,
                                               unsigned_flag);
  }
-@@ -1333,7 +1333,7 @@
+@@ -1357,7 +1357,7 @@
    switch(hybrid_type) {
    case REAL_RESULT:
    {
@@ -1101,7 +1101,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_func.cc ./sql/item_func.cc
      set_if_smaller(decimals, NOT_FIXED_DEC);
      max_length=args[0]->max_length - args[0]->decimals + decimals;
      uint tmp=float_length(decimals);
-@@ -1451,8 +1451,8 @@
+@@ -1479,8 +1479,8 @@
  
  void Item_func_mod::result_precision()
  {
@@ -1121,7 +1121,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_func.cc ./sql/item_func.cc
      hybrid_type= REAL_RESULT;
      return;
    }
-@@ -1979,7 +1979,7 @@
+@@ -2008,7 +2008,7 @@
    case REAL_RESULT:
    case STRING_RESULT:
      hybrid_type= REAL_RESULT;
