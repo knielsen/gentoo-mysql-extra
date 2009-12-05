@@ -210,15 +210,15 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
      }
      else
        copy_length= 0;
-@@ -3849,9 +3849,9 @@
+@@ -3850,9 +3850,9 @@
          precisions. This will ensure that on the same machine you get the
          same value as a string independent of the protocol you use.
        */
 -      sprintf(buff, "%-*.*g", (int) min(sizeof(buff)-1,
 +      sprintf(buff, "%-*.*g", (int) MYSQL_MIN(sizeof(buff)-1,
                                          param->buffer_length),
--	      min(DBL_DIG, width), value);
-+	      MYSQL_MIN(14,width), value);
+-              min(DBL_DIG, width), value);
++              MYSQL_MIN(DBL_DIG,width), value);
        end= strcend(buff, ' ');
        *end= 0;
      }
@@ -243,14 +243,14 @@ diff -uNr ../mysql-5.1.22-beta.orig/libmysql/libmysql.c ./libmysql/libmysql.c
 diff -uNr ../mysql-5.1.22-beta.orig/libmysqld/lib_sql.cc ./libmysqld/lib_sql.cc
 --- ../mysql-5.1.22-beta.orig/libmysqld/lib_sql.cc	2007-10-04 21:42:21.000000000 +0200
 +++ ./libmysqld/lib_sql.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -798,7 +798,7 @@
+@@ -824,7 +824,7 @@
      is cleared between substatements, and mysqltest gets confused
    */
    thd->cur_data->embedded_info->warning_count=
--    (thd->spcont ? 0 : min(thd->total_warn_count, 65535));
-+    (thd->spcont ? 0 : MYSQL_MIN(thd->total_warn_count, 65535));
+-    (thd->spcont ? 0 : min(total_warn_count, 65535));
++    (thd->spcont ? 0 : MYSQL_MIN(total_warn_count, 65535));
+   return FALSE;
  }
- 
  
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/array.c ./mysys/array.c
 --- ../mysql-5.1.22-beta.orig/mysys/array.c	2007-10-04 21:42:21.000000000 +0200
@@ -389,7 +389,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_conio.c ./mysys/my_conio.c
    {
 -    clen= min(clen, (size_t) csbi.dwSize.X*csbi.dwSize.Y);
 +    clen= MYSQL_MIN(clen, (size_t) csbi.dwSize.X*csbi.dwSize.Y);
-     if (!ReadConsole((HANDLE)my_coninpfh, (LPVOID)buffer, clen - 1, &plen_res,
+     if (!ReadConsole((HANDLE)my_coninpfh, (LPVOID)buffer, (DWORD) clen - 1, &plen_res,
                       NULL))
      {
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_file.c ./mysys/my_file.c
@@ -428,15 +428,6 @@ diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_file.c ./mysys/my_file.c
 diff -uNr ../mysql-5.1.22-beta.orig/mysys/my_getopt.c ./mysys/my_getopt.c
 --- ../mysql-5.1.22-beta.orig/mysys/my_getopt.c	2007-10-04 21:42:21.000000000 +0200
 +++ ./mysys/my_getopt.c	2007-10-04 21:43:01.000000000 +0200
-@@ -770,7 +770,7 @@
-     num= (ulonglong) optp->max_value;
-   num= ((num - optp->sub_size) / block_size);
-   num= (longlong) (num * block_size);
--  return max(num, optp->min_value);
-+  return MYSQL_MAX(num, optp->min_value);
- }
- 
- /*
 @@ -973,7 +973,7 @@
    }
    if (optp->max_value && num > (double) optp->max_value)
@@ -505,28 +496,27 @@ diff -uNr ../mysql-5.1.22-beta.orig/server-tools/instance-manager/listener.cc ./
    n++;
  
    timeval tv;
-diff -uNr ../mysql-5.1.22-beta.orig/sql/client.c ./sql/client.c
---- ../mysql-5.1.22-beta.orig/sql/client.c	2007-10-04 21:42:20.000000000 +0200
-+++ ./sql/client.c	2007-10-04 21:43:01.000000000 +0200
-@@ -625,7 +625,7 @@
- 	pos+= SQLSTATE_LENGTH+1;
+diff -uNr ../mysql-5.1.22-beta.orig/sql-common/client.c ./sql-common/client.c
+--- ../mysql-5.1.22-beta.orig/sql-common/client.c	2007-10-04 21:42:20.000000000 +0200
++++ ./sql-common/client.c	2007-10-04 21:43:01.000000000 +0200
+@@ -728,7 +728,7 @@
        }
+ 
        (void) strmake(net->last_error,(char*) pos,
--		     min((uint) len,(uint) sizeof(net->last_error)-1));
-+		     MYSQL_MIN((uint) len,(uint) sizeof(net->last_error)-1));
+-		    min((uint) len,(uint) sizeof(net->last_error)-1));
++		    MYSQL_MIN((uint) len,(uint) sizeof(net->last_error)-1));
      }
      else
        set_mysql_error(mysql, CR_UNKNOWN_ERROR, unknown_sqlstate);
-@@ -2021,7 +2021,7 @@
- 	goto error;
-       }
-       memcpy(&sock_addr.sin_addr, hp->h_addr,
--             min(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
-+             MYSQL_MIN(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
-       my_gethostbyname_r_free();
-     }
-     sock_addr.sin_port = (ushort) htons((ushort) port);
-diff -uNr ../mysql-5.1.22-beta.orig/sql/field.cc ./sql/field.cc
+@@ -2102,7 +2102,7 @@
+       {
+         IF_DBUG(char ipaddr[18];)
+         memcpy(&sock_addr.sin_addr, hp->h_addr_list[i],
+-               min(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
++               MYSQL_MIN(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
+         DBUG_PRINT("info",("Trying %s...",
+                           (my_inet_ntoa(sock_addr.sin_addr, ipaddr), ipaddr)));
+         status= my_connect(sock, (struct sockaddr *) &sock_addr,
 --- ../mysql-5.1.22-beta.orig/sql/field.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/field.cc	2007-10-04 21:43:01.000000000 +0200
 @@ -54,7 +54,7 @@
@@ -812,13 +802,13 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
                          DECIMAL_MAX_STR_LENGTH);
  }
  
-@@ -426,9 +426,9 @@
-   Item_result restype= result_type();
- 
-   if ((restype == DECIMAL_RESULT) || (restype == INT_RESULT))
--    return min(my_decimal_length_to_precision(max_length, decimals, unsigned_flag),
-+    return MYSQL_MIN(my_decimal_length_to_precision(max_length, decimals, unsigned_flag),
-                DECIMAL_MAX_PRECISION);
+@@ -443,9 +443,9 @@
+   {
+     uint prec= 
+       my_decimal_length_to_precision(max_length, decimals, unsigned_flag);
+-    return min(prec, DECIMAL_MAX_PRECISION);
++    return MYSQL_MIN(prec, DECIMAL_MAX_PRECISION);
+   }
 -  return min(max_length, DECIMAL_MAX_PRECISION);
 +  return MYSQL_MIN(max_length, DECIMAL_MAX_PRECISION);
  }
@@ -842,22 +832,6 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
  
    ulonglong value=0;
    for (; ptr != end ; ptr++)
-@@ -6697,12 +6697,12 @@
-     /* fix variable decimals which always is NOT_FIXED_DEC */
-     if (Field::result_merge_type(fld_type) == INT_RESULT)
-       item_decimals= 0;
--    decimals= max(decimals, item_decimals);
-+    decimals= MYSQL_MAX(decimals, item_decimals);
-   }
-   if (Field::result_merge_type(fld_type) == DECIMAL_RESULT)
-   {
--    decimals= min(max(decimals, item->decimals), DECIMAL_MAX_SCALE);
--    int precision= min(max(prev_decimal_int_part, item->decimal_int_part())
-+    decimals= MYSQL_MIN(MYSQL_MAX(decimals, item->decimals), DECIMAL_MAX_SCALE);
-+    int precision= MYSQL_MIN(MYSQL_MAX(prev_decimal_int_part, item->decimal_int_part())
-                        + decimals, DECIMAL_MAX_PRECISION);
-     unsigned_flag&= item->unsigned_flag;
-     max_length= my_decimal_precision_to_length(precision, decimals,
 @@ -7388,7 +7388,7 @@
       */
      if (collation.collation != &my_charset_bin)
@@ -867,16 +841,16 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
                        display_length(item) /
                        item->collation.collation->mbmaxlen *
                        collation.collation->mbmaxlen);
-@@ -7428,7 +7428,7 @@
-     {
-       int delta1= max_length_orig - decimals_orig;
-       int delta2= item->max_length - item->decimals;
--      max_length= max(delta1, delta2) + decimals;
-+      max_length= MYSQL_MAX(delta1, delta2) + decimals;
-       if (fld_type == MYSQL_TYPE_FLOAT && max_length > FLT_DIG + 2) 
+@@ -7410,7 +7410,7 @@
        {
-         max_length= FLT_DIG + 6;
-@@ -6765,7 +6765,7 @@
+         int delta1= max_length_orig - decimals_orig;
+         int delta2= item->max_length - item->decimals;
+-        max_length= max(delta1, delta2) + decimals;
++        max_length= MYSQL_MAX(delta1, delta2) + decimals;
+         if (fld_type == MYSQL_TYPE_FLOAT && max_length > FLT_DIG + 2) 
+         {
+           max_length= MAX_FLOAT_STR_LENGTH;
+@@ -7428,7 +7428,7 @@
      break;
    }
    default:
@@ -1146,7 +1120,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_func.cc ./sql/item_func.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc ./sql/item_strfunc.cc
 --- ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item_strfunc.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -1183,7 +1183,7 @@
+@@ -1225,7 +1225,7 @@
  
    length= res->charpos((int) length, (uint32) start);
    tmp_length= res->length() - start;
@@ -1155,7 +1129,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc ./sql/item_strfunc.cc
  
    if (!start && (longlong) res->length() == length)
      return res;
-@@ -1203,7 +1203,7 @@
+@@ -1245,7 +1245,7 @@
      if (start < 0)
        max_length= ((uint)(-start) > max_length) ? 0 : (uint)(-start);
      else
@@ -1164,7 +1138,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc ./sql/item_strfunc.cc
    }
    if (arg_count == 3 && args[2]->const_item())
    {
-@@ -1888,7 +1888,7 @@
+@@ -1939,7 +1939,7 @@
    if ((null_value= args[0]->null_value))
      return 0; /* purecov: inspected */
  
@@ -1173,7 +1147,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc ./sql/item_strfunc.cc
      return str; /* purecov: inspected */
    char *to= (char *) tmp_value.ptr();
    char *to_end= to + tmp_value.alloced_length();
-@@ -3009,11 +3009,11 @@
+@@ -3070,11 +3070,11 @@
  
  void Item_func_export_set::fix_length_and_dec()
  {
@@ -1190,7 +1164,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_strfunc.cc ./sql/item_strfunc.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item_sum.cc ./sql/item_sum.cc
 --- ../mysql-5.1.22-beta.orig/sql/item_sum.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item_sum.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -1071,7 +1071,7 @@
+@@ -1170,7 +1170,7 @@
      AVG() will divide val by count. We need to reserve digits
      after decimal point as the result can be fractional.
    */
@@ -1246,7 +1220,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_sum.cc ./sql/item_sum.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
 --- ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/item_timefunc.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -306,14 +306,14 @@
+@@ -308,14 +308,14 @@
        switch (*++ptr) {
  	/* Year */
        case 'Y':
@@ -1263,7 +1237,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	l_time->year= (int) my_strtoll10(val, &tmp, &error);
  	val= tmp;
          l_time->year= year_2000_handling(l_time->year);
-@@ -322,7 +322,7 @@
+@@ -324,7 +324,7 @@
  	/* Month */
        case 'm':
        case 'c':
@@ -1272,7 +1246,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	l_time->month= (int) my_strtoll10(val, &tmp, &error);
  	val= tmp;
  	break;
-@@ -339,15 +339,15 @@
+@@ -341,15 +341,15 @@
  	/* Day */
        case 'd':
        case 'e':
@@ -1291,7 +1265,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	break;
  
  	/* Hour */
-@@ -358,14 +358,14 @@
+@@ -360,14 +360,14 @@
  	/* fall through */
        case 'k':
        case 'H':
@@ -1308,7 +1282,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	l_time->minute= (int) my_strtoll10(val, &tmp, &error);
  	val= tmp;
  	break;
-@@ -373,7 +373,7 @@
+@@ -375,7 +375,7 @@
  	/* Second */
        case 's':
        case 'S':
@@ -1317,7 +1291,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	l_time->second= (int) my_strtoll10(val, &tmp, &error);
  	val= tmp;
  	break;
-@@ -425,7 +425,7 @@
+@@ -427,7 +427,7 @@
  	val= tmp;
  	break;
        case 'j':
@@ -1326,7 +1300,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	yearday= (int) my_strtoll10(val, &tmp, &error);
  	val= tmp;
  	break;
-@@ -437,7 +437,7 @@
+@@ -439,7 +439,7 @@
        case 'u':
          sunday_first_n_first_week_non_iso= (*ptr=='U' || *ptr== 'V');
          strict_week_number= (*ptr=='V' || *ptr=='v');
@@ -1335,7 +1309,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
  	if ((week_number= (int) my_strtoll10(val, &tmp, &error)) < 0 ||
              strict_week_number && !week_number ||
              week_number > 53)
-@@ -449,7 +449,7 @@
+@@ -451,7 +451,7 @@
        case 'X':
        case 'x':
          strict_week_number_year_type= (*ptr=='X');
@@ -1344,7 +1318,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
          strict_week_number_year= (int) my_strtoll10(val, &tmp, &error);
          val= tmp;
          break;
-@@ -594,7 +594,7 @@
+@@ -596,7 +596,7 @@
  err:
    {
      char buff[128];
@@ -1353,7 +1327,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
      push_warning_printf(current_thd, MYSQL_ERROR::WARN_LEVEL_ERROR,
                          ER_WRONG_VALUE_FOR_TYPE, ER(ER_WRONG_VALUE_FOR_TYPE),
                          date_time_type, buff, "str_to_time");
-@@ -1711,7 +1711,7 @@
+@@ -1829,7 +1829,7 @@
    else
    {
      fixed_length=0;
@@ -1365,7 +1339,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_timefunc.cc ./sql/item_timefunc.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/key.cc ./sql/key.cc
 --- ../mysql-5.1.22-beta.orig/sql/key.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/key.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -144,13 +144,13 @@
+@@ -125,13 +125,13 @@
          key_part->key_part_flag & HA_VAR_LENGTH_PART)
      {
        key_length-= HA_KEY_BLOB_LENGTH;
@@ -1381,7 +1355,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/key.cc ./sql/key.cc
        Field *field= key_part->field;
        CHARSET_INFO *cs= field->charset();
        uint bytes= field->get_key_image(to_key, length, Field::itRAW);
-@@ -237,7 +237,7 @@
+@@ -215,7 +215,7 @@
        my_ptrdiff_t ptrdiff= to_record - field->table->record[0];
        field->move_field_offset(ptrdiff);
        key_length-= HA_KEY_BLOB_LENGTH;
@@ -1399,7 +1373,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/key.cc ./sql/key.cc
        memcpy(to_record + key_part->offset, from_key, (size_t) length);
      }
      from_key+= length;
-@@ -306,7 +306,7 @@
+@@ -285,7 +285,7 @@
  	return 1;
        continue;
      }
@@ -1408,7 +1382,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/key.cc ./sql/key.cc
      if (!(key_part->key_type & (FIELDFLAG_NUMBER+FIELDFLAG_BINARY+
                                  FIELDFLAG_PACK)))
      {
-@@ -372,7 +372,7 @@
+@@ -351,7 +351,7 @@
      {
        field->val_str(&tmp);
        if (key_part->length < field->pack_length())
@@ -1420,7 +1394,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/key.cc ./sql/key.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/log.cc ./sql/log.cc
 --- ../mysql-5.1.22-beta.orig/sql/log.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/log.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -537,11 +537,11 @@
+@@ -597,11 +597,11 @@
      t.neg= 0;
  
      /* fill in query_time field */
@@ -1434,7 +1408,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log.cc ./sql/log.cc
      if (table->field[3]->store_time(&t, MYSQL_TIMESTAMP_TIME))
        goto err;
      /* rows_sent */
-@@ -2173,7 +2173,7 @@
+@@ -2407,7 +2407,7 @@
    {
      char *p= fn_ext(log_name);
      uint length= (uint) (p - log_name);
@@ -1443,7 +1417,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log.cc ./sql/log.cc
      return (const char*)buff;
    }
    return log_name;
-@@ -4285,7 +4285,7 @@
+@@ -4866,7 +4866,7 @@
    DBUG_ENTER("print_buffer_to_nt_eventlog");
  
    /* Add ending CR/LF's to string, overwrite last chars if necessary */
@@ -1455,7 +1429,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log.cc ./sql/log.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/log_event.cc ./sql/log_event.cc
 --- ../mysql-5.1.22-beta.orig/sql/log_event.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/log_event.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -828,7 +828,7 @@
+@@ -1070,7 +1070,7 @@
      of 13 bytes, whereas LOG_EVENT_MINIMAL_HEADER_LEN is 19 bytes (it's
      "minimal" over the set {MySQL >=4.0}).
    */
@@ -1464,7 +1438,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log_event.cc ./sql/log_event.cc
                          LOG_EVENT_MINIMAL_HEADER_LEN);
  
    LOCK_MUTEX;
-@@ -4172,7 +4172,7 @@
+@@ -5427,7 +5427,7 @@
    char buf[UV_NAME_LEN_SIZE];
    char buf1[UV_VAL_IS_NULL + UV_VAL_TYPE_SIZE + 
  	    UV_CHARSET_NUMBER_SIZE + UV_VAL_LEN_SIZE];
@@ -1473,7 +1447,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log_event.cc ./sql/log_event.cc
    uint buf1_length;
    ulong event_length;
  
-@@ -5853,7 +5853,7 @@
+@@ -7151,7 +7151,7 @@
      trigger false warnings.
     */
  #ifndef HAVE_purify
@@ -1485,7 +1459,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/log_event.cc ./sql/log_event.cc
 diff -uNr ../mysql-5.1.22-beta.orig/sql/mysqld.cc ./sql/mysqld.cc
 --- ../mysql-5.1.22-beta.orig/sql/mysqld.cc	2007-10-04 21:42:20.000000000 +0200
 +++ ./sql/mysqld.cc	2007-10-04 21:43:01.000000000 +0200
-@@ -2817,7 +2817,7 @@
+@@ -3318,7 +3318,7 @@
        can't get max_connections*5 but still got no less than was
        requested (value of wanted_files).
      */
@@ -1494,7 +1468,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/mysqld.cc ./sql/mysqld.cc
                          open_files_limit);
      files= my_set_max_open_files(max_open_files);
  
-@@ -2829,15 +2829,15 @@
+@@ -3330,15 +3330,15 @@
            If we have requested too much file handles than we bring
            max_connections in supported bounds.
          */
@@ -1513,7 +1487,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/mysqld.cc ./sql/mysqld.cc
                                            TABLE_OPEN_CACHE_MIN),
                                        table_cache_size);    
  	DBUG_PRINT("warning",
-@@ -4401,7 +4401,7 @@
+@@ -4994,7 +4994,7 @@
  {
    my_socket sock,new_sock;
    uint error_count=0;
