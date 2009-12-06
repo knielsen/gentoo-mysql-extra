@@ -119,7 +119,7 @@
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
-@@ Enlarge max key lenght
+@@ Enlarge max key length
 
 @patch 00800_all_slot_script-4.0.patch
 @ver 4.00.26.00 to 4.00.99.99
@@ -337,14 +337,14 @@
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
-@@ disable a test that fail on longtext field lenght, the expected value is
+@@ disable a test that fail on longtext field length, the expected value is
 @@ three times the returned one, look like a multibyte character related
 @@ failure.
 
 @patch 07040_all_disable_mybug_9735_test-5.1.41.patch
 @ver 5.01.41.00 to 5.01.99.99
 @pn mysql
-@@ disable a test that fail on longtext field lenght, the expected value is
+@@ disable a test that fail on longtext field length, the expected value is
 @@ three times the returned one, look like a multibyte character related
 @@ failure.
 
@@ -417,22 +417,22 @@
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
-@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
+@@ Replace max() and min() macro with MYSQL_MIN() and MYSQL_MAX()
 
 @patch 07110_all_mysql_gcc-4.2_5.0.54.patch
 @ver 5.00.54.00 to 5.00.55.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
-@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
-# 5.0..56 and newer, as well as 5.0.51a do not need the MYSQL_MIN gcc-4.2 fix
+@@ Replace max() and min() macro with MYSQL_MIN() and MYSQL_MAX()
+# 5.0.56 and newer, as well as 5.0.51a do not need the MYSQL_MIN gcc-4.2 fix
 # anymore.
 
 @patch 07110_all_mysql_gcc-4.2_5.1.41.patch
 @ver 5.01.41.00 to 5.01.99.99
 @pn mysql
-@@ Replace max() and min() macro witch MYSQL_MIN() and MYSQL_MAX()
-@@ FIXME: Testing patch
+@@ Replace max() and min() macro with MYSQL_MIN() and MYSQL_MAX()
+@@ FIXME: Testing patch - applies cleanly
 
 @patch 07120_all_openssl_handshake_mybug_33050.patch
 @ver 5.00.50.00 to 5.00.54.99
