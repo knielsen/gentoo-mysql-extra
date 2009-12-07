@@ -206,7 +206,7 @@
 @patch 01050_all_mysql_config_cleanup.patch
 @ver 4.01.22.00 to 4.01.99.99
 @ver 5.00.26.00 to 5.00.56.99
-@ver 5.01.21.99 to 5.01.40.99
+@ver 5.01.21.99 to 5.01.38.99
 @pn mysql
 @pn mysql-community
 @pn mysql-slotted
@@ -221,7 +221,7 @@
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
 @patch 01050_all_mysql_config_cleanup-5.1.41.patch
-@ver 5.01.41.00 to 5.01.99.99
+@ver 5.01.39.00 to 5.01.99.99
 @pn mysql
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
