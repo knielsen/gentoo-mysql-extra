@@ -342,7 +342,7 @@ W@patch 00100_all_mysql-4.0-my-print-defaults.patch
 @@ failure.
 
 @patch 07040_all_disable_mybug_9735_test-5.1.41.patch
-@ver 5.01.41.00 to 5.01.99.99
+@ver 5.01.39.00 to 5.01.99.99
 @pn mysql
 @@ disable a test that fail on longtext field length, the expected value is
 @@ three times the returned one, look like a multibyte character related
@@ -429,7 +429,7 @@ W@patch 00100_all_mysql-4.0-my-print-defaults.patch
 # anymore.
 
 @patch 07110_all_mysql_gcc-4.2_5.1.41.patch
-@ver 5.01.41.00 to 5.01.99.99
+@ver 5.01.39.00 to 5.01.99.99
 @pn mysql
 @@ Replace max() and min() macro with MYSQL_MIN() and MYSQL_MAX()
 @@ FIXME: Testing patch - applies cleanly
