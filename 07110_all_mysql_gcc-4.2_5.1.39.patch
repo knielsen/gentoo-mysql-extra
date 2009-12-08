@@ -790,20 +790,8 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
                          DECIMAL_MAX_STR_LENGTH);
  }
  
-@@ -443,9 +443,9 @@
-   {
-     uint prec= 
-       my_decimal_length_to_precision(max_length, decimals, unsigned_flag);
--    return min(prec, DECIMAL_MAX_PRECISION);
-+    return MYSQL_MIN(prec, DECIMAL_MAX_PRECISION);
-   }
--  return min(max_length, DECIMAL_MAX_PRECISION);
-+  return MYSQL_MIN(max_length, DECIMAL_MAX_PRECISION);
- }
- 
- 
 @@ -748,7 +748,7 @@
- 				   &res_length);
+                                   &res_length);
    }
    else
 -    name= sql_strmake(str, (name_length= min(length,MAX_ALIAS_NAME)));
@@ -811,15 +799,34 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
  }
  
  
-@@ -5356,7 +5356,7 @@
-   // following assert is redundant, because fixed=1 assigned in constructor
-   DBUG_ASSERT(fixed == 1);
-   char *end=(char*) str_value.ptr()+str_value.length(),
--       *ptr=end-min(str_value.length(),sizeof(longlong));
-+       *ptr=end-MYSQL_MIN(str_value.length(),sizeof(longlong));
- 
-   ulonglong value=0;
+@@ -5411,7 +5411,7 @@
+ void Item_hex_string::print(String *str, enum_query_type query_type)
+ {
+   char *end= (char*) str_value.ptr() + str_value.length(),
+-       *ptr= end - min(str_value.length(), sizeof(longlong));
++       *ptr= end - MYSQL_MIN(str_value.length(), sizeof(longlong));
+   str->append("0x");
    for (; ptr != end ; ptr++)
+   {
+@@ -7331,14 +7331,14 @@
+     /* fix variable decimals which always is NOT_FIXED_DEC */
+     if (Field::result_merge_type(fld_type) == INT_RESULT)
+       item_decimals= 0;
+-    decimals= max(decimals, item_decimals);
++    decimals= MYSQL_MAX(decimals, item_decimals);
+   }
+   if (Field::result_merge_type(fld_type) == DECIMAL_RESULT)
+   {
+-    decimals= min(max(decimals, item->decimals), DECIMAL_MAX_SCALE);
++    decimals= MYSQL_MIN(max(decimals, item->decimals), DECIMAL_MAX_SCALE);
+     int item_int_part= item->decimal_int_part();
+-    int item_prec = max(prev_decimal_int_part, item_int_part) + decimals;
+-    int precision= min(item_prec, DECIMAL_MAX_PRECISION);
++    int item_prec = MYSQL_MAX(prev_decimal_int_part, item_int_part) + decimals;
++    int precision= MYSQL_MIN(item_prec, DECIMAL_MAX_PRECISION);
+     unsigned_flag&= item->unsigned_flag;
+     max_length= my_decimal_precision_to_length_no_truncation(precision,
+                                                              decimals,
 @@ -7369,7 +7369,7 @@
       */
      if (collation.collation != &my_charset_bin)
