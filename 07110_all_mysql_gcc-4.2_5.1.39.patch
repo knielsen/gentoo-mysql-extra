@@ -791,7 +791,7 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item.cc ./sql/item.cc
  }
  
 @@ -748,7 +748,7 @@
-                                   &res_length);
+ 				   &res_length);
    }
    else
 -    name= sql_strmake(str, (name_length= min(length,MAX_ALIAS_NAME)));
@@ -897,18 +897,15 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
 
    switch (hybrid_type) {
    case STRING_RESULT:
-@@ -2227,9 +2227,9 @@
+@@ -2227,7 +2227,7 @@
  {
    int arg0_int_part= args[0]->decimal_int_part();
    int arg1_int_part= args[1]->decimal_int_part();
 -  int max_int_part= max(arg0_int_part, arg1_int_part);
 +  int max_int_part= MYSQL_MAX(arg0_int_part, arg1_int_part);
    int precision= max_int_part + decimals;
--  return min(precision, DECIMAL_MAX_PRECISION);
-+  return MYSQL_MIN(precision, DECIMAL_MAX_PRECISION);
+   return precision;
  }
- 
- 
 @@ -2310,7 +2310,7 @@
  Item_func_if::fix_length_and_dec()
  {
@@ -936,12 +933,10 @@ diff -uNr ../mysql-5.1.22-beta.orig/sql/item_cmpfunc.cc ./sql/item_cmpfunc.cc
    int arg1_prec= args[1]->decimal_int_part();
    int arg2_prec= args[2]->decimal_int_part();
 -  int precision=max(arg1_prec,arg2_prec) + decimals;
--  return min(precision, DECIMAL_MAX_PRECISION);
 +  int precision=MYSQL_MAX(arg1_prec,arg2_prec) + decimals;
-+  return MYSQL_MIN(precision, DECIMAL_MAX_PRECISION);
+   return precision;
  }
-
-
+ 
 @@ -2821,7 +2821,7 @@
  
    if (else_expr_num != -1) 
