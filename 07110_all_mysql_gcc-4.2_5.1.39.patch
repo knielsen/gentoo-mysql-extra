@@ -250,18 +250,6 @@ diff -urN mysql-old/extra/yassl/src/yassl_int.cpp mysql/extra/yassl/src/yassl_in
  
          strncpy(name, prev, len);
          name[(len == sizeof(name)) ? len - 1 : len] = 0;
-diff -urN mysql-old/extra/yassl/taocrypt/src/algebra.cpp mysql/extra/yassl/taocrypt/src/algebra.cpp
---- mysql-old/extra/yassl/taocrypt/src/algebra.cpp	2009-12-09 02:03:29.666697425 -0100
-+++ mysql/extra/yassl/taocrypt/src/algebra.cpp	2009-12-09 02:04:14.449042627 -0100
-@@ -109,7 +109,7 @@
- Integer AbstractGroup::CascadeScalarMultiply(const Element &x,
-                   const Integer &e1, const Element &y, const Integer &e2) const
- {
--    const unsigned expLen = max(e1.BitCount(), e2.BitCount());
-+    const unsigned expLen = MYSQL_MAX(e1.BitCount(), e2.BitCount());
-     if (expLen==0)
-         return Identity();
- 
 diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/src/dh.cpp
 --- mysql-old/extra/yassl/taocrypt/src/dh.cpp	2009-12-09 02:03:29.665041549 -0100
 +++ mysql/extra/yassl/taocrypt/src/dh.cpp	2009-12-09 02:04:14.449722707 -0100
