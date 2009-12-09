@@ -133,18 +133,6 @@ diff -urN mysql-old/dbug/dbug.c mysql/dbug/dbug.c
    for (count= 0; count < indent ; count++)
    {
      if ((count % INDENT) == 0)
-diff -urN mysql-old/extra/yassl/src/handshake.cpp mysql/extra/yassl/src/handshake.cpp
---- mysql-old/extra/yassl/src/handshake.cpp	2009-12-09 02:03:29.663033102 -0100
-+++ mysql/extra/yassl/src/handshake.cpp	2009-12-09 02:04:14.444042229 -0100
-@@ -936,7 +936,7 @@
-     int sent = 0;
- 
-     for (;;) {
--        int len = min(sz - sent, MAX_RECORD_SIZE);
-+        int len = MYSQL_MIN(sz - sent, MAX_RECORD_SIZE);
-         output_buffer out;
-         input_buffer tmp;
- 
 diff -urN mysql-old/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
 --- mysql-old/extra/yassl/src/ssl.cpp	2009-12-09 02:03:29.663033102 -0100
 +++ mysql/extra/yassl/src/ssl.cpp	2009-12-09 02:04:14.444956931 -0100
