@@ -270,36 +270,6 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/s
          Integer::Power2(2*DiscreteLogWorkFactor(p_.BitCount())) ) );
      x.Encode(priv, p_.ByteCount());
  }
-diff -urN mysql-old/extra/yassl/taocrypt/src/integer.cpp mysql/extra/yassl/taocrypt/src/integer.cpp
---- mysql-old/extra/yassl/taocrypt/src/integer.cpp	2009-12-09 02:03:29.665041549 -0100
-+++ mysql/extra/yassl/taocrypt/src/integer.cpp	2009-12-09 02:04:14.450687671 -0100
-@@ -3009,7 +3009,7 @@
- 
- unsigned int Integer::MinEncodedSize(Signedness signedness) const
- {
--    unsigned int outputLen = max(1U, ByteCount());
-+    unsigned int outputLen = MYSQL_MAX(1U, ByteCount());
-     if (signedness == UNSIGNED)
-         return outputLen;
-     if (NotNegative() && (GetByte(outputLen-1) & 0x80))
-@@ -3138,7 +3138,7 @@
- 
- Integer Integer::Plus(const Integer& b) const
- {
--    Integer sum((word)0, max(reg_.size(), b.reg_.size()));
-+    Integer sum((word)0, MYSQL_MAX(reg_.size(), b.reg_.size()));
-     if (NotNegative())
-     {
-         if (b.NotNegative())
-@@ -3162,7 +3162,7 @@
- 
- Integer Integer::Minus(const Integer& b) const
- {
--    Integer diff((word)0, max(reg_.size(), b.reg_.size()));
-+    Integer diff((word)0, MYSQL_MAX(reg_.size(), b.reg_.size()));
-     if (NotNegative())
-     {
-         if (b.NotNegative())
 diff -urN mysql-old/extra/yassl/taocrypt/src/md5.cpp mysql/extra/yassl/taocrypt/src/md5.cpp
 --- mysql-old/extra/yassl/taocrypt/src/md5.cpp	2009-12-09 02:03:29.665041549 -0100
 +++ mysql/extra/yassl/taocrypt/src/md5.cpp	2009-12-09 02:04:14.453041789 -0100
