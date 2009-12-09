@@ -270,27 +270,6 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/s
          Integer::Power2(2*DiscreteLogWorkFactor(p_.BitCount())) ) );
      x.Encode(priv, p_.ByteCount());
  }
-diff -urN mysql-old/extra/yassl/taocrypt/src/hash.cpp mysql/extra/yassl/taocrypt/src/hash.cpp
---- mysql-old/extra/yassl/taocrypt/src/hash.cpp	2009-12-09 02:03:29.665041549 -0100
-+++ mysql/extra/yassl/taocrypt/src/hash.cpp	2009-12-09 02:04:14.449722707 -0100
-@@ -53,7 +53,7 @@
-     byte*  local   = reinterpret_cast<byte*>(buffer_);
- 
-     while (len) {
--        word32 add = min(len, blockSz - buffLen_);
-+        word32 add = MYSQL_MIN(len, blockSz - buffLen_);
-         memcpy(&local[buffLen_], data, add);
- 
-         buffLen_ += add;
-@@ -135,7 +135,7 @@
-     byte*  local   = reinterpret_cast<byte*>(buffer_);
- 
-     while (len) {
--        word32 add = min(len, blockSz - buffLen_);
-+        word32 add = MYSQL_MIN(len, blockSz - buffLen_);
-         memcpy(&local[buffLen_], data, add);
- 
-         buffLen_ += add;
 diff -urN mysql-old/extra/yassl/taocrypt/src/integer.cpp mysql/extra/yassl/taocrypt/src/integer.cpp
 --- mysql-old/extra/yassl/taocrypt/src/integer.cpp	2009-12-09 02:03:29.665041549 -0100
 +++ mysql/extra/yassl/taocrypt/src/integer.cpp	2009-12-09 02:04:14.450687671 -0100
