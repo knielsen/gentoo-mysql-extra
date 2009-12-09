@@ -180,52 +180,6 @@ diff -urN mysql-old/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
              memcpy(&iv[ivLen - ivLeft], &digest[digestSz - digestLeft], store);
  
              keyOutput += store;
-diff -urN mysql-old/extra/yassl/src/yassl_int.cpp mysql/extra/yassl/src/yassl_int.cpp
---- mysql-old/extra/yassl/src/yassl_int.cpp	2009-12-09 02:03:29.663033102 -0100
-+++ mysql/extra/yassl/src/yassl_int.cpp	2009-12-09 02:04:14.448041424 -0100
-@@ -1052,12 +1052,12 @@
-     size_t elements = buffers_.getData().size();
- 
-     data.set_length(0);                         // output, actual data filled
--    dataSz = min(dataSz, bufferedData());
-+    dataSz = MYSQL_MIN(dataSz, bufferedData());
- 
-     for (size_t i = 0; i < elements; i++) {
-         input_buffer* front = buffers_.getData().front();
-         uint frontSz = front->get_remaining();
--        uint readSz  = min(dataSz - data.get_length(), frontSz);
-+        uint readSz  = MYSQL_MIN(dataSz - data.get_length(), frontSz);
- 
-         front->read(data.set_buffer() + data.get_length(), readSz);
-         data.set_length(data.get_length() + readSz);
-@@ -1082,13 +1082,13 @@
-     size_t elements = buffers_.getData().size();
- 
-     data.set_length(0);                         // output, actual data filled
--    dataSz = min(dataSz, bufferedData());
-+    dataSz = MYSQL_MIN(dataSz, bufferedData());
- 
-     Buffers::inputList::iterator front = buffers_.useData().begin();
- 
-     while (elements) {
-         uint frontSz = (*front)->get_remaining();
--        uint readSz  = min(dataSz - data.get_length(), frontSz);
-+        uint readSz  = MYSQL_MIN(dataSz - data.get_length(), frontSz);
-         uint before  = (*front)->get_current();
- 
-         (*front)->read(data.set_buffer() + data.get_length(), readSz);
-@@ -1977,9 +1977,9 @@
-         haystack = strstr(haystack, needle);
- 
-         if (!haystack)    // last cipher
--            len = min(sizeof(name), strlen(prev));
-+            len = MYSQL_MIN(sizeof(name), strlen(prev));
-         else
--            len = min(sizeof(name), (size_t)(haystack - prev));
-+            len = MYSQL_MIN(sizeof(name), (size_t)(haystack - prev));
- 
-         strncpy(name, prev, len);
-         name[(len == sizeof(name)) ? len - 1 : len] = 0;
 diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/src/dh.cpp
 --- mysql-old/extra/yassl/taocrypt/src/dh.cpp	2009-12-09 02:03:29.665041549 -0100
 +++ mysql/extra/yassl/taocrypt/src/dh.cpp	2009-12-09 02:04:14.449722707 -0100
