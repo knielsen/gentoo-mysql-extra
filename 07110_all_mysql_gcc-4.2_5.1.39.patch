@@ -180,18 +180,6 @@ diff -urN mysql-old/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
              memcpy(&iv[ivLen - ivLeft], &digest[digestSz - digestLeft], store);
  
              keyOutput += store;
-diff -urN mysql-old/extra/yassl/src/yassl_imp.cpp mysql/extra/yassl/src/yassl_imp.cpp
---- mysql-old/extra/yassl/src/yassl_imp.cpp	2009-12-09 02:03:29.663033102 -0100
-+++ mysql/extra/yassl/src/yassl_imp.cpp	2009-12-09 02:04:14.446668806 -0100
-@@ -1435,7 +1435,7 @@
-     tmp[1] = input[AUTO];
-     ato16(tmp, len);
- 
--    hello.suite_len_ = min(len, static_cast<uint16>(MAX_SUITE_SZ));
-+    hello.suite_len_ = MYSQL_MIN(len, static_cast<uint16>(MAX_SUITE_SZ));
-     input.read(hello.cipher_suites_, hello.suite_len_);
-     if (len > hello.suite_len_) // ignore extra suites
-         input.set_current(input.get_current() + len -  hello.suite_len_);
 diff -urN mysql-old/extra/yassl/src/yassl_int.cpp mysql/extra/yassl/src/yassl_int.cpp
 --- mysql-old/extra/yassl/src/yassl_int.cpp	2009-12-09 02:03:29.663033102 -0100
 +++ mysql/extra/yassl/src/yassl_int.cpp	2009-12-09 02:04:14.448041424 -0100
