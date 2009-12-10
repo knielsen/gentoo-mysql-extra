@@ -1,6 +1,6 @@
 diff -urN mysql-old/client/mysqlbinlog.cc mysql/client/mysqlbinlog.cc
---- mysql-old/client/mysqlbinlog.cc	2009-12-10 00:44:50.121926130 -0100
-+++ mysql/client/mysqlbinlog.cc	2009-12-10 00:44:51.466799863 -0100
+--- mysql-old/client/mysqlbinlog.cc	2009-12-10 00:54:18.744801535 -0100
++++ mysql/client/mysqlbinlog.cc	2009-12-10 00:57:22.925800633 -0100
 @@ -34,6 +34,7 @@
  #include "mysql_priv.h" 
  #include "log_event.h"
@@ -19,8 +19,8 @@ diff -urN mysql-old/client/mysqlbinlog.cc mysql/client/mysqlbinlog.cc
          {
            error("Failed reading from file.");
 diff -urN mysql-old/client/mysql.cc mysql/client/mysql.cc
---- mysql-old/client/mysql.cc	2009-12-10 00:44:50.121926130 -0100
-+++ mysql/client/mysql.cc	2009-12-10 00:44:51.467800588 -0100
+--- mysql-old/client/mysql.cc	2009-12-10 00:54:18.744801535 -0100
++++ mysql/client/mysql.cc	2009-12-10 00:57:22.926584989 -0100
 @@ -3281,9 +3281,9 @@
    {
      uint length= column_names ? field->name_length : 0;
@@ -43,8 +43,8 @@ diff -urN mysql-old/client/mysql.cc mysql/client/mysql.cc
                    field->name);
        num_flag[off]= IS_NUM(field->type);
 diff -urN mysql-old/client/mysqldump.c mysql/client/mysqldump.c
---- mysql-old/client/mysqldump.c	2009-12-10 00:44:50.121926130 -0100
-+++ mysql/client/mysqldump.c	2009-12-10 00:44:51.486651929 -0100
+--- mysql-old/client/mysqldump.c	2009-12-10 00:54:18.743800406 -0100
++++ mysql/client/mysqldump.c	2009-12-10 00:57:22.929800060 -0100
 @@ -808,7 +808,7 @@
                                      &err_ptr, &err_len);
        if (err_len)
@@ -64,8 +64,8 @@ diff -urN mysql-old/client/mysqldump.c mysql/client/mysqldump.c
        if (!find)
        {
 diff -urN mysql-old/client/mysqltest.cc mysql/client/mysqltest.cc
---- mysql-old/client/mysqltest.cc	2009-12-10 00:44:50.120926216 -0100
-+++ mysql/client/mysqltest.cc	2009-12-10 00:44:51.490552785 -0100
+--- mysql-old/client/mysqltest.cc	2009-12-10 00:54:18.743800406 -0100
++++ mysql/client/mysqltest.cc	2009-12-10 00:57:22.933924977 -0100
 @@ -5302,9 +5302,9 @@
        }
        else if ((c == '{' &&
@@ -79,8 +79,8 @@ diff -urN mysql-old/client/mysqltest.cc mysql/client/mysqltest.cc
          /* Only if and while commands can be terminated by { */
          *p++= c;
 diff -urN mysql-old/client/mysql_upgrade.c mysql/client/mysql_upgrade.c
---- mysql-old/client/mysql_upgrade.c	2009-12-10 00:44:50.121926130 -0100
-+++ mysql/client/mysql_upgrade.c	2009-12-10 00:44:51.493799855 -0100
+--- mysql-old/client/mysql_upgrade.c	2009-12-10 00:54:18.744801535 -0100
++++ mysql/client/mysql_upgrade.c	2009-12-10 00:57:22.937549888 -0100
 @@ -502,7 +502,7 @@
    if ((value_end= strchr(value_start, '\n')) == NULL)
      return 1; /* Unexpected result */
@@ -91,8 +91,8 @@ diff -urN mysql-old/client/mysql_upgrade.c mysql/client/mysql_upgrade.c
  }
  
 diff -urN mysql-old/client/sql_string.cc mysql/client/sql_string.cc
---- mysql-old/client/sql_string.cc	2009-12-10 00:44:50.121926130 -0100
-+++ mysql/client/sql_string.cc	2009-12-10 00:44:51.494800619 -0100
+--- mysql-old/client/sql_string.cc	2009-12-10 00:54:18.744801535 -0100
++++ mysql/client/sql_string.cc	2009-12-10 00:57:22.937549888 -0100
 @@ -659,7 +659,7 @@
  {
    if (Alloced_length < str_length + space_needed)
@@ -121,8 +121,8 @@ diff -urN mysql-old/client/sql_string.cc mysql/client/sql_string.cc
    to->str_charset=from->str_charset;
    return to;
 diff -urN mysql-old/dbug/dbug.c mysql/dbug/dbug.c
---- mysql-old/dbug/dbug.c	2009-12-10 00:44:50.127926484 -0100
-+++ mysql/dbug/dbug.c	2009-12-10 00:44:51.495800273 -0100
+--- mysql-old/dbug/dbug.c	2009-12-10 00:54:18.750801052 -0100
++++ mysql/dbug/dbug.c	2009-12-10 00:57:22.939550060 -0100
 @@ -1202,7 +1202,7 @@
      if (TRACING)
      {
@@ -142,8 +142,8 @@ diff -urN mysql-old/dbug/dbug.c mysql/dbug/dbug.c
    {
      if ((count % INDENT) == 0)
 diff -urN mysql-old/extra/yassl/src/handshake.cpp mysql/extra/yassl/src/handshake.cpp
---- mysql-old/extra/yassl/src/handshake.cpp	2009-12-10 00:44:50.124925601 -0100
-+++ mysql/extra/yassl/src/handshake.cpp	2009-12-10 00:44:51.497677936 -0100
+--- mysql-old/extra/yassl/src/handshake.cpp	2009-12-10 00:54:18.747800268 -0100
++++ mysql/extra/yassl/src/handshake.cpp	2009-12-10 00:57:22.940550053 -0100
 @@ -26,6 +26,7 @@
  #include "runtime.hpp"
  #include "handshake.hpp"
@@ -162,8 +162,8 @@ diff -urN mysql-old/extra/yassl/src/handshake.cpp mysql/extra/yassl/src/handshak
          input_buffer tmp;
  
 diff -urN mysql-old/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
---- mysql-old/extra/yassl/src/ssl.cpp	2009-12-10 00:44:50.124925601 -0100
-+++ mysql/extra/yassl/src/ssl.cpp	2009-12-10 00:44:51.497677936 -0100
+--- mysql-old/extra/yassl/src/ssl.cpp	2009-12-10 00:54:18.747800268 -0100
++++ mysql/extra/yassl/src/ssl.cpp	2009-12-10 00:57:22.941550523 -0100
 @@ -38,6 +38,7 @@
  #include "file.hpp"             // for TaoCrypt Source
  #include "coding.hpp"           // HexDecoder
@@ -227,8 +227,8 @@ diff -urN mysql-old/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
  }
  
 diff -urN mysql-old/extra/yassl/src/yassl_imp.cpp mysql/extra/yassl/src/yassl_imp.cpp
---- mysql-old/extra/yassl/src/yassl_imp.cpp	2009-12-10 00:44:50.124925601 -0100
-+++ mysql/extra/yassl/src/yassl_imp.cpp	2009-12-10 00:44:51.499800195 -0100
+--- mysql-old/extra/yassl/src/yassl_imp.cpp	2009-12-10 00:54:18.747800268 -0100
++++ mysql/extra/yassl/src/yassl_imp.cpp	2009-12-10 00:57:22.942549730 -0100
 @@ -22,6 +22,7 @@
  #include "runtime.hpp"
  #include "yassl_int.hpp"
@@ -247,8 +247,8 @@ diff -urN mysql-old/extra/yassl/src/yassl_imp.cpp mysql/extra/yassl/src/yassl_im
      if (len > hello.suite_len_) // ignore extra suites
          input.set_current(input.get_current() + len -  hello.suite_len_);
 diff -urN mysql-old/extra/yassl/src/yassl_int.cpp mysql/extra/yassl/src/yassl_int.cpp
---- mysql-old/extra/yassl/src/yassl_int.cpp	2009-12-10 00:44:50.124925601 -0100
-+++ mysql/extra/yassl/src/yassl_int.cpp	2009-12-10 00:44:51.500800312 -0100
+--- mysql-old/extra/yassl/src/yassl_int.cpp	2009-12-10 00:54:18.747800268 -0100
++++ mysql/extra/yassl/src/yassl_int.cpp	2009-12-10 00:57:22.944549884 -0100
 @@ -25,6 +25,7 @@
  #include "yassl_int.hpp"
  #include "handshake.hpp"
@@ -301,8 +301,8 @@ diff -urN mysql-old/extra/yassl/src/yassl_int.cpp mysql/extra/yassl/src/yassl_in
          strncpy(name, prev, len);
          name[(len == sizeof(name)) ? len - 1 : len] = 0;
 diff -urN mysql-old/extra/yassl/taocrypt/src/algebra.cpp mysql/extra/yassl/taocrypt/src/algebra.cpp
---- mysql-old/extra/yassl/taocrypt/src/algebra.cpp	2009-12-10 00:44:50.126925901 -0100
-+++ mysql/extra/yassl/taocrypt/src/algebra.cpp	2009-12-10 00:44:51.501800458 -0100
+--- mysql-old/extra/yassl/taocrypt/src/algebra.cpp	2009-12-10 00:54:18.749800229 -0100
++++ mysql/extra/yassl/taocrypt/src/algebra.cpp	2009-12-10 00:57:22.945550049 -0100
 @@ -22,6 +22,7 @@
  
  #include "runtime.hpp"
@@ -321,8 +321,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/algebra.cpp mysql/extra/yassl/taocr
          return Identity();
  
 diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/src/dh.cpp
---- mysql-old/extra/yassl/taocrypt/src/dh.cpp	2009-12-10 00:44:50.126925901 -0100
-+++ mysql/extra/yassl/taocrypt/src/dh.cpp	2009-12-10 00:44:51.501800458 -0100
+--- mysql-old/extra/yassl/taocrypt/src/dh.cpp	2009-12-10 00:54:18.749800229 -0100
++++ mysql/extra/yassl/taocrypt/src/dh.cpp	2009-12-10 00:57:22.945550049 -0100
 @@ -23,6 +23,7 @@
  #include "runtime.hpp"
  #include "dh.hpp"
@@ -341,8 +341,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/s
      x.Encode(priv, p_.ByteCount());
  }
 diff -urN mysql-old/extra/yassl/taocrypt/src/hash.cpp mysql/extra/yassl/taocrypt/src/hash.cpp
---- mysql-old/extra/yassl/taocrypt/src/hash.cpp	2009-12-10 00:44:50.126925901 -0100
-+++ mysql/extra/yassl/taocrypt/src/hash.cpp	2009-12-10 00:44:51.502800327 -0100
+--- mysql-old/extra/yassl/taocrypt/src/hash.cpp	2009-12-10 00:54:18.749800229 -0100
++++ mysql/extra/yassl/taocrypt/src/hash.cpp	2009-12-10 00:57:22.946550129 -0100
 @@ -22,6 +22,7 @@
  #include "runtime.hpp"
  #include <string.h>
@@ -370,8 +370,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/hash.cpp mysql/extra/yassl/taocrypt
  
          buffLen_ += add;
 diff -urN mysql-old/extra/yassl/taocrypt/src/integer.cpp mysql/extra/yassl/taocrypt/src/integer.cpp
---- mysql-old/extra/yassl/taocrypt/src/integer.cpp	2009-12-10 00:44:50.126925901 -0100
-+++ mysql/extra/yassl/taocrypt/src/integer.cpp	2009-12-10 00:44:51.503799873 -0100
+--- mysql-old/extra/yassl/taocrypt/src/integer.cpp	2009-12-10 00:54:18.748800554 -0100
++++ mysql/extra/yassl/taocrypt/src/integer.cpp	2009-12-10 00:57:22.947549909 -0100
 @@ -24,7 +24,7 @@
  #include "integer.hpp"
  #include "modarith.hpp"
@@ -418,8 +418,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/integer.cpp mysql/extra/yassl/taocr
      {
          if (b.NotNegative())
 diff -urN mysql-old/extra/yassl/taocrypt/src/md5.cpp mysql/extra/yassl/taocrypt/src/md5.cpp
---- mysql-old/extra/yassl/taocrypt/src/md5.cpp	2009-12-10 00:44:50.125925308 -0100
-+++ mysql/extra/yassl/taocrypt/src/md5.cpp	2009-12-10 00:44:51.505799840 -0100
+--- mysql-old/extra/yassl/taocrypt/src/md5.cpp	2009-12-10 00:54:18.748800554 -0100
++++ mysql/extra/yassl/taocrypt/src/md5.cpp	2009-12-10 00:57:22.948549881 -0100
 @@ -92,7 +92,7 @@
  
      // remove buffered data if possible
@@ -430,8 +430,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/md5.cpp mysql/extra/yassl/taocrypt/
  
          buffLen_ += add;
 diff -urN mysql-old/extra/yassl/taocrypt/src/ripemd.cpp mysql/extra/yassl/taocrypt/src/ripemd.cpp
---- mysql-old/extra/yassl/taocrypt/src/ripemd.cpp	2009-12-10 00:44:50.125925308 -0100
-+++ mysql/extra/yassl/taocrypt/src/ripemd.cpp	2009-12-10 00:44:51.506550307 -0100
+--- mysql-old/extra/yassl/taocrypt/src/ripemd.cpp	2009-12-10 00:54:18.748800554 -0100
++++ mysql/extra/yassl/taocrypt/src/ripemd.cpp	2009-12-10 00:57:22.949549895 -0100
 @@ -94,7 +94,7 @@
  
      // remove buffered data if possible
@@ -442,8 +442,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/ripemd.cpp mysql/extra/yassl/taocry
  
          buffLen_ += add;
 diff -urN mysql-old/extra/yassl/taocrypt/src/sha.cpp mysql/extra/yassl/taocrypt/src/sha.cpp
---- mysql-old/extra/yassl/taocrypt/src/sha.cpp	2009-12-10 00:44:50.125925308 -0100
-+++ mysql/extra/yassl/taocrypt/src/sha.cpp	2009-12-10 00:44:51.506550307 -0100
+--- mysql-old/extra/yassl/taocrypt/src/sha.cpp	2009-12-10 00:54:18.748800554 -0100
++++ mysql/extra/yassl/taocrypt/src/sha.cpp	2009-12-10 00:57:22.950549861 -0100
 @@ -327,7 +327,7 @@
  
      // remove buffered data if possible
@@ -454,8 +454,8 @@ diff -urN mysql-old/extra/yassl/taocrypt/src/sha.cpp mysql/extra/yassl/taocrypt/
  
          buffLen_ += add;
 diff -urN mysql-old/include/my_global.h mysql/include/my_global.h
---- mysql-old/include/my_global.h	2009-12-10 00:44:50.156927206 -0100
-+++ mysql/include/my_global.h	2009-12-10 00:44:51.507549925 -0100
+--- mysql-old/include/my_global.h	2009-12-10 00:54:18.779802347 -0100
++++ mysql/include/my_global.h	2009-12-10 00:57:22.951607937 -0100
 @@ -578,10 +578,8 @@
  #endif
  
@@ -481,8 +481,8 @@ diff -urN mysql-old/include/my_global.h mysql/include/my_global.h
  /*
    Only Linux is known to need an explicit sync of the directory to make sure a
 diff -urN mysql-old/libmysql/libmysql.c mysql/libmysql/libmysql.c
---- mysql-old/libmysql/libmysql.c	2009-12-10 00:44:50.122926654 -0100
-+++ mysql/libmysql/libmysql.c	2009-12-10 00:44:51.511551020 -0100
+--- mysql-old/libmysql/libmysql.c	2009-12-10 00:54:18.744801535 -0100
++++ mysql/libmysql/libmysql.c	2009-12-10 00:57:22.953925237 -0100
 @@ -1570,7 +1570,7 @@
    my_net_set_read_timeout(net, CLIENT_NET_READ_TIMEOUT);
    my_net_set_write_timeout(net, CLIENT_NET_WRITE_TIMEOUT);
@@ -532,8 +532,8 @@ diff -urN mysql-old/libmysql/libmysql.c mysql/libmysql/libmysql.c
    /* Add an end null if there is room in the buffer */
    if (copy_length != param->buffer_length)
 diff -urN mysql-old/libmysqld/lib_sql.cc mysql/libmysqld/lib_sql.cc
---- mysql-old/libmysqld/lib_sql.cc	2009-12-10 00:44:50.038925899 -0100
-+++ mysql/libmysqld/lib_sql.cc	2009-12-10 00:44:51.513550276 -0100
+--- mysql-old/libmysqld/lib_sql.cc	2009-12-10 00:54:18.661800728 -0100
++++ mysql/libmysqld/lib_sql.cc	2009-12-10 00:57:22.955848803 -0100
 @@ -821,7 +821,7 @@
      is cleared between substatements, and mysqltest gets confused
    */
@@ -544,8 +544,8 @@ diff -urN mysql-old/libmysqld/lib_sql.cc mysql/libmysqld/lib_sql.cc
  }
  
 diff -urN mysql-old/mysys/array.c mysql/mysys/array.c
---- mysql-old/mysys/array.c	2009-12-10 00:44:50.129925914 -0100
-+++ mysql/mysys/array.c	2009-12-10 00:44:51.514549851 -0100
+--- mysql-old/mysys/array.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/array.c	2009-12-10 00:57:22.956690677 -0100
 @@ -47,7 +47,7 @@
    DBUG_ENTER("init_dynamic_array");
    if (!alloc_increment)
@@ -565,8 +565,8 @@ diff -urN mysql-old/mysys/array.c mysql/mysys/array.c
    /*
      Do nothing if we are using a static buffer
 diff -urN mysql-old/mysys/default.c mysql/mysys/default.c
---- mysql-old/mysys/default.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/default.c	2009-12-10 00:44:51.514549851 -0100
+--- mysql-old/mysys/default.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/default.c	2009-12-10 00:57:22.956690677 -0100
 @@ -793,7 +793,7 @@
        for ( ; my_isspace(&my_charset_latin1,end[-1]) ; end--) ;
        end[0]=0;
@@ -577,8 +577,8 @@ diff -urN mysql-old/mysys/default.c mysql/mysys/default.c
        /* signal that a new group is found */
        opt_handler(handler_ctx, curr_gr, NULL);
 diff -urN mysql-old/mysys/mf_dirname.c mysql/mysys/mf_dirname.c
---- mysql-old/mysys/mf_dirname.c	2009-12-10 00:44:50.129925914 -0100
-+++ mysql/mysys/mf_dirname.c	2009-12-10 00:44:51.515549886 -0100
+--- mysql-old/mysys/mf_dirname.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/mf_dirname.c	2009-12-10 00:57:22.957925185 -0100
 @@ -82,7 +82,7 @@
    SYNPOSIS
      convert_dirname()
@@ -589,8 +589,8 @@ diff -urN mysql-old/mysys/mf_dirname.c mysql/mysys/mf_dirname.c
      from			Original filename. May be == to
      from_end			Pointer at end of filename (normally end \0)
 diff -urN mysql-old/mysys/mf_format.c mysql/mysys/mf_format.c
---- mysql-old/mysys/mf_format.c	2009-12-10 00:44:50.129925914 -0100
-+++ mysql/mysys/mf_format.c	2009-12-10 00:44:51.515549886 -0100
+--- mysql-old/mysys/mf_format.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/mf_format.c	2009-12-10 00:57:22.957925185 -0100
 @@ -83,7 +83,7 @@
      tmp_length= strlength(startpos);
      DBUG_PRINT("error",("dev: '%s'  ext: '%s'  length: %u",dev,ext,
@@ -601,8 +601,8 @@ diff -urN mysql-old/mysys/mf_format.c mysql/mysys/mf_format.c
    else
    {
 diff -urN mysql-old/mysys/mf_iocache.c mysql/mysys/mf_iocache.c
---- mysql-old/mysys/mf_iocache.c	2009-12-10 00:44:50.130925307 -0100
-+++ mysql/mysys/mf_iocache.c	2009-12-10 00:44:51.516549794 -0100
+--- mysql-old/mysys/mf_iocache.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/mf_iocache.c	2009-12-10 00:57:22.958901705 -0100
 @@ -1097,7 +1097,7 @@
    */
    while (write_length)
@@ -640,8 +640,8 @@ diff -urN mysql-old/mysys/mf_iocache.c mysql/mysys/mf_iocache.c
        info->read_pos=info->request_pos+Count;
        info->read_end=info->request_pos+read_length;
 diff -urN mysql-old/mysys/my_alloc.c mysql/mysys/my_alloc.c
---- mysql-old/mysys/my_alloc.c	2009-12-10 00:44:50.129925914 -0100
-+++ mysql/mysys/my_alloc.c	2009-12-10 00:44:51.517549925 -0100
+--- mysql-old/mysys/my_alloc.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/my_alloc.c	2009-12-10 00:57:22.959925357 -0100
 @@ -196,7 +196,7 @@
    {						/* Time to alloc new block */
      block_size= mem_root->block_size * (mem_root->block_num >> 2);
@@ -652,8 +652,8 @@ diff -urN mysql-old/mysys/my_alloc.c mysql/mysys/my_alloc.c
      if (!(next = (USED_MEM*) my_malloc(get_size,MYF(MY_WME))))
      {
 diff -urN mysql-old/mysys/my_bitmap.c mysql/mysys/my_bitmap.c
---- mysql-old/mysys/my_bitmap.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/my_bitmap.c	2009-12-10 00:44:51.518732649 -0100
+--- mysql-old/mysys/my_bitmap.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/my_bitmap.c	2009-12-10 00:57:22.960925083 -0100
 @@ -365,7 +365,7 @@
  
    DBUG_ASSERT(map->bitmap && map2->bitmap);
@@ -664,8 +664,8 @@ diff -urN mysql-old/mysys/my_bitmap.c mysql/mysys/my_bitmap.c
    while (to < end)
      *to++ &= *from++;
 diff -urN mysql-old/mysys/my_compress.c mysql/mysys/my_compress.c
---- mysql-old/mysys/my_compress.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/my_compress.c	2009-12-10 00:44:51.518732649 -0100
+--- mysql-old/mysys/my_compress.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/my_compress.c	2009-12-10 00:57:22.961925361 -0100
 @@ -244,7 +244,7 @@
  
     if (ver != 1)
@@ -676,8 +676,8 @@ diff -urN mysql-old/mysys/my_compress.c mysql/mysys/my_compress.c
     memcpy(data, pack_data + BLOB_HEADER, complen);
  
 diff -urN mysql-old/mysys/my_conio.c mysql/mysys/my_conio.c
---- mysql-old/mysys/my_conio.c	2009-12-10 00:44:50.127926484 -0100
-+++ mysql/mysys/my_conio.c	2009-12-10 00:44:51.519800463 -0100
+--- mysql-old/mysys/my_conio.c	2009-12-10 00:54:18.750801052 -0100
++++ mysql/mysys/my_conio.c	2009-12-10 00:57:22.962639993 -0100
 @@ -165,13 +165,13 @@
      though it is known it should not be more than 64K               
      so we cut 64K and try first size of screen buffer               
@@ -696,8 +696,8 @@ diff -urN mysql-old/mysys/my_conio.c mysql/mysys/my_conio.c
                       NULL))
      {
 diff -urN mysql-old/mysys/my_file.c mysql/mysys/my_file.c
---- mysql-old/mysys/my_file.c	2009-12-10 00:44:50.130925307 -0100
-+++ mysql/mysys/my_file.c	2009-12-10 00:44:51.519800463 -0100
+--- mysql-old/mysys/my_file.c	2009-12-10 00:54:18.753800571 -0100
++++ mysql/mysys/my_file.c	2009-12-10 00:57:22.962639993 -0100
 @@ -75,7 +75,7 @@
  static int set_max_open_files(uint max_file_limit)
  {
@@ -729,8 +729,8 @@ diff -urN mysql-old/mysys/my_file.c mysql/mysys/my_file.c
    my_file_info= tmp;
    my_file_limit= files;
 diff -urN mysql-old/mysys/my_getopt.c mysql/mysys/my_getopt.c
---- mysql-old/mysys/my_getopt.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/my_getopt.c	2009-12-10 00:44:51.520799958 -0100
+--- mysql-old/mysys/my_getopt.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/my_getopt.c	2009-12-10 00:57:22.963651365 -0100
 @@ -973,7 +973,7 @@
    }
    if (optp->max_value && num > (double) optp->max_value)
@@ -741,8 +741,8 @@ diff -urN mysql-old/mysys/my_getopt.c mysql/mysys/my_getopt.c
  
  /*
 diff -urN mysql-old/mysys/my_handler.c mysql/mysys/my_handler.c
---- mysql-old/mysys/my_handler.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/my_handler.c	2009-12-10 00:44:51.521800496 -0100
+--- mysql-old/mysys/my_handler.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/my_handler.c	2009-12-10 00:57:22.964925212 -0100
 @@ -38,7 +38,7 @@
  static int compare_bin(uchar *a, uint a_length, uchar *b, uint b_length,
                         my_bool part_key, my_bool skip_end_space)
@@ -762,8 +762,8 @@ diff -urN mysql-old/mysys/my_handler.c mysql/mysys/my_handler.c
  
      switch ((enum ha_base_keytype) keyseg->type) {
 diff -urN mysql-old/mysys/my_static.h mysql/mysys/my_static.h
---- mysql-old/mysys/my_static.h	2009-12-10 00:44:50.130925307 -0100
-+++ mysql/mysys/my_static.h	2009-12-10 00:44:51.521800496 -0100
+--- mysql-old/mysys/my_static.h	2009-12-10 00:54:18.753800571 -0100
++++ mysql/mysys/my_static.h	2009-12-10 00:57:22.965774449 -0100
 @@ -22,7 +22,7 @@
  #include <signal.h>
  
@@ -774,8 +774,8 @@ diff -urN mysql-old/mysys/my_static.h mysql/mysys/my_static.h
  #define MAX_BLOCK_TYPES MAX_KEYBLOCK/MIN_KEYBLOCK
  
 diff -urN mysql-old/mysys/safemalloc.c mysql/mysys/safemalloc.c
---- mysql-old/mysys/safemalloc.c	2009-12-10 00:44:50.129925914 -0100
-+++ mysql/mysys/safemalloc.c	2009-12-10 00:44:51.522800417 -0100
+--- mysql-old/mysys/safemalloc.c	2009-12-10 00:54:18.752800365 -0100
++++ mysql/mysys/safemalloc.c	2009-12-10 00:57:22.965774449 -0100
 @@ -238,7 +238,7 @@
  
    if ((data= _mymalloc(size,filename,lineno,MyFlags))) /* Allocate new area */
@@ -786,8 +786,8 @@ diff -urN mysql-old/mysys/safemalloc.c mysql/mysys/safemalloc.c
      _myfree(ptr, filename, lineno, 0);		/* Free not needed area */
    }
 diff -urN mysql-old/mysys/stacktrace.c mysql/mysys/stacktrace.c
---- mysql-old/mysys/stacktrace.c	2009-12-10 00:44:50.128925607 -0100
-+++ mysql/mysys/stacktrace.c	2009-12-10 00:44:51.523617978 -0100
+--- mysql-old/mysys/stacktrace.c	2009-12-10 00:54:18.751800772 -0100
++++ mysql/mysys/stacktrace.c	2009-12-10 00:57:22.966774370 -0100
 @@ -210,7 +210,7 @@
  
    if (!stack_bottom || (uchar*) stack_bottom > (uchar*) &fp)
@@ -798,8 +798,8 @@ diff -urN mysql-old/mysys/stacktrace.c mysql/mysys/stacktrace.c
      stack_bottom= (uchar*) (((ulong) &fp + tmp) &
  			  ~(ulong) 0xFFFF);
 diff -urN mysql-old/server-tools/instance-manager/buffer.cc mysql/server-tools/instance-manager/buffer.cc
---- mysql-old/server-tools/instance-manager/buffer.cc	2009-12-10 00:44:49.905799845 -0100
-+++ mysql/server-tools/instance-manager/buffer.cc	2009-12-10 00:44:51.523617978 -0100
+--- mysql-old/server-tools/instance-manager/buffer.cc	2009-12-10 00:54:18.529924821 -0100
++++ mysql/server-tools/instance-manager/buffer.cc	2009-12-10 00:57:22.966774370 -0100
 @@ -83,8 +83,8 @@
    if (position + len_arg >= buffer_size)
    {
@@ -812,8 +812,8 @@ diff -urN mysql-old/server-tools/instance-manager/buffer.cc mysql/server-tools/i
      if (!(buffer))
        goto err;
 diff -urN mysql-old/server-tools/instance-manager/listener.cc mysql/server-tools/instance-manager/listener.cc
---- mysql-old/server-tools/instance-manager/listener.cc	2009-12-10 00:44:49.906799964 -0100
-+++ mysql/server-tools/instance-manager/listener.cc	2009-12-10 00:44:51.524680089 -0100
+--- mysql-old/server-tools/instance-manager/listener.cc	2009-12-10 00:54:18.529924821 -0100
++++ mysql/server-tools/instance-manager/listener.cc	2009-12-10 00:57:22.967925092 -0100
 @@ -103,7 +103,7 @@
  
    /* II. Listen sockets and spawn childs */
@@ -824,8 +824,8 @@ diff -urN mysql-old/server-tools/instance-manager/listener.cc mysql/server-tools
  
    timeval tv;
 diff -urN mysql-old/sql/field.cc mysql/sql/field.cc
---- mysql-old/sql/field.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/field.cc	2009-12-10 00:44:51.527800688 -0100
+--- mysql-old/sql/field.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/field.cc	2009-12-10 00:57:22.970925047 -0100
 @@ -54,7 +54,7 @@
  #define LONGLONG_TO_STRING_CONVERSION_BUFFER_SIZE 128
  #define DECIMAL_TO_STRING_CONVERSION_BUFFER_SIZE 128
@@ -1026,8 +1026,8 @@ diff -urN mysql-old/sql/field.cc mysql/sql/field.cc
      flags|= ZEROFILL_FLAG | UNSIGNED_FLAG;
      /*
 diff -urN mysql-old/sql/filesort.cc mysql/sql/filesort.cc
---- mysql-old/sql/filesort.cc	2009-12-10 00:44:50.048926661 -0100
-+++ mysql/sql/filesort.cc	2009-12-10 00:44:51.531800277 -0100
+--- mysql-old/sql/filesort.cc	2009-12-10 00:54:18.671801382 -0100
++++ mysql/sql/filesort.cc	2009-12-10 00:57:22.974779086 -0100
 @@ -191,7 +191,7 @@
  #ifdef CAN_TRUST_RANGE
    if (select && select->quick && select->quick->records > 0L)
@@ -1071,8 +1071,8 @@ diff -urN mysql-old/sql/filesort.cc mysql/sql/filesort.cc
  err:
    delete_queue(&queue);
 diff -urN mysql-old/sql/ha_ndbcluster.cc mysql/sql/ha_ndbcluster.cc
---- mysql-old/sql/ha_ndbcluster.cc	2009-12-10 00:44:50.056926856 -0100
-+++ mysql/sql/ha_ndbcluster.cc	2009-12-10 00:44:51.534800420 -0100
+--- mysql-old/sql/ha_ndbcluster.cc	2009-12-10 00:54:18.679801871 -0100
++++ mysql/sql/ha_ndbcluster.cc	2009-12-10 00:57:22.977924887 -0100
 @@ -800,7 +800,7 @@
  
        DBUG_PRINT("value", ("set blob ptr: 0x%lx  len: %u",
@@ -1083,8 +1083,8 @@ diff -urN mysql-old/sql/ha_ndbcluster.cc mysql/sql/ha_ndbcluster.cc
        if (set_blob_value)
          *set_blob_value= TRUE;
 diff -urN mysql-old/sql/handler.h mysql/sql/handler.h
---- mysql-old/sql/handler.h	2009-12-10 00:44:50.059925534 -0100
-+++ mysql/sql/handler.h	2009-12-10 00:44:51.538799850 -0100
+--- mysql-old/sql/handler.h	2009-12-10 00:54:18.682800813 -0100
++++ mysql/sql/handler.h	2009-12-10 00:57:22.981809305 -0100
 @@ -1590,15 +1590,15 @@
    { return (HA_ERR_WRONG_COMMAND); }
  
@@ -1107,8 +1107,8 @@ diff -urN mysql-old/sql/handler.h mysql/sql/handler.h
    virtual uint max_supported_record_length() const { return HA_MAX_REC_LENGTH; }
    virtual uint max_supported_keys() const { return 0; }
 diff -urN mysql-old/sql/item_buff.cc mysql/sql/item_buff.cc
---- mysql-old/sql/item_buff.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_buff.cc	2009-12-10 00:44:51.540800087 -0100
+--- mysql-old/sql/item_buff.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_buff.cc	2009-12-10 00:57:22.983708902 -0100
 @@ -58,7 +58,7 @@
  */
  
@@ -1128,8 +1128,8 @@ diff -urN mysql-old/sql/item_buff.cc mysql/sql/item_buff.cc
    {
      if ((null_value= item->null_value))
 diff -urN mysql-old/sql/item.cc mysql/sql/item.cc
---- mysql-old/sql/item.cc	2009-12-10 00:44:50.055926542 -0100
-+++ mysql/sql/item.cc	2009-12-10 00:45:35.105799872 -0100
+--- mysql-old/sql/item.cc	2009-12-10 00:54:18.678802160 -0100
++++ mysql/sql/item.cc	2009-12-10 00:57:22.985550189 -0100
 @@ -25,6 +25,7 @@
  #include "sp_head.h"
  #include "sql_trigger.h"
@@ -1221,8 +1221,8 @@ diff -urN mysql-old/sql/item.cc mysql/sql/item.cc
    maybe_null|= item->maybe_null;
    get_full_info(item);
 diff -urN mysql-old/sql/item_cmpfunc.cc mysql/sql/item_cmpfunc.cc
---- mysql-old/sql/item_cmpfunc.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_cmpfunc.cc	2009-12-10 00:44:51.546800591 -0100
+--- mysql-old/sql/item_cmpfunc.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_cmpfunc.cc	2009-12-10 00:57:22.989549921 -0100
 @@ -613,7 +613,7 @@
    {
      if ((*a)->decimals < NOT_FIXED_DEC && (*b)->decimals < NOT_FIXED_DEC)
@@ -1360,8 +1360,8 @@ diff -urN mysql-old/sql/item_cmpfunc.cc mysql/sql/item_cmpfunc.cc
        }
        j+= shift;
 diff -urN mysql-old/sql/item_func.cc mysql/sql/item_func.cc
---- mysql-old/sql/item_func.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_func.cc	2009-12-10 00:44:51.549800124 -0100
+--- mysql-old/sql/item_func.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_func.cc	2009-12-10 00:57:22.991631422 -0100
 @@ -541,7 +541,7 @@
      set_if_bigger(max_int_part, args[i]->decimal_int_part());
      set_if_smaller(unsigned_flag, args[i]->unsigned_flag);
@@ -1496,8 +1496,8 @@ diff -urN mysql-old/sql/item_func.cc mysql/sql/item_func.cc
    initialized=1;
    if (error)
 diff -urN mysql-old/sql/item_func.h mysql/sql/item_func.h
---- mysql-old/sql/item_func.h	2009-12-10 00:44:50.060876108 -0100
-+++ mysql/sql/item_func.h	2009-12-10 00:44:51.551799977 -0100
+--- mysql-old/sql/item_func.h	2009-12-10 00:54:18.683801106 -0100
++++ mysql/sql/item_func.h	2009-12-10 00:57:22.994795850 -0100
 @@ -363,7 +363,7 @@
    const char *func_name() const { return "cast_as_unsigned"; }
    void fix_length_and_dec()
@@ -1508,8 +1508,8 @@ diff -urN mysql-old/sql/item_func.h mysql/sql/item_func.h
    }
    longlong val_int();
 diff -urN mysql-old/sql/item_strfunc.cc mysql/sql/item_strfunc.cc
---- mysql-old/sql/item_strfunc.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_strfunc.cc	2009-12-10 00:44:51.553800292 -0100
+--- mysql-old/sql/item_strfunc.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_strfunc.cc	2009-12-10 00:57:22.996753758 -0100
 @@ -384,7 +384,7 @@
            }
            else
@@ -1579,8 +1579,8 @@ diff -urN mysql-old/sql/item_strfunc.cc mysql/sql/item_strfunc.cc
        nanoseq-= delta;
      }
 diff -urN mysql-old/sql/item_sum.cc mysql/sql/item_sum.cc
---- mysql-old/sql/item_sum.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_sum.cc	2009-12-10 00:44:51.555563458 -0100
+--- mysql-old/sql/item_sum.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_sum.cc	2009-12-10 00:57:22.998800288 -0100
 @@ -1169,7 +1169,7 @@
      AVG() will divide val by count. We need to reserve digits
      after decimal point as the result can be fractional.
@@ -1636,8 +1636,8 @@ diff -urN mysql-old/sql/item_sum.cc mysql/sql/item_sum.cc
                tree_key_length, 
                group_concat_key_cmp_with_order , 0, NULL, (void*) this);
 diff -urN mysql-old/sql/item_timefunc.cc mysql/sql/item_timefunc.cc
---- mysql-old/sql/item_timefunc.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/item_timefunc.cc	2009-12-10 00:44:51.557593124 -0100
+--- mysql-old/sql/item_timefunc.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/item_timefunc.cc	2009-12-10 00:57:23.000552809 -0100
 @@ -313,14 +313,14 @@
        switch (*++ptr) {
  	/* Year */
@@ -1755,8 +1755,8 @@ diff -urN mysql-old/sql/item_timefunc.cc mysql/sql/item_timefunc.cc
      set_if_smaller(max_length,MAX_BLOB_WIDTH);
    }
 diff -urN mysql-old/sql/key.cc mysql/sql/key.cc
---- mysql-old/sql/key.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/key.cc	2009-12-10 00:44:51.648998928 -0100
+--- mysql-old/sql/key.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/key.cc	2009-12-10 00:57:23.001924865 -0100
 @@ -125,13 +125,13 @@
          key_part->key_part_flag & HA_VAR_LENGTH_PART)
      {
@@ -1810,8 +1810,8 @@ diff -urN mysql-old/sql/key.cc mysql/sql/key.cc
      }
      else
 diff -urN mysql-old/sql/log.cc mysql/sql/log.cc
---- mysql-old/sql/log.cc	2009-12-10 00:44:50.050927171 -0100
-+++ mysql/sql/log.cc	2009-12-10 00:44:51.692800618 -0100
+--- mysql-old/sql/log.cc	2009-12-10 00:54:18.673801019 -0100
++++ mysql/sql/log.cc	2009-12-10 00:57:23.112778227 -0100
 @@ -594,11 +594,11 @@
      t.neg= 0;
  
@@ -1845,8 +1845,8 @@ diff -urN mysql-old/sql/log.cc mysql/sql/log.cc
    setup_windows_event_source();
    if ((event= RegisterEventSource(NULL,"MySQL")))
 diff -urN mysql-old/sql/log_event.cc mysql/sql/log_event.cc
---- mysql-old/sql/log_event.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/log_event.cc	2009-12-10 00:44:51.696800597 -0100
+--- mysql-old/sql/log_event.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/log_event.cc	2009-12-10 00:57:23.117925330 -0100
 @@ -1070,7 +1070,7 @@
      of 13 bytes, whereas LOG_EVENT_MINIMAL_HEADER_LEN is 19 bytes (it's
      "minimal" over the set {MySQL >=4.0}).
@@ -1884,8 +1884,8 @@ diff -urN mysql-old/sql/log_event.cc mysql/sql/log_event.cc
  
    DBUG_ASSERT(m_rows_buf <= m_rows_cur);
 diff -urN mysql-old/sql/log_event_old.cc mysql/sql/log_event_old.cc
---- mysql-old/sql/log_event_old.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/log_event_old.cc	2009-12-10 00:44:51.701603184 -0100
+--- mysql-old/sql/log_event_old.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/log_event_old.cc	2009-12-10 00:57:23.164686969 -0100
 @@ -1405,7 +1405,7 @@
      trigger false warnings.
     */
@@ -1896,8 +1896,8 @@ diff -urN mysql-old/sql/log_event_old.cc mysql/sql/log_event_old.cc
  
    DBUG_ASSERT(m_rows_buf <= m_rows_cur);
 diff -urN mysql-old/sql/mysqld.cc mysql/sql/mysqld.cc
---- mysql-old/sql/mysqld.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/mysqld.cc	2009-12-10 00:44:51.704800171 -0100
+--- mysql-old/sql/mysqld.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/mysqld.cc	2009-12-10 00:57:23.167925364 -0100
 @@ -3298,7 +3298,7 @@
        can't get max_connections*5 but still got no less than was
        requested (value of wanted_files).
@@ -1936,8 +1936,8 @@ diff -urN mysql-old/sql/mysqld.cc mysql/sql/mysqld.cc
    THD *thd;
    struct sockaddr_in cAddr;
 diff -urN mysql-old/sql/net_serv.cc mysql/sql/net_serv.cc
---- mysql-old/sql/net_serv.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/net_serv.cc	2009-12-10 00:44:51.708799916 -0100
+--- mysql-old/sql/net_serv.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/net_serv.cc	2009-12-10 00:57:23.172885103 -0100
 @@ -756,7 +756,7 @@
    {
      while (remain > 0)
@@ -1957,8 +1957,8 @@ diff -urN mysql-old/sql/net_serv.cc mysql/sql/net_serv.cc
  	if (helping >= net->max_packet)
  	{
 diff -urN mysql-old/sql/opt_range.cc mysql/sql/opt_range.cc
---- mysql-old/sql/opt_range.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/opt_range.cc	2009-12-10 00:44:51.712800390 -0100
+--- mysql-old/sql/opt_range.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/opt_range.cc	2009-12-10 00:57:23.175925139 -0100
 @@ -2352,7 +2352,7 @@
      group_trp= get_best_group_min_max(&param, tree);
      if (group_trp)
@@ -2076,8 +2076,8 @@ diff -urN mysql-old/sql/opt_range.cc mysql/sql/opt_range.cc
    else
      io_cost= (keys_per_group > keys_per_block) ?
 diff -urN mysql-old/sql/protocol.cc mysql/sql/protocol.cc
---- mysql-old/sql/protocol.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/protocol.cc	2009-12-10 00:44:51.716799931 -0100
+--- mysql-old/sql/protocol.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/protocol.cc	2009-12-10 00:57:23.180803105 -0100
 @@ -167,7 +167,7 @@
      pos+=2;
  
@@ -2097,8 +2097,8 @@ diff -urN mysql-old/sql/protocol.cc mysql/sql/protocol.cc
      int2store(buff+1, tmp);
      /*
 diff -urN mysql-old/sql/rpl_record.cc mysql/sql/rpl_record.cc
---- mysql-old/sql/rpl_record.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/rpl_record.cc	2009-12-10 00:44:51.717800610 -0100
+--- mysql-old/sql/rpl_record.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/rpl_record.cc	2009-12-10 00:57:23.181925046 -0100
 @@ -255,7 +255,7 @@
    /*
      throw away master's extra fields
@@ -2109,8 +2109,8 @@ diff -urN mysql-old/sql/rpl_record.cc mysql/sql/rpl_record.cc
    {
      if (bitmap_is_set(cols, i))
 diff -urN mysql-old/sql/rpl_rli.cc mysql/sql/rpl_rli.cc
---- mysql-old/sql/rpl_rli.cc	2009-12-10 00:44:50.046927258 -0100
-+++ mysql/sql/rpl_rli.cc	2009-12-10 00:44:51.717800610 -0100
+--- mysql-old/sql/rpl_rli.cc	2009-12-10 00:54:18.669801304 -0100
++++ mysql/sql/rpl_rli.cc	2009-12-10 00:57:23.182763515 -0100
 @@ -662,7 +662,7 @@
    ulong log_name_extension;
    char log_name_tmp[FN_REFLEN]; //make a char[] from String
@@ -2130,8 +2130,8 @@ diff -urN mysql-old/sql/rpl_rli.cc mysql/sql/rpl_rli.cc
    log_name_extension= strtoul(++p, &p_end, 10);
    /*
 diff -urN mysql-old/sql/rpl_utility.cc mysql/sql/rpl_utility.cc
---- mysql-old/sql/rpl_utility.cc	2009-12-10 00:44:50.046927258 -0100
-+++ mysql/sql/rpl_utility.cc	2009-12-10 00:44:51.718800351 -0100
+--- mysql-old/sql/rpl_utility.cc	2009-12-10 00:54:18.669801304 -0100
++++ mysql/sql/rpl_utility.cc	2009-12-10 00:57:23.182763515 -0100
 @@ -180,7 +180,7 @@
    /*
      We only check the initial columns for the tables.
@@ -2142,8 +2142,8 @@ diff -urN mysql-old/sql/rpl_utility.cc mysql/sql/rpl_utility.cc
    Relay_log_info const *rli= const_cast<Relay_log_info*>(rli_arg);
  
 diff -urN mysql-old/sql/rpl_utility.h mysql/sql/rpl_utility.h
---- mysql-old/sql/rpl_utility.h	2009-12-10 00:44:50.059925534 -0100
-+++ mysql/sql/rpl_utility.h	2009-12-10 00:44:51.719800460 -0100
+--- mysql-old/sql/rpl_utility.h	2009-12-10 00:54:18.682800813 -0100
++++ mysql/sql/rpl_utility.h	2009-12-10 00:57:23.183698833 -0100
 @@ -299,7 +299,7 @@
    do {                                             \
      char buf[256];                                 \
@@ -2154,8 +2154,8 @@ diff -urN mysql-old/sql/rpl_utility.h mysql/sql/rpl_utility.h
      buf[i] = '\0';                                 \
      DBUG_PRINT((N), ((FRM), buf));                 \
 diff -urN mysql-old/sql/set_var.cc mysql/sql/set_var.cc
---- mysql-old/sql/set_var.cc	2009-12-10 00:44:50.052927696 -0100
-+++ mysql/sql/set_var.cc	2009-12-10 00:44:51.720705977 -0100
+--- mysql-old/sql/set_var.cc	2009-12-10 00:54:18.675801832 -0100
++++ mysql/sql/set_var.cc	2009-12-10 00:57:23.184598496 -0100
 @@ -1850,7 +1850,7 @@
  					    &not_used));
      if (error_len)
@@ -2175,8 +2175,8 @@ diff -urN mysql-old/sql/set_var.cc mysql/sql/set_var.cc
    }
    return FALSE;
 diff -urN mysql-old/sql/slave.cc mysql/sql/slave.cc
---- mysql-old/sql/slave.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/slave.cc	2009-12-10 00:44:51.723800607 -0100
+--- mysql-old/sql/slave.cc	2009-12-10 00:54:18.670801185 -0100
++++ mysql/sql/slave.cc	2009-12-10 00:57:23.187563669 -0100
 @@ -1703,13 +1703,13 @@
          slave is 2. At SHOW SLAVE STATUS time, assume that the difference
          between timestamp of slave and rli->last_master_timestamp is 0
@@ -2212,8 +2212,8 @@ diff -urN mysql-old/sql/slave.cc mysql/sql/slave.cc
    DBUG_RETURN(cur_log);
  }
 diff -urN mysql-old/sql/spatial.h mysql/sql/spatial.h
---- mysql-old/sql/spatial.h	2009-12-10 00:44:50.058926679 -0100
-+++ mysql/sql/spatial.h	2009-12-10 00:44:51.725799875 -0100
+--- mysql-old/sql/spatial.h	2009-12-10 00:54:18.681800947 -0100
++++ mysql/sql/spatial.h	2009-12-10 00:57:23.189924896 -0100
 @@ -180,8 +180,8 @@
      if (d != mbr->dimension() || d <= 0 || contains(mbr) || within(mbr))
        return 0;
@@ -2226,8 +2226,8 @@ diff -urN mysql-old/sql/spatial.h mysql/sql/spatial.h
      return (d == intersection.dimension());
    }
 diff -urN mysql-old/sql/sp_head.cc mysql/sql/sp_head.cc
---- mysql-old/sql/sp_head.cc	2009-12-10 00:44:50.046927258 -0100
-+++ mysql/sql/sp_head.cc	2009-12-10 00:44:51.726800405 -0100
+--- mysql-old/sql/sp_head.cc	2009-12-10 00:54:18.669801304 -0100
++++ mysql/sql/sp_head.cc	2009-12-10 00:57:23.190925470 -0100
 @@ -2414,7 +2414,7 @@
  
      Item_empty_string *stmt_fld=
@@ -2247,8 +2247,8 @@ diff -urN mysql-old/sql/sp_head.cc mysql/sql/sp_head.cc
                                           Protocol::SEND_EOF))
      DBUG_RETURN(1);
 diff -urN mysql-old/sql/sql_acl.cc mysql/sql/sql_acl.cc
---- mysql-old/sql/sql_acl.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/sql_acl.cc	2009-12-10 00:44:51.730580006 -0100
+--- mysql-old/sql/sql_acl.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/sql_acl.cc	2009-12-10 00:57:23.193600784 -0100
 @@ -818,7 +818,7 @@
          chars= 128;                             // Marker that chars existed
        }
@@ -2259,8 +2259,8 @@ diff -urN mysql-old/sql/sql_acl.cc mysql/sql/sql_acl.cc
    va_end(args);
    return sort;
 diff -urN mysql-old/sql/sql_analyse.cc mysql/sql/sql_analyse.cc
---- mysql-old/sql/sql_analyse.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/sql_analyse.cc	2009-12-10 00:44:51.732799762 -0100
+--- mysql-old/sql/sql_analyse.cc	2009-12-10 00:54:18.670801185 -0100
++++ mysql/sql/sql_analyse.cc	2009-12-10 00:57:23.196766218 -0100
 @@ -280,16 +280,16 @@
    {
      if (((longlong) info->ullval) < 0)
@@ -2310,8 +2310,8 @@ diff -urN mysql-old/sql/sql_analyse.cc mysql/sql/sql_analyse.cc
    for (uint i = 0; i < array_elements(func_items); i++)
      field_list.push_back(func_items[i]);
 diff -urN mysql-old/sql/sql_cache.cc mysql/sql/sql_cache.cc
---- mysql-old/sql/sql_cache.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/sql_cache.cc	2009-12-10 00:44:51.734800432 -0100
+--- mysql-old/sql/sql_cache.cc	2009-12-10 00:54:18.670801185 -0100
++++ mysql/sql/sql_cache.cc	2009-12-10 00:57:23.198925221 -0100
 @@ -981,7 +981,7 @@
      }
      last_result_block= header->result()->prev;
@@ -2387,8 +2387,8 @@ diff -urN mysql-old/sql/sql_cache.cc mysql/sql/sql_cache.cc
      DBUG_PRINT("qcache", ("Query cache hase only %lu memory and limit %lu",
  			query_cache_size, query_cache_limit));
 diff -urN mysql-old/sql/sql_class.cc mysql/sql/sql_class.cc
---- mysql-old/sql/sql_class.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/sql_class.cc	2009-12-10 00:44:51.737800379 -0100
+--- mysql-old/sql/sql_class.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/sql_class.cc	2009-12-10 00:57:23.200925302 -0100
 @@ -380,7 +380,7 @@
      if (max_query_len < 1)
        len= thd->query_length;
@@ -2417,8 +2417,8 @@ diff -urN mysql-old/sql/sql_class.cc mysql/sql/sql_class.cc
  	used_length=res->length();
        if ((result_type == STRING_RESULT || is_unsafe_field_sep) &&
 diff -urN mysql-old/sql/sql_client.cc mysql/sql/sql_client.cc
---- mysql-old/sql/sql_client.cc	2009-12-10 00:44:50.046927258 -0100
-+++ mysql/sql/sql_client.cc	2009-12-10 00:44:51.738800293 -0100
+--- mysql-old/sql/sql_client.cc	2009-12-10 00:54:18.669801304 -0100
++++ mysql/sql/sql_client.cc	2009-12-10 00:57:23.202924894 -0100
 @@ -34,7 +34,7 @@
                             (uint)global_system_variables.net_write_timeout);
  
@@ -2429,8 +2429,8 @@ diff -urN mysql-old/sql/sql_client.cc mysql/sql/sql_client.cc
  #endif
  }
 diff -urN mysql-old/sql/sql_connect.cc mysql/sql/sql_connect.cc
---- mysql-old/sql/sql_connect.cc	2009-12-10 00:44:50.052927696 -0100
-+++ mysql/sql/sql_connect.cc	2009-12-10 00:44:51.739680066 -0100
+--- mysql-old/sql/sql_connect.cc	2009-12-10 00:54:18.675801832 -0100
++++ mysql/sql/sql_connect.cc	2009-12-10 00:57:23.203830981 -0100
 @@ -670,7 +670,7 @@
        if (thd->main_security_ctx.host)
        {
@@ -2441,8 +2441,8 @@ diff -urN mysql-old/sql/sql_connect.cc mysql/sql/sql_connect.cc
          thd->main_security_ctx.host_or_ip= thd->main_security_ctx.host;
        }
 diff -urN mysql-old/sql/sql_load.cc mysql/sql/sql_load.cc
---- mysql-old/sql/sql_load.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/sql_load.cc	2009-12-10 00:44:51.740606572 -0100
+--- mysql-old/sql/sql_load.cc	2009-12-10 00:54:18.670801185 -0100
++++ mysql/sql/sql_load.cc	2009-12-10 00:57:23.203830981 -0100
 @@ -977,7 +977,7 @@
  
  
@@ -2453,8 +2453,8 @@ diff -urN mysql-old/sql/sql_load.cc mysql/sql/sql_load.cc
    stack=stack_pos=(int*) sql_alloc(sizeof(int)*length);
  
 diff -urN mysql-old/sql/sql_parse.cc mysql/sql/sql_parse.cc
---- mysql-old/sql/sql_parse.cc	2009-12-10 00:44:50.052927696 -0100
-+++ mysql/sql/sql_parse.cc	2009-12-10 00:44:51.742800563 -0100
+--- mysql-old/sql/sql_parse.cc	2009-12-10 00:54:18.675801832 -0100
++++ mysql/sql/sql_parse.cc	2009-12-10 00:57:23.206924939 -0100
 @@ -5563,7 +5563,7 @@
      return 1;
    }
@@ -2474,8 +2474,8 @@ diff -urN mysql-old/sql/sql_parse.cc mysql/sql/sql_parse.cc
      return 1;
    }
 diff -urN mysql-old/sql/sql_partition.cc mysql/sql/sql_partition.cc
---- mysql-old/sql/sql_partition.cc	2009-12-10 00:44:50.055926542 -0100
-+++ mysql/sql/sql_partition.cc	2009-12-10 00:44:51.776800349 -0100
+--- mysql-old/sql/sql_partition.cc	2009-12-10 00:54:18.678802160 -0100
++++ mysql/sql/sql_partition.cc	2009-12-10 00:57:23.210553448 -0100
 @@ -4516,7 +4516,7 @@
              */
              start_part= 0;
@@ -2486,8 +2486,8 @@ diff -urN mysql-old/sql/sql_partition.cc mysql/sql/sql_partition.cc
            else if (new_total_partitions <= upper_2n)
            {
 diff -urN mysql-old/sql/sql_plugin.cc mysql/sql/sql_plugin.cc
---- mysql-old/sql/sql_plugin.cc	2009-12-10 00:44:50.045926470 -0100
-+++ mysql/sql/sql_plugin.cc	2009-12-10 00:44:51.779799798 -0100
+--- mysql-old/sql/sql_plugin.cc	2009-12-10 00:54:18.668801053 -0100
++++ mysql/sql/sql_plugin.cc	2009-12-10 00:57:23.215549997 -0100
 @@ -486,7 +486,7 @@
      for (i=0;
           (old=(struct st_mysql_plugin *)(ptr+i*sizeof_st_plugin))->info;
@@ -2507,8 +2507,8 @@ diff -urN mysql-old/sql/sql_plugin.cc mysql/sql/sql_plugin.cc
        goto err;
      }
 diff -urN mysql-old/sql/sql_prepare.cc mysql/sql/sql_prepare.cc
---- mysql-old/sql/sql_prepare.cc	2009-12-10 00:44:50.050927171 -0100
-+++ mysql/sql/sql_prepare.cc	2009-12-10 00:44:51.782579854 -0100
+--- mysql-old/sql/sql_prepare.cc	2009-12-10 00:54:18.673801019 -0100
++++ mysql/sql/sql_prepare.cc	2009-12-10 00:57:23.217549832 -0100
 @@ -249,7 +249,7 @@
    int2store(buff+5, columns);
    int2store(buff+7, stmt->param_count);
@@ -2519,8 +2519,8 @@ diff -urN mysql-old/sql/sql_prepare.cc mysql/sql/sql_prepare.cc
  
    /*
 diff -urN mysql-old/sql/sql_profile.cc mysql/sql/sql_profile.cc
---- mysql-old/sql/sql_profile.cc	2009-12-10 00:44:50.050927171 -0100
-+++ mysql/sql/sql_profile.cc	2009-12-10 00:44:51.783800431 -0100
+--- mysql-old/sql/sql_profile.cc	2009-12-10 00:54:18.673801019 -0100
++++ mysql/sql/sql_profile.cc	2009-12-10 00:57:23.218549839 -0100
 @@ -252,7 +252,7 @@
                                       uint query_length_arg)
  {
@@ -2531,8 +2531,8 @@ diff -urN mysql-old/sql/sql_profile.cc mysql/sql/sql_profile.cc
    DBUG_ASSERT(query_source == NULL); /* we don't leak memory */
    if (query_source_arg != NULL)
 diff -urN mysql-old/sql/sql_repl.cc mysql/sql/sql_repl.cc
---- mysql-old/sql/sql_repl.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/sql_repl.cc	2009-12-10 00:44:51.785572073 -0100
+--- mysql-old/sql/sql_repl.cc	2009-12-10 00:54:18.669801304 -0100
++++ mysql/sql/sql_repl.cc	2009-12-10 00:57:23.219827771 -0100
 @@ -1256,12 +1256,12 @@
     {
       /*
@@ -2586,8 +2586,8 @@ diff -urN mysql-old/sql/sql_repl.cc mysql/sql/sql_repl.cc
        mysql_bin_log.write(&b);
        lf_info->wrote_create_file= 1;
 diff -urN mysql-old/sql/sql_select.cc mysql/sql/sql_select.cc
---- mysql-old/sql/sql_select.cc	2009-12-10 00:44:50.051926941 -0100
-+++ mysql/sql/sql_select.cc	2009-12-10 00:44:51.790552642 -0100
+--- mysql-old/sql/sql_select.cc	2009-12-10 00:54:18.674801821 -0100
++++ mysql/sql/sql_select.cc	2009-12-10 00:57:23.224925224 -0100
 @@ -881,7 +881,7 @@
    }
  #endif
@@ -2715,8 +2715,8 @@ diff -urN mysql-old/sql/sql_select.cc mysql/sql/sql_select.cc
      DBUG_RETURN(1);				/* Don't use cache */ /* purecov: inspected */
    cache->end=cache->buff+size;
 diff -urN mysql-old/sql/sql_show.cc mysql/sql/sql_show.cc
---- mysql-old/sql/sql_show.cc	2009-12-10 00:44:50.047926806 -0100
-+++ mysql/sql/sql_show.cc	2009-12-10 00:44:51.867800215 -0100
+--- mysql-old/sql/sql_show.cc	2009-12-10 00:54:18.670801185 -0100
++++ mysql/sql/sql_show.cc	2009-12-10 00:57:23.305553824 -0100
 @@ -640,7 +640,7 @@
    {
      field_list.push_back(new Item_empty_string("View",NAME_CHAR_LEN));
@@ -2772,8 +2772,8 @@ diff -urN mysql-old/sql/sql_show.cc mysql/sql/sql_show.cc
      stmt_fld->maybe_null= TRUE;
  
 diff -urN mysql-old/sql/sql_string.cc mysql/sql/sql_string.cc
---- mysql-old/sql/sql_string.cc	2009-12-10 00:44:50.053927271 -0100
-+++ mysql/sql/sql_string.cc	2009-12-10 00:44:51.870799869 -0100
+--- mysql-old/sql/sql_string.cc	2009-12-10 00:54:18.676678556 -0100
++++ mysql/sql/sql_string.cc	2009-12-10 00:57:23.310733848 -0100
 @@ -661,7 +661,7 @@
  {
    if (Alloced_length < str_length + space_needed)
@@ -2820,8 +2820,8 @@ diff -urN mysql-old/sql/sql_string.cc mysql/sql/sql_string.cc
  
    if (!f || t == t_end)
 diff -urN mysql-old/sql/sql_table.cc mysql/sql/sql_table.cc
---- mysql-old/sql/sql_table.cc	2009-12-10 00:44:50.048926661 -0100
-+++ mysql/sql/sql_table.cc	2009-12-10 00:44:51.873800317 -0100
+--- mysql-old/sql/sql_table.cc	2009-12-10 00:54:18.671801382 -0100
++++ mysql/sql/sql_table.cc	2009-12-10 00:57:23.312925406 -0100
 @@ -3213,7 +3213,7 @@
  	  if ((length=column->length) > max_key_length ||
  	      length > file->max_key_part_length())
@@ -2832,8 +2832,8 @@ diff -urN mysql-old/sql/sql_table.cc mysql/sql/sql_table.cc
  	    {
  	      /* not a critical problem */
 diff -urN mysql-old/sql/sql_yacc.cc mysql/sql/sql_yacc.cc
---- mysql-old/sql/sql_yacc.cc	2009-12-10 00:44:50.057927490 -0100
-+++ mysql/sql/sql_yacc.cc	2009-12-10 00:44:51.886801210 -0100
+--- mysql-old/sql/sql_yacc.cc	2009-12-10 00:54:18.680801992 -0100
++++ mysql/sql/sql_yacc.cc	2009-12-10 00:57:23.325926568 -0100
 @@ -16004,7 +16004,7 @@
                 from 0" (4 in fact), unspecified means "don't change the position
                 (keep the preceding value)").
@@ -2853,8 +2853,8 @@ diff -urN mysql-old/sql/sql_yacc.cc mysql/sql/sql_yacc.cc
      break;
  
 diff -urN mysql-old/sql/thr_malloc.cc mysql/sql/thr_malloc.cc
---- mysql-old/sql/thr_malloc.cc	2009-12-10 00:44:50.054926796 -0100
-+++ mysql/sql/thr_malloc.cc	2009-12-10 00:44:51.902617182 -0100
+--- mysql-old/sql/thr_malloc.cc	2009-12-10 00:54:18.677801964 -0100
++++ mysql/sql/thr_malloc.cc	2009-12-10 00:57:23.407549717 -0100
 @@ -126,7 +126,7 @@
    if ((from_cs == &my_charset_bin) || (to_cs == &my_charset_bin))
    {
@@ -2865,8 +2865,8 @@ diff -urN mysql-old/sql/thr_malloc.cc mysql/sql/thr_malloc.cc
    }
    else
 diff -urN mysql-old/sql/tztime.cc mysql/sql/tztime.cc
---- mysql-old/sql/tztime.cc	2009-12-10 00:44:50.055926542 -0100
-+++ mysql/sql/tztime.cc	2009-12-10 00:44:51.903803854 -0100
+--- mysql-old/sql/tztime.cc	2009-12-10 00:54:18.678802160 -0100
++++ mysql/sql/tztime.cc	2009-12-10 00:57:23.408549811 -0100
 @@ -167,7 +167,7 @@
        uchar buf[sizeof(struct tzhead) + sizeof(my_time_t) * TZ_MAX_TIMES +
                  TZ_MAX_TIMES + sizeof(TRAN_TYPE_INFO) * TZ_MAX_TYPES +
@@ -2895,8 +2895,8 @@ diff -urN mysql-old/sql/tztime.cc mysql/sql/tztime.cc
    /* 
      Used as a temporary tz_info until we decide that we actually want to
 diff -urN mysql-old/sql/unireg.cc mysql/sql/unireg.cc
---- mysql-old/sql/unireg.cc	2009-12-10 00:44:50.049927127 -0100
-+++ mysql/sql/unireg.cc	2009-12-10 00:44:51.904924784 -0100
+--- mysql-old/sql/unireg.cc	2009-12-10 00:54:18.672801332 -0100
++++ mysql/sql/unireg.cc	2009-12-10 00:57:23.410549895 -0100
 @@ -490,7 +490,7 @@
      }
      cfield->row=(uint8) row;
@@ -2916,8 +2916,8 @@ diff -urN mysql-old/sql/unireg.cc mysql/sql/unireg.cc
        n_length+int_length+com_length > 65535L || int_count > 255)
    {
 diff -urN mysql-old/sql-common/client.c mysql/sql-common/client.c
---- mysql-old/sql-common/client.c	2009-12-10 00:44:50.139926445 -0100
-+++ mysql/sql-common/client.c	2009-12-10 00:44:51.905925586 -0100
+--- mysql-old/sql-common/client.c	2009-12-10 00:54:18.762801391 -0100
++++ mysql/sql-common/client.c	2009-12-10 00:57:23.411550572 -0100
 @@ -728,7 +728,7 @@
        }
  
@@ -2937,8 +2937,8 @@ diff -urN mysql-old/sql-common/client.c mysql/sql-common/client.c
                            (my_inet_ntoa(sock_addr.sin_addr, ipaddr), ipaddr)));
          status= my_connect(sock, (struct sockaddr *) &sock_addr,
 diff -urN mysql-old/sql-common/my_time.c mysql/sql-common/my_time.c
---- mysql-old/sql-common/my_time.c	2009-12-10 00:44:50.139926445 -0100
-+++ mysql/sql-common/my_time.c	2009-12-10 00:44:51.907924791 -0100
+--- mysql-old/sql-common/my_time.c	2009-12-10 00:54:18.762801391 -0100
++++ mysql/sql-common/my_time.c	2009-12-10 00:57:23.413549779 -0100
 @@ -250,7 +250,7 @@
      2003-03-03 20:00:20 AM
      20:00:20.000000 AM 03-03-2000
@@ -2949,8 +2949,8 @@ diff -urN mysql-old/sql-common/my_time.c mysql/sql-common/my_time.c
    allow_space= ((1 << i) | (1 << format_position[6]));
    allow_space&= (1 | 2 | 4 | 8);
 diff -urN mysql-old/storage/csv/ha_tina.cc mysql/storage/csv/ha_tina.cc
---- mysql-old/storage/csv/ha_tina.cc	2009-12-10 00:44:50.119925278 -0100
-+++ mysql/storage/csv/ha_tina.cc	2009-12-10 00:44:51.908924796 -0100
+--- mysql-old/storage/csv/ha_tina.cc	2009-12-10 00:54:18.742800710 -0100
++++ mysql/storage/csv/ha_tina.cc	2009-12-10 00:57:23.414549859 -0100
 @@ -1185,7 +1185,7 @@
    if (closest_hole == chain_ptr) /* no more chains */
      *end_pos= file_buff->end();
@@ -2970,8 +2970,8 @@ diff -urN mysql-old/storage/csv/ha_tina.cc mysql/storage/csv/ha_tina.cc
          (my_write(repair_file, (uchar*)file_buff->ptr(),
                    (size_t) (write_end - write_begin), MYF_RW)))
 diff -urN mysql-old/storage/example/ha_example.h mysql/storage/example/ha_example.h
---- mysql-old/storage/example/ha_example.h	2009-12-10 00:44:50.119925278 -0100
-+++ mysql/storage/example/ha_example.h	2009-12-10 00:44:51.909924785 -0100
+--- mysql-old/storage/example/ha_example.h	2009-12-10 00:54:18.741801693 -0100
++++ mysql/storage/example/ha_example.h	2009-12-10 00:57:23.415549893 -0100
 @@ -110,14 +110,14 @@
      max_supported_key_parts(), uint max_supported_key_length()
      to make sure that the storage engine can handle the data it is about to
@@ -3008,8 +3008,8 @@ diff -urN mysql-old/storage/example/ha_example.h mysql/storage/example/ha_exampl
        @details
      There is no need to implement ..._key_... methods if your engine doesn't
 diff -urN mysql-old/storage/federated/ha_federated.cc mysql/storage/federated/ha_federated.cc
---- mysql-old/storage/federated/ha_federated.cc	2009-12-10 00:44:50.118926633 -0100
-+++ mysql/storage/federated/ha_federated.cc	2009-12-10 00:44:51.911550900 -0100
+--- mysql-old/storage/federated/ha_federated.cc	2009-12-10 00:54:18.741801693 -0100
++++ mysql/storage/federated/ha_federated.cc	2009-12-10 00:57:23.416697303 -0100
 @@ -546,7 +546,7 @@
    size_t buf_len;
    DBUG_ENTER("ha_federated parse_url_error");
@@ -3029,8 +3029,8 @@ diff -urN mysql-old/storage/federated/ha_federated.cc mysql/storage/federated/ha
        DBUG_DUMP("key, start of loop", ptr, length);
  
 diff -urN mysql-old/storage/heap/hp_create.c mysql/storage/heap/hp_create.c
---- mysql-old/storage/heap/hp_create.c	2009-12-10 00:44:50.118926633 -0100
-+++ mysql/storage/heap/hp_create.c	2009-12-10 00:44:51.912799862 -0100
+--- mysql-old/storage/heap/hp_create.c	2009-12-10 00:54:18.741801693 -0100
++++ mysql/storage/heap/hp_create.c	2009-12-10 00:57:23.417678529 -0100
 @@ -229,7 +229,7 @@
  {
    uint i,recbuffer,records_in_block;
@@ -3041,8 +3041,8 @@ diff -urN mysql-old/storage/heap/hp_create.c mysql/storage/heap/hp_create.c
      max_records= 1000;			/* As good as quess as anything */
    recbuffer= (uint) (reclength + sizeof(uchar**) - 1) & ~(sizeof(uchar**) - 1);
 diff -urN mysql-old/storage/heap/hp_test2.c mysql/storage/heap/hp_test2.c
---- mysql-old/storage/heap/hp_test2.c	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/heap/hp_test2.c	2009-12-10 00:44:51.912799862 -0100
+--- mysql-old/storage/heap/hp_test2.c	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/heap/hp_test2.c	2009-12-10 00:57:23.418705379 -0100
 @@ -27,6 +27,7 @@
  
  #include "heapdef.h"		/* Because of hp_find_block */
@@ -3070,8 +3070,8 @@ diff -urN mysql-old/storage/heap/hp_test2.c mysql/storage/heap/hp_test2.c
      if (rnd(2) == 1)
      {
 diff -urN mysql-old/storage/ibmdb2i/db2i_blobCollection.cc mysql/storage/ibmdb2i/db2i_blobCollection.cc
---- mysql-old/storage/ibmdb2i/db2i_blobCollection.cc	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_blobCollection.cc	2009-12-10 00:44:51.913800452 -0100
+--- mysql-old/storage/ibmdb2i/db2i_blobCollection.cc	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/db2i_blobCollection.cc	2009-12-10 00:57:23.419619980 -0100
 @@ -61,9 +61,9 @@
  
    uint curMaxSize = table->getBlobFieldActualSize(fieldIndex);
@@ -3085,8 +3085,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_blobCollection.cc mysql/storage/ibmdb2i
  }
        
 diff -urN mysql-old/storage/ibmdb2i/db2i_conversion.cc mysql/storage/ibmdb2i/db2i_conversion.cc
---- mysql-old/storage/ibmdb2i/db2i_conversion.cc	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_conversion.cc	2009-12-10 00:44:51.914604506 -0100
+--- mysql-old/storage/ibmdb2i/db2i_conversion.cc	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/db2i_conversion.cc	2009-12-10 00:57:23.419619980 -0100
 @@ -528,13 +528,13 @@
            {
              if (field->type() == MYSQL_TYPE_STRING)
@@ -3245,8 +3245,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_conversion.cc mysql/storage/ibmdb2i/db2
          char temp[80];
  
 diff -urN mysql-old/storage/ibmdb2i/db2i_file.cc mysql/storage/ibmdb2i/db2i_file.cc
---- mysql-old/storage/ibmdb2i/db2i_file.cc	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_file.cc	2009-12-10 00:44:51.915799915 -0100
+--- mysql-old/storage/ibmdb2i/db2i_file.cc	2009-12-10 00:54:18.739801321 -0100
++++ mysql/storage/ibmdb2i/db2i_file.cc	2009-12-10 00:57:23.420925523 -0100
 @@ -335,14 +335,14 @@
      {
        strncpy(out, in, outlen);
@@ -3298,8 +3298,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_file.cc mysql/storage/ibmdb2i/db2i_file
    char finalName[MAX_DB2_FILENAME_LENGTH+1];
    convertMySQLNameToDB2Name(generatedName, finalName, sizeof(finalName), true, (format==ASCII_SQL));
 diff -urN mysql-old/storage/ibmdb2i/db2i_ileBridge.cc mysql/storage/ibmdb2i/db2i_ileBridge.cc
---- mysql-old/storage/ibmdb2i/db2i_ileBridge.cc	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_ileBridge.cc	2009-12-10 00:44:51.916622624 -0100
+--- mysql-old/storage/ibmdb2i/db2i_ileBridge.cc	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/db2i_ileBridge.cc	2009-12-10 00:57:23.421833794 -0100
 @@ -594,7 +594,7 @@
    {
      Qmy_MSPO0100_output* output = (Qmy_MSPO0100_output*)parmBlock->outParms;
@@ -3310,8 +3310,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_ileBridge.cc mysql/storage/ibmdb2i/db2i
  
    
 diff -urN mysql-old/storage/ibmdb2i/db2i_misc.h mysql/storage/ibmdb2i/db2i_misc.h
---- mysql-old/storage/ibmdb2i/db2i_misc.h	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_misc.h	2009-12-10 00:44:51.916622624 -0100
+--- mysql-old/storage/ibmdb2i/db2i_misc.h	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/db2i_misc.h	2009-12-10 00:57:23.422555289 -0100
 @@ -87,7 +87,7 @@
    
    if (delimit)
@@ -3322,8 +3322,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_misc.h mysql/storage/ibmdb2i/db2i_misc.
    return (o <= outlen-1);
  }
 diff -urN mysql-old/storage/ibmdb2i/db2i_safeString.h mysql/storage/ibmdb2i/db2i_safeString.h
---- mysql-old/storage/ibmdb2i/db2i_safeString.h	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/db2i_safeString.h	2009-12-10 00:44:51.917799879 -0100
+--- mysql-old/storage/ibmdb2i/db2i_safeString.h	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/db2i_safeString.h	2009-12-10 00:57:23.422555289 -0100
 @@ -79,7 +79,7 @@
    
    SafeString& strncat(const char* str, size_t len)
@@ -3334,8 +3334,8 @@ diff -urN mysql-old/storage/ibmdb2i/db2i_safeString.h mysql/storage/ibmdb2i/db2i
      curPos += amountToCopy;
      buf[curPos] = 0;
 diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc mysql/storage/ibmdb2i/ha_ibmdb2i.cc
---- mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc	2009-12-10 00:44:51.918800306 -0100
+--- mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc	2009-12-10 00:57:23.423612063 -0100
 @@ -2644,9 +2644,9 @@
      rowsToRead = 1;
    }
@@ -3391,7 +3391,7 @@ diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc mysql/storage/ibmdb2i/ha_ibmdb
    }
 diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.orig mysql/storage/ibmdb2i/ha_ibmdb2i.cc.orig
 --- mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.orig	1969-12-31 23:00:00.000000000 -0100
-+++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc.orig	2009-12-10 00:44:51.922800051 -0100
++++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc.orig	2009-12-10 00:57:23.427924858 -0100
 @@ -0,0 +1,3359 @@
 +/*
 +Licensed Materials - Property of IBM
@@ -6754,7 +6754,7 @@ diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.orig mysql/storage/ibmdb2i/ha_
 +mysql_declare_plugin_end;
 diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.rej mysql/storage/ibmdb2i/ha_ibmdb2i.cc.rej
 --- mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.rej	1969-12-31 23:00:00.000000000 -0100
-+++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc.rej	2009-12-10 00:44:51.923800371 -0100
++++ mysql/storage/ibmdb2i/ha_ibmdb2i.cc.rej	2009-12-10 00:57:23.429840544 -0100
 @@ -0,0 +1,21 @@
 +***************
 +*** 2644,2652 ****
@@ -6778,8 +6778,8 @@ diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.cc.rej mysql/storage/ibmdb2i/ha_i
 +    activeReadBuf = &multiRowReadBuf;
 +      
 diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.h mysql/storage/ibmdb2i/ha_ibmdb2i.h
---- mysql-old/storage/ibmdb2i/ha_ibmdb2i.h	2009-12-10 00:44:50.117926694 -0100
-+++ mysql/storage/ibmdb2i/ha_ibmdb2i.h	2009-12-10 00:44:51.924676783 -0100
+--- mysql-old/storage/ibmdb2i/ha_ibmdb2i.h	2009-12-10 00:54:18.740801668 -0100
++++ mysql/storage/ibmdb2i/ha_ibmdb2i.h	2009-12-10 00:57:23.429840544 -0100
 @@ -502,7 +502,7 @@
    ha_rows getIndexReadEstimate(uint index)
    {
@@ -6790,8 +6790,8 @@ diff -urN mysql-old/storage/ibmdb2i/ha_ibmdb2i.h mysql/storage/ibmdb2i/ha_ibmdb2
      return 10000; // Assume index scan if no estimate exists.
    }
 diff -urN mysql-old/storage/innobase/include/ut0byte.h mysql/storage/innobase/include/ut0byte.h
---- mysql-old/storage/innobase/include/ut0byte.h	2009-12-10 00:44:50.111925872 -0100
-+++ mysql/storage/innobase/include/ut0byte.h	2009-12-10 00:44:51.925800122 -0100
+--- mysql-old/storage/innobase/include/ut0byte.h	2009-12-10 00:54:18.733801273 -0100
++++ mysql/storage/innobase/include/ut0byte.h	2009-12-10 00:57:23.430599449 -0100
 @@ -87,7 +87,7 @@
  dulint
  ut_dulint_get_max(
@@ -6811,8 +6811,8 @@ diff -urN mysql-old/storage/innobase/include/ut0byte.h mysql/storage/innobase/in
  	dulint	b);	/* in: dulint */
  /***********************************************************
 diff -urN mysql-old/storage/innodb_plugin/dict/dict0dict.c mysql/storage/innodb_plugin/dict/dict0dict.c
---- mysql-old/storage/innodb_plugin/dict/dict0dict.c	2009-12-10 00:44:50.106926849 -0100
-+++ mysql/storage/innodb_plugin/dict/dict0dict.c	2009-12-10 00:44:51.926554022 -0100
+--- mysql-old/storage/innodb_plugin/dict/dict0dict.c	2009-12-10 00:54:18.728801665 -0100
++++ mysql/storage/innodb_plugin/dict/dict0dict.c	2009-12-10 00:57:23.431800036 -0100
 @@ -4699,7 +4699,7 @@
  
  /**********************************************************************//**
@@ -6832,8 +6832,8 @@ diff -urN mysql-old/storage/innodb_plugin/dict/dict0dict.c mysql/storage/innodb_
  	min_index = NULL;
  	index = dict_table_get_first_index(table);
 diff -urN mysql-old/storage/innodb_plugin/include/dict0dict.h mysql/storage/innodb_plugin/include/dict0dict.h
---- mysql-old/storage/innodb_plugin/include/dict0dict.h	2009-12-10 00:44:50.103925291 -0100
-+++ mysql/storage/innodb_plugin/include/dict0dict.h	2009-12-10 00:44:51.928799754 -0100
+--- mysql-old/storage/innodb_plugin/include/dict0dict.h	2009-12-10 00:54:18.726799841 -0100
++++ mysql/storage/innodb_plugin/include/dict0dict.h	2009-12-10 00:57:23.433924906 -0100
 @@ -1090,7 +1090,7 @@
  	const char*	name);	/*!< in: name of the index to find */
  /**********************************************************************//**
@@ -6844,8 +6844,8 @@ diff -urN mysql-old/storage/innodb_plugin/include/dict0dict.h mysql/storage/inno
  UNIV_INTERN
  dict_index_t*
 diff -urN mysql-old/storage/innodb_plugin/include/ut0byte.h mysql/storage/innodb_plugin/include/ut0byte.h
---- mysql-old/storage/innodb_plugin/include/ut0byte.h	2009-12-10 00:44:50.100926288 -0100
-+++ mysql/storage/innodb_plugin/include/ut0byte.h	2009-12-10 00:44:51.929800113 -0100
+--- mysql-old/storage/innodb_plugin/include/ut0byte.h	2009-12-10 00:54:18.723801555 -0100
++++ mysql/storage/innodb_plugin/include/ut0byte.h	2009-12-10 00:57:23.434904923 -0100
 @@ -99,7 +99,7 @@
  	dulint	b);	/*!< in: dulint */
  /*******************************************************//**
@@ -6865,8 +6865,8 @@ diff -urN mysql-old/storage/innodb_plugin/include/ut0byte.h mysql/storage/innodb
  dulint
  ut_dulint_get_min(
 diff -urN mysql-old/storage/myisam/ft_boolean_search.c mysql/storage/myisam/ft_boolean_search.c
---- mysql-old/storage/myisam/ft_boolean_search.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/ft_boolean_search.c	2009-12-10 00:44:51.929800113 -0100
+--- mysql-old/storage/myisam/ft_boolean_search.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/ft_boolean_search.c	2009-12-10 00:57:23.435891307 -0100
 @@ -46,9 +46,9 @@
      three subexpressions (including the top-level one),
      every one has its own max_docid, updated by its plus word.
@@ -6880,8 +6880,8 @@ diff -urN mysql-old/storage/myisam/ft_boolean_search.c mysql/storage/myisam/ft_b
  
  #define FT_CORE
 diff -urN mysql-old/storage/myisam/ha_myisam.cc mysql/storage/myisam/ha_myisam.cc
---- mysql-old/storage/myisam/ha_myisam.cc	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/ha_myisam.cc	2009-12-10 00:44:51.930800453 -0100
+--- mysql-old/storage/myisam/ha_myisam.cc	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/ha_myisam.cc	2009-12-10 00:57:23.436925199 -0100
 @@ -1519,7 +1519,7 @@
  {
    DBUG_ENTER("ha_myisam::start_bulk_insert");
@@ -6892,8 +6892,8 @@ diff -urN mysql-old/storage/myisam/ha_myisam.cc mysql/storage/myisam/ha_myisam.c
    DBUG_PRINT("info",("start_bulk_insert: rows %lu size %lu",
                       (ulong) rows, size));
 diff -urN mysql-old/storage/myisam/mi_cache.c mysql/storage/myisam/mi_cache.c
---- mysql-old/storage/myisam/mi_cache.c	2009-12-10 00:44:50.094925844 -0100
-+++ mysql/storage/myisam/mi_cache.c	2009-12-10 00:44:51.932745787 -0100
+--- mysql-old/storage/myisam/mi_cache.c	2009-12-10 00:54:18.717800958 -0100
++++ mysql/storage/myisam/mi_cache.c	2009-12-10 00:57:23.437924978 -0100
 @@ -61,7 +61,7 @@
        (my_off_t) (info->read_end - info->request_pos))
    {
@@ -6904,8 +6904,8 @@ diff -urN mysql-old/storage/myisam/mi_cache.c mysql/storage/myisam/mi_cache.c
      if (!(length-=in_buff_length))
        DBUG_RETURN(0);
 diff -urN mysql-old/storage/myisam/mi_check.c mysql/storage/myisam/mi_check.c
---- mysql-old/storage/myisam/mi_check.c	2009-12-10 00:44:50.094925844 -0100
-+++ mysql/storage/myisam/mi_check.c	2009-12-10 00:44:51.933677796 -0100
+--- mysql-old/storage/myisam/mi_check.c	2009-12-10 00:54:18.717800958 -0100
++++ mysql/storage/myisam/mi_check.c	2009-12-10 00:57:23.439925308 -0100
 @@ -2165,7 +2165,7 @@
    ulong buff_length;
    DBUG_ENTER("filecopy");
@@ -6952,8 +6952,8 @@ diff -urN mysql-old/storage/myisam/mi_check.c mysql/storage/myisam/mi_check.c
    create_info.old_options=(share.options |
  			   (unpack ? HA_OPTION_TEMP_COMPRESS_RECORD : 0));
 diff -urN mysql-old/storage/myisam/mi_create.c mysql/storage/myisam/mi_create.c
---- mysql-old/storage/myisam/mi_create.c	2009-12-10 00:44:50.094925844 -0100
-+++ mysql/storage/myisam/mi_create.c	2009-12-10 00:44:51.989674903 -0100
+--- mysql-old/storage/myisam/mi_create.c	2009-12-10 00:54:18.717800958 -0100
++++ mysql/storage/myisam/mi_create.c	2009-12-10 00:57:23.441925056 -0100
 @@ -27,6 +27,7 @@
  #endif
  #endif
@@ -6992,8 +6992,8 @@ diff -urN mysql-old/storage/myisam/mi_create.c mysql/storage/myisam/mi_create.c
    if (! (flags & HA_DONT_TOUCH_DATA))
      share.state.create_time= (long) time((time_t*) 0);
 diff -urN mysql-old/storage/myisam/mi_dynrec.c mysql/storage/myisam/mi_dynrec.c
---- mysql-old/storage/myisam/mi_dynrec.c	2009-12-10 00:44:50.094925844 -0100
-+++ mysql/storage/myisam/mi_dynrec.c	2009-12-10 00:44:51.990553844 -0100
+--- mysql-old/storage/myisam/mi_dynrec.c	2009-12-10 00:54:18.717800958 -0100
++++ mysql/storage/myisam/mi_dynrec.c	2009-12-10 00:57:23.442925103 -0100
 @@ -850,7 +850,7 @@
  	uint tmp=MY_ALIGN(reclength - length + 3 +
  			  test(reclength >= 65520L),MI_DYN_ALIGN_SIZE);
@@ -7004,8 +7004,8 @@ diff -urN mysql-old/storage/myisam/mi_dynrec.c mysql/storage/myisam/mi_dynrec.c
  	if (block_info.filepos + block_info.block_len ==
  	    info->state->data_file_length &&
 diff -urN mysql-old/storage/myisam/mi_extra.c mysql/storage/myisam/mi_extra.c
---- mysql-old/storage/myisam/mi_extra.c	2009-12-10 00:44:50.095925855 -0100
-+++ mysql/storage/myisam/mi_extra.c	2009-12-10 00:44:51.991676175 -0100
+--- mysql-old/storage/myisam/mi_extra.c	2009-12-10 00:54:18.718800573 -0100
++++ mysql/storage/myisam/mi_extra.c	2009-12-10 00:57:23.443925275 -0100
 @@ -99,7 +99,7 @@
        cache_size= (extra_arg ? *(ulong*) extra_arg :
  		   my_default_record_cache_size);
@@ -7016,8 +7016,8 @@ diff -urN mysql-old/storage/myisam/mi_extra.c mysql/storage/myisam/mi_extra.c
  			  READ_CACHE,0L,(pbool) (info->lock_type != F_UNLCK),
  			  MYF(share->write_flag & MY_WAIT_IF_FULL))))
 diff -urN mysql-old/storage/myisam/mi_open.c mysql/storage/myisam/mi_open.c
---- mysql-old/storage/myisam/mi_open.c	2009-12-10 00:44:50.095925855 -0100
-+++ mysql/storage/myisam/mi_open.c	2009-12-10 00:44:51.992574542 -0100
+--- mysql-old/storage/myisam/mi_open.c	2009-12-10 00:54:18.718800573 -0100
++++ mysql/storage/myisam/mi_open.c	2009-12-10 00:57:23.444798045 -0100
 @@ -328,7 +328,7 @@
      strmov(share->index_file_name,  index_name);
      strmov(share->data_file_name,   data_name);
@@ -7050,8 +7050,8 @@ diff -urN mysql-old/storage/myisam/mi_open.c mysql/storage/myisam/mi_open.c
        if (newptr && length == old_length)
  	return newptr;
 diff -urN mysql-old/storage/myisam/mi_packrec.c mysql/storage/myisam/mi_packrec.c
---- mysql-old/storage/myisam/mi_packrec.c	2009-12-10 00:44:50.094925844 -0100
-+++ mysql/storage/myisam/mi_packrec.c	2009-12-10 00:44:51.993675118 -0100
+--- mysql-old/storage/myisam/mi_packrec.c	2009-12-10 00:54:18.717800958 -0100
++++ mysql/storage/myisam/mi_packrec.c	2009-12-10 00:57:23.445902843 -0100
 @@ -684,7 +684,7 @@
        return OFFSET_TABLE_SIZE;
      }
@@ -7071,8 +7071,8 @@ diff -urN mysql-old/storage/myisam/mi_packrec.c mysql/storage/myisam/mi_packrec.
    }
    return 0;
 diff -urN mysql-old/storage/myisam/mi_test1.c mysql/storage/myisam/mi_test1.c
---- mysql-old/storage/myisam/mi_test1.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/mi_test1.c	2009-12-10 00:44:51.994674948 -0100
+--- mysql-old/storage/myisam/mi_test1.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/mi_test1.c	2009-12-10 00:57:23.446924995 -0100
 @@ -435,7 +435,7 @@
      uint tmp;
      uchar *ptr;;
@@ -7083,8 +7083,8 @@ diff -urN mysql-old/storage/myisam/mi_test1.c mysql/storage/myisam/mi_test1.c
      int4store(pos,tmp);
      ptr=blob_record;
 diff -urN mysql-old/storage/myisam/mi_test2.c mysql/storage/myisam/mi_test2.c
---- mysql-old/storage/myisam/mi_test2.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/mi_test2.c	2009-12-10 00:44:51.995800311 -0100
+--- mysql-old/storage/myisam/mi_test2.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/mi_test2.c	2009-12-10 00:57:23.447736213 -0100
 @@ -601,7 +601,7 @@
      goto err;
  
@@ -7095,8 +7095,8 @@ diff -urN mysql-old/storage/myisam/mi_test2.c mysql/storage/myisam/mi_test2.c
      if (mi_rsame(file,read_record2,(int) i)) goto err;
      if (bcmp(read_record,read_record2,reclength) != 0)
 diff -urN mysql-old/storage/myisam/myisamlog.c mysql/storage/myisam/myisamlog.c
---- mysql-old/storage/myisam/myisamlog.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/myisamlog.c	2009-12-10 00:44:51.995800311 -0100
+--- mysql-old/storage/myisam/myisamlog.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/myisamlog.c	2009-12-10 00:57:23.448597030 -0100
 @@ -90,7 +90,7 @@
    log_filename=myisam_log_filename;
    get_options(&argc,&argv);
@@ -7107,8 +7107,8 @@ diff -urN mysql-old/storage/myisam/myisamlog.c mysql/storage/myisam/myisamlog.c
      printf("Trying to %s MyISAM files according to log '%s'\n",
  	   (recover ? "recover" : "update"),log_filename);
 diff -urN mysql-old/storage/myisam/myisampack.c mysql/storage/myisam/myisampack.c
---- mysql-old/storage/myisam/myisampack.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/myisampack.c	2009-12-10 00:44:51.997658197 -0100
+--- mysql-old/storage/myisam/myisampack.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/myisampack.c	2009-12-10 00:57:23.449833524 -0100
 @@ -31,6 +31,7 @@
  #endif
  #include <my_getopt.h>
@@ -7136,8 +7136,8 @@ diff -urN mysql-old/storage/myisam/myisampack.c mysql/storage/myisam/myisampack.
    state.dellink= HA_OFFSET_ERROR;
    state.version=(ulong) time((time_t*) 0);
 diff -urN mysql-old/storage/myisam/rt_mbr.c mysql/storage/myisam/rt_mbr.c
---- mysql-old/storage/myisam/rt_mbr.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/rt_mbr.c	2009-12-10 00:44:51.998800361 -0100
+--- mysql-old/storage/myisam/rt_mbr.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/rt_mbr.c	2009-12-10 00:57:23.450925321 -0100
 @@ -14,6 +14,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
  
@@ -7227,8 +7227,8 @@ diff -urN mysql-old/storage/myisam/rt_mbr.c mysql/storage/myisam/rt_mbr.c
  
  /*
 diff -urN mysql-old/storage/myisam/sort.c mysql/storage/myisam/sort.c
---- mysql-old/storage/myisam/sort.c	2009-12-10 00:44:50.093924997 -0100
-+++ mysql/storage/myisam/sort.c	2009-12-10 00:44:51.999800343 -0100
+--- mysql-old/storage/myisam/sort.c	2009-12-10 00:54:18.716800276 -0100
++++ mysql/storage/myisam/sort.c	2009-12-10 00:57:23.451743818 -0100
 @@ -131,7 +131,7 @@
    sort_keys= (uchar **) NULL; error= 1;
    maxbuffer=1;
@@ -7266,8 +7266,8 @@ diff -urN mysql-old/storage/myisam/sort.c mysql/storage/myisam/sort.c
      buffp = buffpek->base;
  
 diff -urN mysql-old/storage/myisammrg/ha_myisammrg.cc mysql/storage/myisammrg/ha_myisammrg.cc
---- mysql-old/storage/myisammrg/ha_myisammrg.cc	2009-12-10 00:44:50.092925595 -0100
-+++ mysql/storage/myisammrg/ha_myisammrg.cc	2009-12-10 00:44:52.000718974 -0100
+--- mysql-old/storage/myisammrg/ha_myisammrg.cc	2009-12-10 00:54:18.715800244 -0100
++++ mysql/storage/myisammrg/ha_myisammrg.cc	2009-12-10 00:57:23.452925312 -0100
 @@ -930,7 +930,7 @@
        memcpy((char*) table->key_info[0].rec_per_key,
  	     (char*) mrg_info.rec_per_key,
@@ -7278,8 +7278,8 @@ diff -urN mysql-old/storage/myisammrg/ha_myisammrg.cc mysql/storage/myisammrg/ha
    }
    if (flag & HA_STATUS_ERRKEY)
 diff -urN mysql-old/storage/ndb/src/common/portlib/NdbTCP.cpp mysql/storage/ndb/src/common/portlib/NdbTCP.cpp
---- mysql-old/storage/ndb/src/common/portlib/NdbTCP.cpp	2009-12-10 00:44:50.091925336 -0100
-+++ mysql/storage/ndb/src/common/portlib/NdbTCP.cpp	2009-12-10 00:44:52.001800387 -0100
+--- mysql-old/storage/ndb/src/common/portlib/NdbTCP.cpp	2009-12-10 00:54:18.713799851 -0100
++++ mysql/storage/ndb/src/common/portlib/NdbTCP.cpp	2009-12-10 00:57:23.453925275 -0100
 @@ -30,7 +30,7 @@
  			    &tmp_errno);
      if (hp)
@@ -7290,8 +7290,8 @@ diff -urN mysql-old/storage/ndb/src/common/portlib/NdbTCP.cpp mysql/storage/ndb/
        return 0; //DBUG_RETURN(0);
      }
 diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp
---- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp	2009-12-10 00:44:50.079926296 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp	2009-12-10 00:44:52.002609475 -0100
+--- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp	2009-12-10 00:54:18.702801233 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp	2009-12-10 00:57:23.454888653 -0100
 @@ -54,7 +54,7 @@
          ndbrequire(ah(entryData).getAttributeId() == descAttr.m_primaryAttrId);
          // sizes
@@ -7311,8 +7311,8 @@ diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxCmp.cpp mysql/stora
          // compare
          NdbSqlUtil::Cmp* const cmp = c_sqlCmp[index];
 diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp
---- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2009-12-10 00:44:50.079926296 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2009-12-10 00:44:52.002609475 -0100
+--- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2009-12-10 00:54:18.702801233 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2009-12-10 00:57:23.454888653 -0100
 @@ -212,7 +212,7 @@
      }
    }
@@ -7323,8 +7323,8 @@ diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp mysql/sto
    for (unsigned i = 0; i <= 1; i++) {
      if (node.getLink(i) == NullTupLoc)
 diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp
---- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp	2009-12-10 00:44:50.079926296 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp	2009-12-10 00:44:52.003552417 -0100
+--- mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp	2009-12-10 00:54:18.702801233 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp	2009-12-10 00:57:23.455625758 -0100
 @@ -260,7 +260,7 @@
    selectNode(leafNode, leafLoc);
    if (semiNode.getOccup() < tree.m_minOccup) {
@@ -7344,8 +7344,8 @@ diff -urN mysql-old/storage/ndb/src/kernel/blocks/dbtux/DbtuxTree.cpp mysql/stor
        }
      }
 diff -urN mysql-old/storage/ndb/src/ndbapi/NdbBlob.cpp mysql/storage/ndb/src/ndbapi/NdbBlob.cpp
---- mysql-old/storage/ndb/src/ndbapi/NdbBlob.cpp	2009-12-10 00:44:50.075925579 -0100
-+++ mysql/storage/ndb/src/ndbapi/NdbBlob.cpp	2009-12-10 00:44:52.004800083 -0100
+--- mysql-old/storage/ndb/src/ndbapi/NdbBlob.cpp	2009-12-10 00:54:18.698800891 -0100
++++ mysql/storage/ndb/src/ndbapi/NdbBlob.cpp	2009-12-10 00:57:23.456925414 -0100
 @@ -1523,7 +1523,7 @@
    }
    // these buffers are always used
@@ -7356,8 +7356,8 @@ diff -urN mysql-old/storage/ndb/src/ndbapi/NdbBlob.cpp mysql/storage/ndb/src/ndb
    theHead = (Head*)theHeadInlineBuf.data;
    theInlineData = theHeadInlineBuf.data + sizeof(Head);
 diff -urN mysql-old/storage/ndb/test/ndbapi/test_event_merge.cpp mysql/storage/ndb/test/ndbapi/test_event_merge.cpp
---- mysql-old/storage/ndb/test/ndbapi/test_event_merge.cpp	2009-12-10 00:44:50.068925373 -0100
-+++ mysql/storage/ndb/test/ndbapi/test_event_merge.cpp	2009-12-10 00:44:52.005800045 -0100
+--- mysql-old/storage/ndb/test/ndbapi/test_event_merge.cpp	2009-12-10 00:54:18.691800845 -0100
++++ mysql/storage/ndb/test/ndbapi/test_event_merge.cpp	2009-12-10 00:57:23.457924960 -0100
 @@ -23,8 +23,8 @@
  // version >= 5.1 required
  
@@ -7370,8 +7370,8 @@ diff -urN mysql-old/storage/ndb/test/ndbapi/test_event_merge.cpp mysql/storage/n
  
  /*
 diff -urN mysql-old/storage/ndb/test/ndbapi/testIndexStat.cpp mysql/storage/ndb/test/ndbapi/testIndexStat.cpp
---- mysql-old/storage/ndb/test/ndbapi/testIndexStat.cpp	2009-12-10 00:44:50.069925474 -0100
-+++ mysql/storage/ndb/test/ndbapi/testIndexStat.cpp	2009-12-10 00:44:52.006800335 -0100
+--- mysql-old/storage/ndb/test/ndbapi/testIndexStat.cpp	2009-12-10 00:54:18.692800942 -0100
++++ mysql/storage/ndb/test/ndbapi/testIndexStat.cpp	2009-12-10 00:57:23.459722163 -0100
 @@ -32,8 +32,8 @@
  
  #undef min
@@ -7411,8 +7411,8 @@ diff -urN mysql-old/storage/ndb/test/ndbapi/testIndexStat.cpp mysql/storage/ndb/
      int curr = -1;
      for (i = 0; i < (int)g_sortcount; i++) {
 diff -urN mysql-old/storage/ndb/test/src/getarg.c mysql/storage/ndb/test/src/getarg.c
---- mysql-old/storage/ndb/test/src/getarg.c	2009-12-10 00:44:50.072925850 -0100
-+++ mysql/storage/ndb/test/src/getarg.c	2009-12-10 00:44:52.007601358 -0100
+--- mysql-old/storage/ndb/test/src/getarg.c	2009-12-10 00:54:18.695800160 -0100
++++ mysql/storage/ndb/test/src/getarg.c	2009-12-10 00:57:23.459722163 -0100
 @@ -66,7 +66,7 @@
  #define ISFLAG(X) ((X).type == arg_flag || (X).type == arg_negative_flag)
  
@@ -7432,8 +7432,8 @@ diff -urN mysql-old/storage/ndb/test/src/getarg.c mysql/storage/ndb/test/src/get
      if (extra_string) {
  	col = check_column(stderr, col, strlen(extra_string) + 1, columns);
 diff -urN mysql-old/strings/ctype-big5.c mysql/strings/ctype-big5.c
---- mysql-old/strings/ctype-big5.c	2009-12-10 00:44:50.135926796 -0100
-+++ mysql/strings/ctype-big5.c	2009-12-10 00:44:52.009800504 -0100
+--- mysql-old/strings/ctype-big5.c	2009-12-10 00:54:18.758802123 -0100
++++ mysql/strings/ctype-big5.c	2009-12-10 00:57:23.462925882 -0100
 @@ -253,7 +253,7 @@
                               const uchar *b, size_t b_length,
                               my_bool b_is_prefix)
@@ -7453,8 +7453,8 @@ diff -urN mysql-old/strings/ctype-big5.c mysql/strings/ctype-big5.c
  
  #ifndef VARCHAR_WITH_DIFF_ENDSPACE_ARE_DIFFERENT_FOR_UNIQUE
 diff -urN mysql-old/strings/ctype-bin.c mysql/strings/ctype-bin.c
---- mysql-old/strings/ctype-bin.c	2009-12-10 00:44:50.131925476 -0100
-+++ mysql/strings/ctype-bin.c	2009-12-10 00:44:52.014776636 -0100
+--- mysql-old/strings/ctype-bin.c	2009-12-10 00:54:18.754801046 -0100
++++ mysql/strings/ctype-bin.c	2009-12-10 00:57:23.466924829 -0100
 @@ -80,7 +80,7 @@
                                 const uchar *t, size_t tlen,
                                 my_bool t_is_prefix)
@@ -7501,8 +7501,8 @@ diff -urN mysql-old/strings/ctype-bin.c mysql/strings/ctype-bin.c
      bfill(dest + srclen, dstlen - srclen, ' ');
    return dstlen;
 diff -urN mysql-old/strings/ctype-gbk.c mysql/strings/ctype-gbk.c
---- mysql-old/strings/ctype-gbk.c	2009-12-10 00:44:50.133926289 -0100
-+++ mysql/strings/ctype-gbk.c	2009-12-10 00:44:52.017799949 -0100
+--- mysql-old/strings/ctype-gbk.c	2009-12-10 00:54:18.756801544 -0100
++++ mysql/strings/ctype-gbk.c	2009-12-10 00:57:23.470925687 -0100
 @@ -2616,7 +2616,7 @@
                       const uchar *b, size_t b_length,
                       my_bool b_is_prefix)
@@ -7522,8 +7522,8 @@ diff -urN mysql-old/strings/ctype-gbk.c mysql/strings/ctype-gbk.c
  
  #ifndef VARCHAR_WITH_DIFF_ENDSPACE_ARE_DIFFERENT_FOR_UNIQUE
 diff -urN mysql-old/strings/ctype-mb.c mysql/strings/ctype-mb.c
---- mysql-old/strings/ctype-mb.c	2009-12-10 00:44:50.135926796 -0100
-+++ mysql/strings/ctype-mb.c	2009-12-10 00:44:52.102714885 -0100
+--- mysql-old/strings/ctype-mb.c	2009-12-10 00:54:18.758802123 -0100
++++ mysql/strings/ctype-mb.c	2009-12-10 00:57:23.562756029 -0100
 @@ -368,7 +368,7 @@
  				const uchar *t, size_t tlen,
                                  my_bool t_is_prefix)
@@ -7552,8 +7552,8 @@ diff -urN mysql-old/strings/ctype-mb.c mysql/strings/ctype-mb.c
      bfill(dest + srclen, dstlen - srclen, ' ');
    return dstlen;
 diff -urN mysql-old/strings/ctype-simple.c mysql/strings/ctype-simple.c
---- mysql-old/strings/ctype-simple.c	2009-12-10 00:44:50.135926796 -0100
-+++ mysql/strings/ctype-simple.c	2009-12-10 00:44:52.103800401 -0100
+--- mysql-old/strings/ctype-simple.c	2009-12-10 00:54:18.758802123 -0100
++++ mysql/strings/ctype-simple.c	2009-12-10 00:57:23.563925061 -0100
 @@ -159,7 +159,7 @@
    diff_if_only_endspace_difference= 0;
  #endif
@@ -7591,8 +7591,8 @@ diff -urN mysql-old/strings/ctype-simple.c mysql/strings/ctype-simple.c
  
  
 diff -urN mysql-old/strings/ctype-tis620.c mysql/strings/ctype-tis620.c
---- mysql-old/strings/ctype-tis620.c	2009-12-10 00:44:50.133926289 -0100
-+++ mysql/strings/ctype-tis620.c	2009-12-10 00:44:52.104800153 -0100
+--- mysql-old/strings/ctype-tis620.c	2009-12-10 00:54:18.755801042 -0100
++++ mysql/strings/ctype-tis620.c	2009-12-10 00:57:23.564925210 -0100
 @@ -581,7 +581,7 @@
    a_length= thai2sortable(a, a_length);
    b_length= thai2sortable(b, b_length);
@@ -7612,8 +7612,8 @@ diff -urN mysql-old/strings/ctype-tis620.c mysql/strings/ctype-tis620.c
    len= thai2sortable(dest, len);
    if (dstlen > len)
 diff -urN mysql-old/strings/ctype-uca.c mysql/strings/ctype-uca.c
---- mysql-old/strings/ctype-uca.c	2009-12-10 00:44:50.132926450 -0100
-+++ mysql/strings/ctype-uca.c	2009-12-10 00:44:52.107800215 -0100
+--- mysql-old/strings/ctype-uca.c	2009-12-10 00:54:18.755801042 -0100
++++ mysql/strings/ctype-uca.c	2009-12-10 00:57:23.567925139 -0100
 @@ -7567,7 +7567,7 @@
  {
    char tail[30];
@@ -7624,8 +7624,8 @@ diff -urN mysql-old/strings/ctype-uca.c mysql/strings/ctype-uca.c
    my_snprintf(errstr,errsize-1,"%s at '%s'", txt, tail);
  }
 diff -urN mysql-old/strings/ctype-ucs2.c mysql/strings/ctype-ucs2.c
---- mysql-old/strings/ctype-ucs2.c	2009-12-10 00:44:50.132926450 -0100
-+++ mysql/strings/ctype-ucs2.c	2009-12-10 00:44:52.113554446 -0100
+--- mysql-old/strings/ctype-ucs2.c	2009-12-10 00:54:18.755801042 -0100
++++ mysql/strings/ctype-ucs2.c	2009-12-10 00:57:23.573924782 -0100
 @@ -279,7 +279,7 @@
    se= s + slen;
    te= t + tlen;
@@ -7663,8 +7663,8 @@ diff -urN mysql-old/strings/ctype-ucs2.c mysql/strings/ctype-ucs2.c
      cs->cset->fill(cs, (char*) dst + srclen, dstlen - srclen, ' ');
    return dstlen;
 diff -urN mysql-old/strings/ctype-utf8.c mysql/strings/ctype-utf8.c
---- mysql-old/strings/ctype-utf8.c	2009-12-10 00:44:50.132926450 -0100
-+++ mysql/strings/ctype-utf8.c	2009-12-10 00:44:52.115549847 -0100
+--- mysql-old/strings/ctype-utf8.c	2009-12-10 00:54:18.755801042 -0100
++++ mysql/strings/ctype-utf8.c	2009-12-10 00:57:23.575774954 -0100
 @@ -1937,7 +1937,7 @@
                           const uchar *t, const uchar *te)
  {
@@ -7675,69 +7675,8 @@ diff -urN mysql-old/strings/ctype-utf8.c mysql/strings/ctype-utf8.c
    return cmp ? cmp : slen-tlen;
  }
 diff -urN mysql-old/strings/decimal.c mysql/strings/decimal.c
---- mysql-old/strings/decimal.c	2009-12-10 00:44:50.131925476 -0100
-+++ mysql/strings/decimal.c	2009-12-10 00:44:52.118799919 -0100
-@@ -69,10 +69,10 @@
- 
-   20) For the <exact numeric type>s DECIMAL and NUMERIC:
- 
--    a) The maximum value of <precision> is implementation-defined.
-+    a) The MYSQL_MAXimum value of <precision> is implementation-defined.
-        <precision> shall not be greater than this value.
--    b) The maximum value of <scale> is implementation-defined. <scale>
--       shall not be greater than this maximum value.
-+    b) The MYSQL_MAXimum value of <scale> is implementation-defined. <scale>
-+       shall not be greater than this MYSQL_MAXimum value.
- 
-   21) NUMERIC specifies the data type exact numeric, with the decimal
-       precision and scale specified by the <precision> and <scale>.
-@@ -92,7 +92,7 @@
-    a) Let S1 and S2 be the scale of the first and second operands
-       respectively.
-    b) The precision of the result of addition and subtraction is
--      implementation-defined, and the scale is the maximum of S1 and S2.
-+      implementation-defined, and the scale is the MYSQL_MAXimum of S1 and S2.
-    c) The precision of the result of multiplication is
-       implementation-defined, and the scale is S1 + S2.
-    d) The precision and scale of the result of division are
-@@ -133,7 +133,7 @@
- static const dec1 powers10[DIG_PER_DEC1+1]={
-   1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000};
- static const int dig2bytes[DIG_PER_DEC1+1]={0, 1, 1, 2, 2, 3, 3, 4, 4, 4};
--static const dec1 frac_max[DIG_PER_DEC1-1]={
-+static const dec1 frac_MYSQL_MAX[DIG_PER_DEC1-1]={
-   900000000, 990000000, 999000000,
-   999900000, 999990000, 999999000,
-   999999900, 999999990 };
-@@ -220,16 +220,16 @@
-         } while(0)
- 
- /*
--  Get maximum value for given precision and scale
-+  Get MYSQL_MAXimum value for given precision and scale
- 
-   SYNOPSIS
--    max_decimal()
-+    MYSQL_MAX_decimal()
-     precision/scale - see decimal_bin_size() below
-     to              - decimal where where the result will be stored
-                       to->buf and to->len must be set.
- */
- 
--void max_decimal(int precision, int frac, decimal_t *to)
-+void MYSQL_MAX_decimal(int precision, int frac, decimal_t *to)
- {
-   int intpart;
-   dec1 *buf= to->buf;
-@@ -251,7 +251,7 @@
-     for(frac/= DIG_PER_DEC1; frac; frac--)
-       *buf++= DIG_MAX;
-     if (lastdigits)
--      *buf= frac_max[lastdigits - 1];
-+      *buf= frac_MYSQL_MAX[lastdigits - 1];
-   }
- }
- 
+--- mysql-old/strings/decimal.c	2009-12-10 00:54:18.754801046 -0100
++++ mysql/strings/decimal.c	2009-12-10 01:09:06.977551298 -0100
 @@ -403,7 +403,7 @@
      for (; frac>0; frac-=DIG_PER_DEC1)
      {
@@ -7819,15 +7758,7 @@ diff -urN mysql-old/strings/decimal.c mysql/strings/decimal.c
    dec1 *buf1, *buf2, *buf0, *stop, *stop2, x, carry;
  
    sanity(to);
-@@ -1736,14 +1736,14 @@
-   FIX_INTG_FRAC_ERROR(to->len, intg0, frac0, error);
-   if (unlikely(error == E_DEC_OVERFLOW))
-   {
--    max_decimal(to->len * DIG_PER_DEC1, 0, to);
-+    MYSQL_MAX_decimal(to->len * DIG_PER_DEC1, 0, to);
-     return error;
-   }
- 
+@@ -1743,7 +1743,7 @@
    buf0=to->buf+intg0+frac0;
  
    to->sign=from1->sign;
@@ -7885,7 +7816,7 @@ diff -urN mysql-old/strings/decimal.c mysql/strings/decimal.c
    carry=0;
  
 -  /* part 1 - max(frac) ... min (frac) */
-+  /* part 1 - MYSQL_MAX(frac) ... min (frac) */
++  /* part 1 - MYSQL_MAX(frac) ... MYSQL_MIN (frac) */
    if (frac1 > frac2)
    {
      buf1=start1+intg1+frac1;
@@ -7930,27 +7861,9 @@ diff -urN mysql-old/strings/decimal.c mysql/strings/decimal.c
      }
      if (unlikely(intg0+frac0 > to->len))
      {
-@@ -2736,7 +2736,7 @@
- {
-   char s[100];
-   sprintf(s, "%d, %d", precision, frac);
--  max_decimal(precision, frac, &a);
-+  MYSQL_MAX_decimal(precision, frac, &a);
-   printf("%-40s =>          ", s);
-   print_decimal(&a, orig, 0, 0);
-   printf("\n");
-@@ -3012,7 +3012,7 @@
-     exit(1);
-   }
- 
--  printf("==== max_decimal ====\n");
-+  printf("==== MYSQL_MAX_decimal ====\n");
-   test_mx(1,1,"0.9");
-   test_mx(1,0,"9");
-   test_mx(2,1,"9.9");
 diff -urN mysql-old/strings/my_vsnprintf.c mysql/strings/my_vsnprintf.c
---- mysql-old/strings/my_vsnprintf.c	2009-12-10 00:44:50.131925476 -0100
-+++ mysql/strings/my_vsnprintf.c	2009-12-10 00:44:52.120800105 -0100
+--- mysql-old/strings/my_vsnprintf.c	2009-12-10 00:54:18.754801046 -0100
++++ mysql/strings/my_vsnprintf.c	2009-12-10 00:57:23.580804504 -0100
 @@ -141,7 +141,7 @@
        /* If %#d syntax was used, we have to pre-zero/pre-space the string */
        if (store_start == buff)
@@ -7961,8 +7874,8 @@ diff -urN mysql-old/strings/my_vsnprintf.c mysql/strings/my_vsnprintf.c
  	{
  	  size_t diff= (length- res_length);
 diff -urN mysql-old/strings/str2int.c mysql/strings/str2int.c
---- mysql-old/strings/str2int.c	2009-12-10 00:44:50.136927245 -0100
-+++ mysql/strings/str2int.c	2009-12-10 00:44:52.120800105 -0100
+--- mysql-old/strings/str2int.c	2009-12-10 00:54:18.759801315 -0100
++++ mysql/strings/str2int.c	2009-12-10 00:57:23.580804504 -0100
 @@ -82,7 +82,7 @@
        machines all, if +|n| is representable, so is -|n|, but on
        twos complement machines the converse is not true.  So the
@@ -7973,8 +7886,8 @@ diff -urN mysql-old/strings/str2int.c mysql/strings/str2int.c
  
    /*  Calculate Limit using Scale as a scratch variable  */
 diff -urN mysql-old/tests/mysql_client_test.c mysql/tests/mysql_client_test.c
---- mysql-old/tests/mysql_client_test.c	2009-12-10 00:44:50.040925587 -0100
-+++ mysql/tests/mysql_client_test.c	2009-12-10 00:44:52.124799781 -0100
+--- mysql-old/tests/mysql_client_test.c	2009-12-10 00:54:18.663800317 -0100
++++ mysql/tests/mysql_client_test.c	2009-12-10 00:57:23.584924840 -0100
 @@ -587,7 +587,7 @@
      return row_count;
    }
@@ -7985,8 +7898,8 @@ diff -urN mysql-old/tests/mysql_client_test.c mysql/tests/mysql_client_test.c
    bzero((char*) buffer, sizeof(buffer));
    bzero((char*) length, sizeof(length));
 diff -urN mysql-old/vio/viosocket.c mysql/vio/viosocket.c
---- mysql-old/vio/viosocket.c	2009-12-10 00:44:50.143925803 -0100
-+++ mysql/vio/viosocket.c	2009-12-10 00:44:52.131550441 -0100
+--- mysql-old/vio/viosocket.c	2009-12-10 00:54:18.765800829 -0100
++++ mysql/vio/viosocket.c	2009-12-10 00:57:23.590799829 -0100
 @@ -69,7 +69,7 @@
  
    if (vio->read_pos < vio->read_end)
