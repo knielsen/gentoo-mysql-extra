@@ -1,4 +1,4 @@
-W@patch 00100_all_mysql-4.0-my-print-defaults.patch
+@patch 00100_all_mysql-4.0-my-print-defaults.patch
 @ver 4.00.00.00 to 4.00.26.99
 @pn mysql
 @pn mysql-community
@@ -547,10 +547,16 @@ W@patch 00100_all_mysql-4.0-my-print-defaults.patch
 @@ Fix LDFLAGS inclusion in the mysql_config libs output for --as-needed usage.
 
 @patch 07250_all_testcase_latin1_fix-5.1.42.patch
-@ver 5.01.41.00 to 5.01.99.99
+@ver 5.01.42.00 to 5.01.99.99
 @pn mysql
 @@ Latin1 is assumed by the testsuite even with --with-charset=utf8 
-@@ is passed to configure.
+@@ is passed to configure. Fix mysql_comments test.
+
+@patch 07260_all_testsuite_mtr_latin1_fix-5.1.42.patch
+@ver 5.01.42.00 to 5.01.99.99
+@pn mysql
+@@ Latin1 is assumed by the testsuite even with --with-charset=utf8 
+@@ is passed to configure. Fix information_schema test.
 
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99

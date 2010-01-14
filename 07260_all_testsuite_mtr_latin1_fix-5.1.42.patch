@@ -1,0 +1,48 @@
+Some parts of the testsuite blindly assume that the default charset and
+collation are latin1.
+
+Gentoo however builds with --with-charset=utf8 --with-collation=utf8_general_ci
+unless USE=latin1 is explicitly selected.
+
+This patch primarily fixes the 'information_schema' test, but may also affect
+the results of other tests that did not implicitly request a specific charset
+or collation.
+
+Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
+
+diff -Nuar mysql-5.1.42.orig/mysql-test/mtr mysql-5.1.42/mysql-test/mtr
+--- mysql-5.1.42.orig/mysql-test/mtr	2009-12-16 09:54:52.000000000 -0800
++++ mysql-5.1.42/mysql-test/mtr	2010-01-14 00:05:57.542708718 -0800
+@@ -2801,7 +2801,7 @@
+ 
+   # Create mtr database
+   mtr_tofile($bootstrap_sql_file,
+-	     "CREATE DATABASE mtr;\n");
++	     "CREATE DATABASE mtr CHARACTER SET 'latin1' COLLATE 'latin1_swedish_ci';\n");
+ 
+   # Add help tables and data for warning detection and supression
+   mtr_tofile($bootstrap_sql_file,
+diff -Nuar mysql-5.1.42.orig/mysql-test/mysql-test-run mysql-5.1.42/mysql-test/mysql-test-run
+--- mysql-5.1.42.orig/mysql-test/mysql-test-run	2009-12-16 09:54:52.000000000 -0800
++++ mysql-5.1.42/mysql-test/mysql-test-run	2010-01-14 00:06:02.118833474 -0800
+@@ -2801,7 +2801,7 @@
+ 
+   # Create mtr database
+   mtr_tofile($bootstrap_sql_file,
+-	     "CREATE DATABASE mtr;\n");
++	     "CREATE DATABASE mtr CHARACTER SET 'latin1' COLLATE 'latin1_swedish_ci';\n");
+ 
+   # Add help tables and data for warning detection and supression
+   mtr_tofile($bootstrap_sql_file,
+diff -Nuar mysql-5.1.42.orig/mysql-test/mysql-test-run.pl mysql-5.1.42/mysql-test/mysql-test-run.pl
+--- mysql-5.1.42.orig/mysql-test/mysql-test-run.pl	2009-12-16 09:54:52.000000000 -0800
++++ mysql-5.1.42/mysql-test/mysql-test-run.pl	2010-01-14 00:06:14.390833637 -0800
+@@ -2801,7 +2801,7 @@
+ 
+   # Create mtr database
+   mtr_tofile($bootstrap_sql_file,
+-	     "CREATE DATABASE mtr;\n");
++	     "CREATE DATABASE mtr CHARACTER SET 'latin1' COLLATE 'latin1_swedish_ci';\n");
+ 
+   # Add help tables and data for warning detection and supression
+   mtr_tofile($bootstrap_sql_file,

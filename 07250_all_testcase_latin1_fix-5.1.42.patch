@@ -4,6 +4,10 @@ collation are latin1.
 Gentoo however builds with --with-charset=utf8 --with-collation=utf8_general_ci
 unless USE=latin1 is explicitly selected.
 
+This patch explicitly fixes the 'mysql_comments' test.
+
+Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
+
 --- a/mysql-test/t/mysql_comments.test	2010-01-13 23:43:19.536708462 -0800
 +++ b/mysql-test/t/mysql_comments.test	2010-01-13 23:42:58.976834177 -0800
 @@ -24,6 +24,7 @@
