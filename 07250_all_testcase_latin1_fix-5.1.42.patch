@@ -1,0 +1,16 @@
+Some parts of the testsuite blindly assume that the default charset and
+collation are latin1.
+
+Gentoo however builds with --with-charset=utf8 --with-collation=utf8_general_ci
+unless USE=latin1 is explicitly selected.
+
+--- a/mysql-test/t/mysql_comments.test	2010-01-13 23:43:19.536708462 -0800
++++ b/mysql-test/t/mysql_comments.test	2010-01-13 23:42:58.976834177 -0800
+@@ -24,6 +24,7 @@
+ drop procedure if exists nicesp;
+ drop trigger if exists t1_empty;
+ drop trigger if exists t1_bi;
++set names 'latin1';
+ --enable_warnings
+ 
+ # Test without comments
