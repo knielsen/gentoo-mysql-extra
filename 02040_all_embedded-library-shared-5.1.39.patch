@@ -1,6 +1,6 @@
 diff -urN mysql-orig/configure.in mysql/configure.in
---- mysql-orig/configure.in	2010-01-16 14:54:09.306599413 -0100
-+++ mysql/configure.in	2010-01-16 14:59:20.464349472 -0100
+--- mysql-orig/configure.in	2010-01-16 15:05:39.252476414 -0100
++++ mysql/configure.in	2010-01-16 15:06:05.460349591 -0100
 @@ -227,7 +227,7 @@
  fi
  
@@ -27,8 +27,8 @@ diff -urN mysql-orig/configure.in mysql/configure.in
    sql_server_dirs="strings mysys dbug extra regex"
  
 diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
---- mysql-orig/dbug/Makefile.am	2010-01-16 15:00:00.463474695 -0100
-+++ mysql/dbug/Makefile.am	2010-01-16 14:53:04.161724579 -0100
+--- mysql-orig/dbug/Makefile.am	2010-01-16 15:05:39.219475117 -0100
++++ mysql/dbug/Makefile.am	2010-01-16 15:06:05.460349591 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -44,8 +44,8 @@ diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
                          user.r monty.doc dbug_add_tags.pl \
                          my_main.c main.c factorial.c dbug_analyze.c \
 diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
---- mysql-orig/extra/Makefile.am	2010-01-16 15:00:00.463474695 -0100
-+++ mysql/extra/Makefile.am	2010-01-16 14:53:04.139724242 -0100
+--- mysql-orig/extra/Makefile.am	2010-01-16 15:05:39.218474605 -0100
++++ mysql/extra/Makefile.am	2010-01-16 15:06:05.461349078 -0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -58,8 +58,8 @@ diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
 diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
---- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:00:00.463474695 -0100
-+++ mysql/libmysqld/Makefile.am	2010-01-16 14:53:03.956476867 -0100
+--- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:05:39.126475938 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-16 15:06:05.462350327 -0100
 @@ -36,8 +36,8 @@
  			$(openssl_includes) @ZLIB_INCLUDES@ \
  			@condition_dependent_plugin_includes@
@@ -131,8 +131,8 @@ diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
  	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
  else
 diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
---- mysql-orig/mysys/Makefile.am	2010-01-16 15:00:00.464474152 -0100
-+++ mysql/mysys/Makefile.am	2010-01-16 14:53:04.163724635 -0100
+--- mysql-orig/mysys/Makefile.am	2010-01-16 15:05:39.222474802 -0100
++++ mysql/mysys/Makefile.am	2010-01-16 15:06:05.463350132 -0100
 @@ -18,10 +18,10 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
@@ -166,8 +166,8 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
  # I hope this always does the right thing. Otherwise this is only test programs
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
 diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
---- mysql-orig/regex/Makefile.am	2010-01-16 15:00:00.465351738 -0100
-+++ mysql/regex/Makefile.am	2010-01-16 14:53:04.136724590 -0100
+--- mysql-orig/regex/Makefile.am	2010-01-16 15:05:39.214475228 -0100
++++ mysql/regex/Makefile.am	2010-01-16 15:06:05.463350132 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -183,14 +183,14 @@ diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
 diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
---- mysql-orig/strings/Makefile.am	2010-01-16 15:00:00.465351738 -0100
-+++ mysql/strings/Makefile.am	2010-01-16 14:53:04.166724183 -0100
+--- mysql-orig/strings/Makefile.am	2010-01-16 15:05:39.228475154 -0100
++++ mysql/strings/Makefile.am	2010-01-16 15:09:46.430756582 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
 -pkglib_LIBRARIES =	libmystrings.a
-+pkglib_LTLIBRARIES =	libmystrings.la
++noinst_LTLIBRARIES =	libmystrings.la
  
  # Exact one of ASSEMBLER_X
  if ASSEMBLER_x86
@@ -203,12 +203,41 @@ diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
  noinst_PROGRAMS = conf_to_src
  CLEANFILES = str_test uctypedump test_decimal
  # Default charset definitions
-@@ -56,7 +56,7 @@
+@@ -56,28 +56,28 @@
  			t_ctype.h my_strchr.c CMakeLists.txt \
  			CHARSET_INFO.txt
  
 -libmystrings_a_LIBADD=
+-conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
+-conf_to_src_LDADD=
 +libmystrings_la_LIBADD=
- conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
- conf_to_src_LDADD=
++conf_to_src_SOURCES = conf_to_src.c
++conf_to_src_LDADD= libmystrings.la
  #force static linking of conf_to_src - essential when linking against
+ #custom installation of libc
+-conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
++#conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
+ 
+ # This is because the dependency tracking misses @FOO@ vars in sources.
+ #strtoull.o:		@CHARSET_OBJS@
+ 
+ 
+-FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
++FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
+ 
+-str_test: str_test.c $(pkglib_LIBRARIES)
+-	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LIBRARIES)
++str_test: str_test.c $(pkglib_LTLIBRARIES)
++	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LTLIBRARIES)
+ 
+ uctypedump: uctypedump.c
+ 	$(LINK) $(INCLUDES) $(srcdir)/uctypedump.c
+ 
+-test_decimal$(EXEEXT): decimal.c $(pkglib_LIBRARIES)
++test_decimal$(EXEEXT): decimal.c $(pkglib_LTLIBRARIES)
+ 	$(CP) $(srcdir)/decimal.c ./test_decimal.c
+-	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LIBRARIES)
++	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LTLIBRARIES)
+ 	$(RM) -f ./test_decimal.c
+ 
+ # Don't update the files from bitkeeper
