@@ -1,6 +1,6 @@
 diff -urN mysql-orig/configure.in mysql/configure.in
---- mysql-orig/configure.in	2010-01-16 15:05:39.252476414 -0100
-+++ mysql/configure.in	2010-01-16 15:06:05.460349591 -0100
+--- mysql-orig/configure.in	2010-01-16 15:17:39.991476010 -0100
++++ mysql/configure.in	2010-01-16 15:17:50.272599930 -0100
 @@ -227,7 +227,7 @@
  fi
  
@@ -27,8 +27,8 @@ diff -urN mysql-orig/configure.in mysql/configure.in
    sql_server_dirs="strings mysys dbug extra regex"
  
 diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
---- mysql-orig/dbug/Makefile.am	2010-01-16 15:05:39.219475117 -0100
-+++ mysql/dbug/Makefile.am	2010-01-16 15:06:05.460349591 -0100
+--- mysql-orig/dbug/Makefile.am	2010-01-16 15:17:39.958474837 -0100
++++ mysql/dbug/Makefile.am	2010-01-16 15:17:50.272599930 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -44,8 +44,8 @@ diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
                          user.r monty.doc dbug_add_tags.pl \
                          my_main.c main.c factorial.c dbug_analyze.c \
 diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
---- mysql-orig/extra/Makefile.am	2010-01-16 15:05:39.218474605 -0100
-+++ mysql/extra/Makefile.am	2010-01-16 15:06:05.461349078 -0100
+--- mysql-orig/extra/Makefile.am	2010-01-16 15:17:39.958474837 -0100
++++ mysql/extra/Makefile.am	2010-01-16 15:17:50.272599930 -0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -58,8 +58,8 @@ diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
 diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
---- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:05:39.126475938 -0100
-+++ mysql/libmysqld/Makefile.am	2010-01-16 15:06:05.462350327 -0100
+--- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:17:39.868474308 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-16 15:17:50.274371260 -0100
 @@ -36,8 +36,8 @@
  			$(openssl_includes) @ZLIB_INCLUDES@ \
  			@condition_dependent_plugin_includes@
@@ -131,43 +131,117 @@ diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
  	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
  else
 diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
---- mysql-orig/mysys/Makefile.am	2010-01-16 15:05:39.222474802 -0100
-+++ mysql/mysys/Makefile.am	2010-01-16 15:06:05.463350132 -0100
-@@ -18,10 +18,10 @@
+--- mysql-orig/mysys/Makefile.am	2010-01-16 15:17:39.961474618 -0100
++++ mysql/mysys/Makefile.am	2010-01-16 15:23:18.775352467 -0100
+@@ -18,10 +18,9 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
  			-I$(top_srcdir)/include -I$(srcdir)
 -pkglib_LIBRARIES =	libmysys.a
 -LDADD =			libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
 +pkglib_LTLIBRARIES =	libmysys.la
-+LDADD =			libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
  noinst_HEADERS =	mysys_priv.h my_static.h my_handler_errors.h
 -libmysys_a_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
 +libmysys_la_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
  			mf_path.c mf_loadpath.c my_file.c \
  			my_open.c my_create.c my_dup.c my_seek.c my_read.c \
  			my_pread.c my_write.c my_getpagesize.c \
-@@ -57,7 +57,7 @@
+@@ -46,18 +45,22 @@
+ 			my_quick.c my_lockmem.c my_static.c \
+ 			my_sync.c my_getopt.c my_mkdir.c \
+ 			default_modify.c default.c \
+-                        my_compress.c checksum.c \
++			my_compress.c checksum.c \
+ 			my_net.c my_port.c my_sleep.c \
+ 			charset.c charset-def.c my_bitmap.c my_bit.c md5.c \
+ 			my_gethostbyname.c rijndael.c my_aes.c sha1.c \
+ 			my_handler.c my_netware.c my_largepage.c \
+ 			my_memmem.c stacktrace.c \
+ 			my_windac.c my_access.c base64.c my_libwrap.c
++libmysys_la_LIBADD = $(top_builddir)/dbug/libdbug.la $(top_builddir)/strings/libmystrings.la \
++			$(ZLIB_LIBS)
++if NEED_THREADS
++	libmysys_la_SOURCES += thr_alarm.c thr_lock.c thr_mutex.c thr_rwlock.c my_pthread.c my_thr_init.c
++endif
+ EXTRA_DIST =		thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
  			thr_mutex.c thr_rwlock.c \
  			CMakeLists.txt mf_soundex.c \
  			my_conio.c my_wincond.c my_winthread.c
 -libmysys_a_LIBADD =	@THREAD_LOBJECTS@
-+libmysys_la_LIBADD =	@THREAD_LOBJECTS@
  # test_dir_DEPENDENCIES=	$(LIBRARIES)
  # testhash_DEPENDENCIES=	$(LIBRARIES)
  # test_charset_DEPENDENCIES=	$(LIBRARIES)
-@@ -71,7 +71,7 @@
+@@ -71,8 +74,6 @@
  			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
                          @DEFS@
  
 -libmysys_a_DEPENDENCIES= @THREAD_LOBJECTS@
-+libmysys_la_DEPENDENCIES= @THREAD_LOBJECTS@
- 
+-
  # I hope this always does the right thing. Otherwise this is only test programs
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
+ 
+@@ -81,47 +82,47 @@
+ # which automaticly removes the object files you use to compile a final program
+ #
+ 
+-test_bitmap$(EXEEXT): my_bitmap.c $(LIBRARIES)
++test_bitmap$(EXEEXT): my_bitmap.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN  ./my_bitmap.c $(LDADD) $(LIBS)
+ 
+-test_priority_queue$(EXEEXT): queues.c $(LIBRARIES)
++test_priority_queue$(EXEEXT): queues.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN  ./queues.c $(LDADD) $(LIBS)
+ 
+-test_thr_alarm$(EXEEXT): thr_alarm.c $(LIBRARIES)
++test_thr_alarm$(EXEEXT): thr_alarm.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/thr_alarm.c ./test_thr_alarm.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_thr_alarm.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_thr_alarm.c
+ 
+-test_thr_lock$(EXEEXT): thr_lock.c $(LIBRARIES)
++test_thr_lock$(EXEEXT): thr_lock.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/thr_lock.c test_thr_lock.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_thr_lock.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_thr_lock.c
+ 
+-test_vsnprintf$(EXEEXT): my_vsnprintf.c $(LIBRARIES)
++test_vsnprintf$(EXEEXT): my_vsnprintf.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/my_vsnprintf.c test_vsnprintf.c
+ 	$(LINK) $(FLAGS) -DMAIN ./test_vsnprintf.c $(LDADD) $(LIBS)
+ 	$(RM) -f test_vsnprintf.c
+ 
+-test_io_cache$(EXEEXT): mf_iocache.c $(LIBRARIES)
++test_io_cache$(EXEEXT): mf_iocache.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/mf_iocache.c test_io_cache.c
+ 	$(LINK) $(FLAGS) -DMAIN ./test_io_cache.c $(LDADD) $(LIBS)
+ 	$(RM) -f test_io_cache.c
+ 
+-test_dir$(EXEEXT): test_dir.c $(LIBRARIES)
++test_dir$(EXEEXT): test_dir.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/test_dir.c $(LDADD) $(LIBS)
+ 
+-test_charset$(EXEEXT): test_charset.c $(LIBRARIES)
++test_charset$(EXEEXT): test_charset.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/test_charset.c $(LDADD) $(LIBS)
+ 
+-testhash$(EXEEXT): testhash.c $(LIBRARIES)
++testhash$(EXEEXT): testhash.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/testhash.c $(LDADD) $(LIBS)
+ 
+-test_gethwaddr$(EXEEXT): my_gethwaddr.c $(LIBRARIES)
++test_gethwaddr$(EXEEXT): my_gethwaddr.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/my_gethwaddr.c ./test_gethwaddr.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_gethwaddr.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_gethwaddr.c
+ 
+-test_base64$(EXEEXT): base64.c $(LIBRARIES)
++test_base64$(EXEEXT): base64.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/base64.c ./test_base64.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_base64.c
 diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
---- mysql-orig/regex/Makefile.am	2010-01-16 15:05:39.214475228 -0100
-+++ mysql/regex/Makefile.am	2010-01-16 15:06:05.463350132 -0100
+--- mysql-orig/regex/Makefile.am	2010-01-16 15:17:39.953475662 -0100
++++ mysql/regex/Makefile.am	2010-01-16 15:17:50.275352046 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -183,8 +257,8 @@ diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
 diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
---- mysql-orig/strings/Makefile.am	2010-01-16 15:05:39.228475154 -0100
-+++ mysql/strings/Makefile.am	2010-01-16 15:09:46.430756582 -0100
+--- mysql-orig/strings/Makefile.am	2010-01-16 15:17:39.967476070 -0100
++++ mysql/strings/Makefile.am	2010-01-16 15:17:50.275352046 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
