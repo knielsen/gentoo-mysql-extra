@@ -1,6 +1,34 @@
+diff -urN mysql-orig/configure.in mysql/configure.in
+--- mysql-orig/configure.in	2010-01-16 14:54:09.306599413 -0100
++++ mysql/configure.in	2010-01-16 14:59:20.464349472 -0100
+@@ -227,7 +227,7 @@
+ fi
+ 
+ # Still need ranlib for readline; local static use only so no libtool.
+-AC_PROG_RANLIB
++#AC_PROG_RANLIB
+ # We use libtool
+ #AC_LIBTOOL_WIN32_DLL
+ AC_PROG_LIBTOOL
+@@ -2779,13 +2779,11 @@
+ AC_SUBST(netware_dir)
+ AM_CONDITIONAL(HAVE_NETWARE, test "$netware_dir" = "netware")
+ 
+-if test "$with_server" = "yes" -o "$THREAD_SAFE_CLIENT" != "no"
++AM_CONDITIONAL([NEED_THREADS], [test x"$with_server" != xno -o x"$THREAD_SAFE_CLIENT" != xno])
++if test "$with_server" != "no" -o "$THREAD_SAFE_CLIENT" != "no"
+ then
+   AC_DEFINE([THREAD], [1],
+             [Define if you want to have threaded code. This may be undef on client code])
+-  # Avoid _PROGRAMS names
+-  THREAD_LOBJECTS="thr_alarm.o thr_lock.o thr_mutex.o thr_rwlock.o my_pthread.o my_thr_init.o mf_keycache.o"
+-  AC_SUBST(THREAD_LOBJECTS)
+   server_scripts="mysqld_safe mysql_install_db"
+   sql_server_dirs="strings mysys dbug extra regex"
+ 
 diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
---- mysql-orig/dbug/Makefile.am	2010-01-16 14:26:41.437600445 -0100
-+++ mysql/dbug/Makefile.am	2010-01-16 14:39:46.750349116 -0100
+--- mysql-orig/dbug/Makefile.am	2010-01-16 15:00:00.463474695 -0100
++++ mysql/dbug/Makefile.am	2010-01-16 14:53:04.161724579 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -16,8 +44,8 @@ diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
                          user.r monty.doc dbug_add_tags.pl \
                          my_main.c main.c factorial.c dbug_analyze.c \
 diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
---- mysql-orig/extra/Makefile.am	2010-01-16 14:26:41.433600420 -0100
-+++ mysql/extra/Makefile.am	2010-01-16 14:43:14.494369421 -0100
+--- mysql-orig/extra/Makefile.am	2010-01-16 15:00:00.463474695 -0100
++++ mysql/extra/Makefile.am	2010-01-16 14:53:04.139724242 -0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -30,8 +58,8 @@ diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
 diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
---- mysql-orig/libmysqld/Makefile.am	2010-01-16 14:26:41.348601649 -0100
-+++ mysql/libmysqld/Makefile.am	2010-01-16 14:30:54.092816298 -0100
+--- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:00:00.463474695 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-16 14:53:03.956476867 -0100
 @@ -36,8 +36,8 @@
  			$(openssl_includes) @ZLIB_INCLUDES@ \
  			@condition_dependent_plugin_includes@
@@ -103,8 +131,8 @@ diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
  	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
  else
 diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
---- mysql-orig/mysys/Makefile.am	2010-01-16 14:26:41.438603236 -0100
-+++ mysql/mysys/Makefile.am	2010-01-16 14:32:22.607994153 -0100
+--- mysql-orig/mysys/Makefile.am	2010-01-16 15:00:00.464474152 -0100
++++ mysql/mysys/Makefile.am	2010-01-16 14:53:04.163724635 -0100
 @@ -18,10 +18,10 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
@@ -138,8 +166,8 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
  # I hope this always does the right thing. Otherwise this is only test programs
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
 diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
---- mysql-orig/regex/Makefile.am	2010-01-16 14:26:41.432601247 -0100
-+++ mysql/regex/Makefile.am	2010-01-16 14:44:14.293487475 -0100
+--- mysql-orig/regex/Makefile.am	2010-01-16 15:00:00.465351738 -0100
++++ mysql/regex/Makefile.am	2010-01-16 14:53:04.136724590 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -155,8 +183,8 @@ diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
 diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
---- mysql-orig/strings/Makefile.am	2010-01-16 14:26:41.441600131 -0100
-+++ mysql/strings/Makefile.am	2010-01-16 14:44:49.692852618 -0100
+--- mysql-orig/strings/Makefile.am	2010-01-16 15:00:00.465351738 -0100
++++ mysql/strings/Makefile.am	2010-01-16 14:53:04.166724183 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
