@@ -188,7 +188,7 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
 +libmysys_la_LIBADD = $(top_builddir)/dbug/libdbug.la $(top_builddir)/strings/libmystrings.la \
 +			$(ZLIB_LIBS)
 +if NEED_THREADS
-+	libmysys_la_SOURCES += thr_alarm.c thr_lock.c thr_mutex.c thr_rwlock.c my_pthread.c my_thr_init.c
++libmysys_la_SOURCES += thr_alarm.c thr_lock.c thr_mutex.c thr_rwlock.c my_pthread.c my_thr_init.c
 +endif
  EXTRA_DIST =		thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
  			thr_mutex.c thr_rwlock.c \
