@@ -1,6 +1,6 @@
 diff -urN mysql-orig/configure.in mysql/configure.in
---- mysql-orig/configure.in	2010-01-16 15:31:06.483600827 -0100
-+++ mysql/configure.in	2010-01-16 15:35:52.380599375 -0100
+--- mysql-orig/configure.in	2010-01-16 18:42:43.216476092 -0100
++++ mysql/configure.in	2010-01-16 18:43:00.471599553 -0100
 @@ -227,7 +227,7 @@
  fi
  
@@ -30,8 +30,8 @@ diff -urN mysql-orig/configure.in mysql/configure.in
    sql_server="vio sql"
  fi
 diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
---- mysql-orig/dbug/Makefile.am	2010-01-16 15:31:06.450600291 -0100
-+++ mysql/dbug/Makefile.am	2010-01-16 15:33:22.900430173 -0100
+--- mysql-orig/dbug/Makefile.am	2010-01-16 18:42:43.180349617 -0100
++++ mysql/dbug/Makefile.am	2010-01-16 18:43:00.471599553 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -61,8 +61,8 @@ diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
  user.t:         user.r $(NROFF_INC)
  		-nroff -mm user.r > $@
 diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
---- mysql-orig/extra/Makefile.am	2010-01-16 15:31:06.450600291 -0100
-+++ mysql/extra/Makefile.am	2010-01-16 15:31:16.149474164 -0100
+--- mysql-orig/extra/Makefile.am	2010-01-16 18:42:43.180349617 -0100
++++ mysql/extra/Makefile.am	2010-01-16 18:43:00.471599553 -0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -75,8 +75,8 @@ diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
 diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
---- mysql-orig/libmysqld/Makefile.am	2010-01-16 15:31:06.361600008 -0100
-+++ mysql/libmysqld/Makefile.am	2010-01-16 15:31:16.150393711 -0100
+--- mysql-orig/libmysqld/Makefile.am	2010-01-16 18:42:43.080350167 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-16 18:43:00.472599314 -0100
 @@ -36,8 +36,8 @@
  			$(openssl_includes) @ZLIB_INCLUDES@ \
  			@condition_dependent_plugin_includes@
@@ -148,8 +148,8 @@ diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
  	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
  else
 diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
---- mysql-orig/mysys/Makefile.am	2010-01-16 15:31:06.453599838 -0100
-+++ mysql/mysys/Makefile.am	2010-01-16 15:31:16.150393711 -0100
+--- mysql-orig/mysys/Makefile.am	2010-01-16 18:42:43.183351622 -0100
++++ mysql/mysys/Makefile.am	2010-01-16 18:43:00.473599738 -0100
 @@ -18,10 +18,9 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
@@ -256,9 +256,56 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
  	$(CP) $(srcdir)/base64.c ./test_base64.c
  	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
  	$(RM) -f ./test_base64.c
+diff -urN mysql-orig/netware/BUILD/compile-linux-tools mysql/netware/BUILD/compile-linux-tools
+--- mysql-orig/netware/BUILD/compile-linux-tools	2010-01-16 18:42:43.081349394 -0100
++++ mysql/netware/BUILD/compile-linux-tools	2010-01-16 18:46:52.330474172 -0100
+@@ -34,14 +34,14 @@
+ # Create mysql_version.h which was deleted my previous step
+ ./config.status include/mysql_version.h
+                                                                                                                              
+-(cd dbug; make libdbug.a)
+-(cd strings; make libmystrings.a)
+-(cd mysys; make libmysys.a)
+-(cd storage/heap; make libheap.a)
+-(cd vio; make libvio.a)
+-(cd regex; make libregex.a)
+-(cd storage/myisam; make libmyisam.a)
+-(cd storage/myisammrg; make libmyisammrg.a)
++(cd dbug; make libdbug.la)
++(cd strings; make libmystrings.la)
++(cd mysys; make libmysys.la)
++(cd storage/heap; make libheap.la)
++(cd vio; make libvio.la)
++(cd regex; make libregex.la)
++(cd storage/myisam; make libmyisam.la)
++(cd storage/myisammrg; make libmyisammrg.la)
+ (cd extra; make comp_err)
+ (cd libmysql; make conf_to_src)
+ (cd libmysql_r; make conf_to_src)
+diff -urN mysql-orig/netware/Makefile.am mysql/netware/Makefile.am
+--- mysql-orig/netware/Makefile.am	2010-01-16 18:42:43.081349394 -0100
++++ mysql/netware/Makefile.am	2010-01-16 18:43:53.902597656 -0100
+@@ -16,14 +16,14 @@
+ 
+ if HAVE_NETWARE
+ INCLUDES =			-I$(top_builddir)/include -I$(top_srcdir)/include -I..
+-LDADD =				@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.a \
+-				../dbug/libdbug.a ../strings/libmystrings.a
++LDADD =				@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.la \
++				../dbug/libdbug.la ../strings/libmystrings.la
+ bin_PROGRAMS =			mysqld_safe mysql_install_db mysql_test_run libmysql
+ mysqld_safe_SOURCES=		mysqld_safe.c my_manage.c
+ mysql_install_db_SOURCES=	mysql_install_db.c my_manage.c
+ mysql_test_run_SOURCES=		mysql_test_run.c my_manage.c
+ libmysql_SOURCES=		libmysqlmain.c
+-libmysql_LDADD =		../libmysql/.libs/libmysqlclient.a \
++libmysql_LDADD =		../libmysql/.libs/libmysqlclient.la \
+ 				@openssl_libs@ @yassl_libs@
+ 
+ netware_build_files =           client/mysql.def client/mysqladmin.def \
 diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
---- mysql-orig/regex/Makefile.am	2010-01-16 15:31:06.445600645 -0100
-+++ mysql/regex/Makefile.am	2010-01-16 15:31:16.151474143 -0100
+--- mysql-orig/regex/Makefile.am	2010-01-16 18:42:43.175349078 -0100
++++ mysql/regex/Makefile.am	2010-01-16 18:43:00.474461142 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -273,9 +320,222 @@ diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
  noinst_PROGRAMS =	re
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
+diff -urN mysql-orig/server-tools/instance-manager/Makefile.am mysql/server-tools/instance-manager/Makefile.am
+--- mysql-orig/server-tools/instance-manager/Makefile.am	2010-01-16 18:42:42.941350192 -0100
++++ mysql/server-tools/instance-manager/Makefile.am	2010-01-16 18:52:48.284039999 -0100
+@@ -87,10 +87,10 @@
+ mysqlmanager_LDADD=	@CLIENT_EXTRA_LDFLAGS@ \
+ 			liboptions.la \
+ 			libnet.a \
+-			$(top_builddir)/vio/libvio.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/strings/libmystrings.a \
+-			$(top_builddir)/dbug/libdbug.a \
++			$(top_builddir)/vio/libvio.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/strings/libmystrings.la \
++			$(top_builddir)/dbug/libdbug.la \
+ 			@openssl_libs@ @yassl_libs@ @ZLIB_LIBS@
+ 
+ EXTRA_DIST =		WindowsService.cpp WindowsService.h IMService.cpp \
+diff -urN mysql-orig/sql/Makefile.am mysql/sql/Makefile.am
+--- mysql-orig/sql/Makefile.am	2010-01-16 18:42:43.101351613 -0100
++++ mysql/sql/Makefile.am	2010-01-16 18:53:23.166411705 -0100
+@@ -32,11 +32,11 @@
+ noinst_LTLIBRARIES=	libndb.la \
+ 			udf_example.la
+ 
+-SUPPORTING_LIBS =	$(top_builddir)/vio/libvio.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/regex/libregex.a \
+-			$(top_builddir)/strings/libmystrings.a
++SUPPORTING_LIBS =	$(top_builddir)/vio/libvio.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/regex/libregex.la \
++			$(top_builddir)/strings/libmystrings.la
+ mysqld_DEPENDENCIES=	@mysql_plugin_libs@ $(SUPPORTING_LIBS) libndb.la
+ LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@
+ mysqld_LDADD =		libndb.la \
+diff -urN mysql-orig/storage/archive/Makefile.am mysql/storage/archive/Makefile.am
+--- mysql-orig/storage/archive/Makefile.am	2010-01-16 18:42:43.171349655 -0100
++++ mysql/storage/archive/Makefile.am	2010-01-16 18:55:43.628526078 -0100
+@@ -50,17 +50,17 @@
+ 
+ archive_test_SOURCES =	archive_test.c azio.c
+ archive_test_CFLAGS =	$(AM_CFLAGS)
+-archive_test_LDADD =	$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a \
++archive_test_LDADD =	$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la \
+ 			@ZLIB_LIBS@
+ archive_test_LDFLAGS = @NOINST_LDFLAGS@
+ 
+ archive_reader_SOURCES = archive_reader.c azio.c
+ archive_reader_CFLAGS =	$(AM_CFLAGS)
+-archive_reader_LDADD =	$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a \
++archive_reader_LDADD =	$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la \
+ 			@ZLIB_LIBS@
+ archive_reader_LDFLAGS = @NOINST_LDFLAGS@
+ 
+diff -urN mysql-orig/storage/heap/Makefile.am mysql/storage/heap/Makefile.am
+--- mysql-orig/storage/heap/Makefile.am	2010-01-16 18:42:43.170350743 -0100
++++ mysql/storage/heap/Makefile.am	2010-01-16 18:54:51.387709251 -0100
+@@ -26,21 +26,21 @@
+ LDADD =
+ 
+ DEFS =                  @DEFS@
+-pkglib_LIBRARIES =	libheap.a
++pkglib_LTLIBRARIES =	libheap.la
+ noinst_PROGRAMS	=	hp_test1 hp_test2
+-noinst_LIBRARIES =	libheap.a
++noinst_LTLIBRARIES =	libheap.la
+ hp_test1_LDFLAGS = @NOINST_LDFLAGS@
+ hp_test1_LDADD =	libheap.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la
+ hp_test2_LDFLAGS = @NOINST_LDFLAGS@
+-hp_test2_LDADD =	libheap.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a
++hp_test2_LDADD =	libheap.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la
+ noinst_HEADERS =	heapdef.h ha_heap.h
+-libheap_a_SOURCES =	hp_open.c hp_extra.c hp_close.c hp_panic.c hp_info.c \
++libheap_la_SOURCES =	hp_open.c hp_extra.c hp_close.c hp_panic.c hp_info.c \
+ 			hp_rrnd.c hp_scan.c hp_update.c hp_write.c hp_delete.c \
+ 			hp_rsame.c hp_create.c hp_rename.c hp_rfirst.c \
+ 			hp_rnext.c hp_rlast.c hp_rprev.c hp_clear.c \
+diff -urN mysql-orig/storage/myisam/Makefile.am mysql/storage/myisam/Makefile.am
+--- mysql-orig/storage/myisam/Makefile.am	2010-01-16 18:42:43.143349948 -0100
++++ mysql/storage/myisam/Makefile.am	2010-01-16 18:50:29.148725748 -0100
+@@ -30,60 +30,60 @@
+ EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
+ pkgdata_DATA =		mi_test_all mi_test_all.res
+ 
+-pkglib_LIBRARIES =	libmyisam.a
++pkglib_LTLIBRARIES =	libmyisam.la
+ bin_PROGRAMS =		myisamchk myisamlog myisampack myisam_ftdump
+-myisamchk_DEPENDENCIES=	$(LIBRARIES)
+-myisamchk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-myisamlog_DEPENDENCIES=	$(LIBRARIES)
+-myisamlog_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-myisampack_DEPENDENCIES=$(LIBRARIES)
+-myisampack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
++myisamchk_DEPENDENCIES=	$(LTLIBRARIES)
++myisamchk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++myisamlog_DEPENDENCIES=	$(LTLIBRARIES)
++myisamlog_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++myisampack_DEPENDENCIES=$(LTLIBRARIES)
++myisampack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
+ noinst_PROGRAMS =	mi_test1 mi_test2 mi_test3 rt_test sp_test #ft_test1 ft_eval
+ noinst_HEADERS =	myisamdef.h rt_index.h rt_key.h rt_mbr.h sp_defs.h \
+ 			fulltext.h ftdefs.h ft_test1.h ft_eval.h \
+ 			ha_myisam.h
+-mi_test1_DEPENDENCIES=	$(LIBRARIES)
+-mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-mi_test2_DEPENDENCIES=	$(LIBRARIES)
+-mi_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-mi_test3_DEPENDENCIES=	$(LIBRARIES)
+-mi_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-#ft_test1_DEPENDENCIES=	$(LIBRARIES)
+-#ft_eval_DEPENDENCIES=	$(LIBRARIES)
+-myisam_ftdump_DEPENDENCIES=	$(LIBRARIES)
+-myisam_ftdump_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-rt_test_DEPENDENCIES=	$(LIBRARIES)
+-rt_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-sp_test_DEPENDENCIES=	$(LIBRARIES)
+-sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-libmyisam_a_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
++mi_test1_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++mi_test2_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++mi_test3_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++#ft_test1_DEPENDENCIES=	$(LTLIBRARIES)
++#ft_eval_DEPENDENCIES=	$(LTLIBRARIES)
++myisam_ftdump_DEPENDENCIES=	$(LTLIBRARIES)
++myisam_ftdump_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++rt_test_DEPENDENCIES=	$(LTLIBRARIES)
++rt_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++sp_test_DEPENDENCIES=	$(LTLIBRARIES)
++sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++libmyisam_la_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
+ 			mi_rnext.c mi_rnext_same.c \
+ 			mi_search.c mi_page.c mi_key.c mi_locking.c \
+ 			mi_rrnd.c mi_scan.c mi_cache.c \
 diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
---- mysql-orig/strings/Makefile.am	2010-01-16 15:31:06.459601386 -0100
-+++ mysql/strings/Makefile.am	2010-01-16 15:31:16.151474143 -0100
+--- mysql-orig/strings/Makefile.am	2010-01-16 18:42:43.190350697 -0100
++++ mysql/strings/Makefile.am	2010-01-16 18:43:00.474461142 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
@@ -332,3 +592,19 @@ diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
  	$(RM) -f ./test_decimal.c
  
  # Don't update the files from bitkeeper
+diff -urN mysql-orig/unittest/mysys/Makefile.am mysql/unittest/mysys/Makefile.am
+--- mysql-orig/unittest/mysys/Makefile.am	2010-01-16 18:42:43.171349655 -0100
++++ mysql/unittest/mysys/Makefile.am	2010-01-16 18:56:39.190349252 -0100
+@@ -17,9 +17,9 @@
+ AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
+ 
+ LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
+-		  $(top_builddir)/mysys/libmysys.a \
+-		  $(top_builddir)/dbug/libdbug.a \
+-		  $(top_builddir)/strings/libmystrings.a
++		  $(top_builddir)/mysys/libmysys.la \
++		  $(top_builddir)/dbug/libdbug.la \
++		  $(top_builddir)/strings/libmystrings.la
+ 
+ noinst_PROGRAMS  = bitmap-t base64-t my_atomic-t
+ 
