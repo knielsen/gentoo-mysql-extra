@@ -1,0 +1,186 @@
+diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
+--- mysql-orig/dbug/Makefile.am	2010-01-16 14:26:41.437600445 -0100
++++ mysql/dbug/Makefile.am	2010-01-16 14:39:46.750349116 -0100
+@@ -16,10 +16,10 @@
+ # MA 02111-1307, USA
+ 
+ INCLUDES =              -I$(top_builddir)/include -I$(top_srcdir)/include
+-LDADD =                 libdbug.a ../mysys/libmysys.a ../strings/libmystrings.a
+-pkglib_LIBRARIES =      libdbug.a
++LDADD =                 libdbug.la ../mysys/libmysys.la ../strings/libmystrings.la
++pkglib_LTLIBRARIES =      libdbug.la
+ noinst_HEADERS =        dbug_long.h
+-libdbug_a_SOURCES =     dbug.c sanity.c
++libdbug_la_SOURCES =     dbug.c sanity.c
+ EXTRA_DIST =            CMakeLists.txt example1.c example2.c example3.c \
+                         user.r monty.doc dbug_add_tags.pl \
+                         my_main.c main.c factorial.c dbug_analyze.c \
+diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
+--- mysql-orig/extra/Makefile.am	2010-01-16 14:26:41.433600420 -0100
++++ mysql/extra/Makefile.am	2010-01-16 14:43:14.494369421 -0100
+@@ -15,8 +15,8 @@
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
+ 			-I$(top_srcdir)/sql
+-LDADD =			@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.a \
+-			../dbug/libdbug.a ../strings/libmystrings.a \
++LDADD =			@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.la \
++			../dbug/libdbug.la ../strings/libmystrings.la \
+ 			$(ZLIB_LIBS)
+ BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
+                         $(top_builddir)/include/sql_state.h \
+diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
+--- mysql-orig/libmysqld/Makefile.am	2010-01-16 14:26:41.348601649 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-16 14:30:54.092816298 -0100
+@@ -36,8 +36,8 @@
+ 			$(openssl_includes) @ZLIB_INCLUDES@ \
+ 			@condition_dependent_plugin_includes@
+ 
+-noinst_LIBRARIES =	libmysqld_int.a
+-pkglib_LIBRARIES =	libmysqld.a
++noinst_LTLIBRARIES =	libmysqld_int.la
++pkglib_LTLIBRARIES =	libmysqld.la
+ SUBDIRS =		. examples
+ libmysqld_sources=	libmysqld.c lib_sql.cc emb_qcache.cc
+ libmysqlsources =	errmsg.c get_password.c libmysql.c client.c pack.c \
+@@ -78,9 +78,9 @@
+ 	rpl_injector.cc my_user.c partition_info.cc \
+ 	sql_servers.cc event_parse_data.cc
+ 
+-libmysqld_int_a_SOURCES= $(libmysqld_sources)
+-nodist_libmysqld_int_a_SOURCES= $(libmysqlsources) $(sqlsources)
+-libmysqld_a_SOURCES=
++libmysqld_int_la_SOURCES= $(libmysqld_sources)
++nodist_libmysqld_int_la_SOURCES= $(libmysqlsources) $(sqlsources)
++libmysqld_la_SOURCES=
+ 
+ sqlstoragesources =	$(EXTRA_libmysqld_a_SOURCES)
+ storagesources = @condition_dependent_plugin_modules@
+@@ -90,19 +90,19 @@
+ # automake misses these
+ sql_yacc.cc sql_yacc.h: $(top_srcdir)/sql/sql_yacc.yy
+ 
+-# The following libraries should be included in libmysqld.a
+-INC_LIB=	$(top_builddir)/regex/libregex.a \
+-		$(top_builddir)/mysys/libmysys.a \
+-		$(top_builddir)/strings/libmystrings.a \
+-		$(top_builddir)/dbug/libdbug.a \
+-		$(top_builddir)/vio/libvio.a \
++# The following libraries should be included in libmysqld.la
++INC_LIB=	$(top_builddir)/regex/libregex.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/vio/libvio.la \
+                 @NDB_SCI_LIBS@ \
+ 		@mysql_plugin_libs@ \
+ 		$(yassl_inc_libs)
+ 
+ if HAVE_YASSL
+-yassl_inc_libs=	$(top_builddir)/extra/yassl/src/.libs/libyassl.a \
+-		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.a
++yassl_inc_libs=	$(top_builddir)/extra/yassl/src/.libs/libyassl.la \
++		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.la
+ endif
+ 
+ # Storage engine specific compilation options
+@@ -140,7 +140,7 @@
+ 
+ #
+ # To make it easy for the end user to use the embedded library we
+-# generate a total libmysqld.a from all library files,
++# generate a total libmysqld.la from all library files,
+ 
+ # note - InnoDB libraries have circular dependencies, so in INC_LIB
+ # few libraries are present two times. Metrowerks linker doesn't like
+@@ -148,7 +148,7 @@
+ # need to add the same file twice to the library, so 'sort -u' save us
+ # some time and spares unnecessary work.
+ 
+-libmysqld.a:	libmysqld_int.a $(INC_LIB) $(libmysqld_a_DEPENDENCIES) $(storageobjects)
++libmysqld.la:	libmysqld_int.la $(INC_LIB) $(libmysqld_a_DEPENDENCIES) $(storageobjects)
+ if DARWIN_MWCC
+ 	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
+ else
+diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
+--- mysql-orig/mysys/Makefile.am	2010-01-16 14:26:41.438603236 -0100
++++ mysql/mysys/Makefile.am	2010-01-16 14:32:22.607994153 -0100
+@@ -18,10 +18,10 @@
+ MYSQLBASEdir=		$(prefix)
+ INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
+ 			-I$(top_srcdir)/include -I$(srcdir)
+-pkglib_LIBRARIES =	libmysys.a
+-LDADD =			libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
++pkglib_LTLIBRARIES =	libmysys.la
++LDADD =			libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
+ noinst_HEADERS =	mysys_priv.h my_static.h my_handler_errors.h
+-libmysys_a_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
++libmysys_la_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
+ 			mf_path.c mf_loadpath.c my_file.c \
+ 			my_open.c my_create.c my_dup.c my_seek.c my_read.c \
+ 			my_pread.c my_write.c my_getpagesize.c \
+@@ -57,7 +57,7 @@
+ 			thr_mutex.c thr_rwlock.c \
+ 			CMakeLists.txt mf_soundex.c \
+ 			my_conio.c my_wincond.c my_winthread.c
+-libmysys_a_LIBADD =	@THREAD_LOBJECTS@
++libmysys_la_LIBADD =	@THREAD_LOBJECTS@
+ # test_dir_DEPENDENCIES=	$(LIBRARIES)
+ # testhash_DEPENDENCIES=	$(LIBRARIES)
+ # test_charset_DEPENDENCIES=	$(LIBRARIES)
+@@ -71,7 +71,7 @@
+ 			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
+                         @DEFS@
+ 
+-libmysys_a_DEPENDENCIES= @THREAD_LOBJECTS@
++libmysys_la_DEPENDENCIES= @THREAD_LOBJECTS@
+ 
+ # I hope this always does the right thing. Otherwise this is only test programs
+ FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
+diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
+--- mysql-orig/regex/Makefile.am	2010-01-16 14:26:41.432601247 -0100
++++ mysql/regex/Makefile.am	2010-01-16 14:44:14.293487475 -0100
+@@ -16,10 +16,10 @@
+ # MA 02111-1307, USA
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
+-noinst_LIBRARIES =	libregex.a
+-LDADD=			libregex.a $(top_builddir)/strings/libmystrings.a
++noinst_LTLIBRARIES =	libregex.la
++LDADD=			libregex.la $(top_builddir)/strings/libmystrings.la
+ noinst_HEADERS =	cclass.h cname.h regex2.h utils.h engine.c my_regex.h
+-libregex_a_SOURCES =	regerror.c regcomp.c regexec.c regfree.c reginit.c
++libregex_la_SOURCES =	regerror.c regcomp.c regexec.c regfree.c reginit.c
+ noinst_PROGRAMS =	re
+ re_SOURCES =		split.c debug.c main.c
+ re_LDFLAGS= @NOINST_LDFLAGS@
+diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
+--- mysql-orig/strings/Makefile.am	2010-01-16 14:26:41.441600131 -0100
++++ mysql/strings/Makefile.am	2010-01-16 14:44:49.692852618 -0100
+@@ -16,7 +16,7 @@
+ # This file is public domain and comes with NO WARRANTY of any kind
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
+-pkglib_LIBRARIES =	libmystrings.a
++pkglib_LTLIBRARIES =	libmystrings.la
+ 
+ # Exact one of ASSEMBLER_X
+ if ASSEMBLER_x86
+@@ -37,7 +37,7 @@
+ endif
+ endif
+ 
+-libmystrings_a_SOURCES = $(ASRCS) $(CSRCS)
++libmystrings_la_SOURCES = $(ASRCS) $(CSRCS)
+ noinst_PROGRAMS = conf_to_src
+ CLEANFILES = str_test uctypedump test_decimal
+ # Default charset definitions
+@@ -56,7 +56,7 @@
+ 			t_ctype.h my_strchr.c CMakeLists.txt \
+ 			CHARSET_INFO.txt
+ 
+-libmystrings_a_LIBADD=
++libmystrings_la_LIBADD=
+ conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
+ conf_to_src_LDADD=
+ #force static linking of conf_to_src - essential when linking against
