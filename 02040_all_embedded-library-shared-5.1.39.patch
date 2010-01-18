@@ -579,7 +579,7 @@ diff -urN mysql-orig/storage/myisam/Makefile.am mysql/storage/myisam/Makefile.am
  			ha_myisam.cc \
  			rt_index.c rt_key.c rt_mbr.c rt_split.c sp_key.c
 +libmysys_la_LIBADD = $(top_builddir)/dbug/libdbug.la $(top_builddir)/strings/libmystrings.la \
-+			$(ZLIB_LIBS)
++			$(top_builddir)/libmysqld/libmysqld.la $(ZLIB_LIBS)
  CLEANFILES =		test?.MY? FT?.MY? isam.log mi_test_all rt_test.MY? sp_test.MY?
  
  # Move to automake rules ?
