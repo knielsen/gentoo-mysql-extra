@@ -1,6 +1,6 @@
 diff -urN mysql-orig/client/Makefile.am mysql/client/Makefile.am
---- mysql-orig/client/Makefile.am	2010-01-17 01:14:38.985726104 -0100
-+++ mysql/client/Makefile.am	2010-01-17 01:15:08.271475331 -0100
+--- mysql-orig/client/Makefile.am	2010-01-18 01:46:52.550600312 -0100
++++ mysql/client/Makefile.am	2010-01-18 01:47:04.212349982 -0100
 @@ -75,7 +75,7 @@
  mysqlimport_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
  				@CLIENT_EXTRA_LDFLAGS@ \
@@ -30,8 +30,8 @@ diff -urN mysql-orig/client/Makefile.am mysql/client/Makefile.am
  
  mysql_upgrade_SOURCES=          mysql_upgrade.c \
 diff -urN mysql-orig/configure.in mysql/configure.in
---- mysql-orig/configure.in	2010-01-17 01:14:39.024726193 -0100
-+++ mysql/configure.in	2010-01-17 01:15:08.272351997 -0100
+--- mysql-orig/configure.in	2010-01-18 01:46:52.590602692 -0100
++++ mysql/configure.in	2010-01-18 01:47:04.219349120 -0100
 @@ -227,7 +227,7 @@
  fi
  
@@ -71,8 +71,8 @@ diff -urN mysql-orig/configure.in mysql/configure.in
    sql_server="vio sql"
  fi
 diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
---- mysql-orig/dbug/Makefile.am	2010-01-17 01:14:38.991725580 -0100
-+++ mysql/dbug/Makefile.am	2010-01-17 01:15:08.273474319 -0100
+--- mysql-orig/dbug/Makefile.am	2010-01-18 01:46:52.557379772 -0100
++++ mysql/dbug/Makefile.am	2010-01-18 01:47:04.222349294 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -102,8 +102,8 @@ diff -urN mysql-orig/dbug/Makefile.am mysql/dbug/Makefile.am
  user.t:         user.r $(NROFF_INC)
  		-nroff -mm user.r > $@
 diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
---- mysql-orig/extra/Makefile.am	2010-01-17 01:14:38.991725580 -0100
-+++ mysql/extra/Makefile.am	2010-01-17 01:15:08.274474167 -0100
+--- mysql-orig/extra/Makefile.am	2010-01-18 01:46:52.556600091 -0100
++++ mysql/extra/Makefile.am	2010-01-18 01:47:04.222349294 -0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -116,8 +116,8 @@ diff -urN mysql-orig/extra/Makefile.am mysql/extra/Makefile.am
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
 diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
---- mysql-orig/libmysqld/Makefile.am	2010-01-17 01:14:38.900724827 -0100
-+++ mysql/libmysqld/Makefile.am	2010-01-17 01:15:08.275386328 -0100
+--- mysql-orig/libmysqld/Makefile.am	2010-01-18 01:46:52.465599546 -0100
++++ mysql/libmysqld/Makefile.am	2010-01-18 01:47:04.223349106 -0100
 @@ -36,8 +36,8 @@
  			$(openssl_includes) @ZLIB_INCLUDES@ \
  			@condition_dependent_plugin_includes@
@@ -189,8 +189,8 @@ diff -urN mysql-orig/libmysqld/Makefile.am mysql/libmysqld/Makefile.am
  	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
  else
 diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
---- mysql-orig/mysys/Makefile.am	2010-01-17 01:14:38.994725148 -0100
-+++ mysql/mysys/Makefile.am	2010-01-17 01:15:08.275386328 -0100
+--- mysql-orig/mysys/Makefile.am	2010-01-18 01:46:52.560601059 -0100
++++ mysql/mysys/Makefile.am	2010-01-18 01:48:11.044349196 -0100
 @@ -18,10 +18,9 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
@@ -229,16 +229,18 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
  # test_dir_DEPENDENCIES=	$(LIBRARIES)
  # testhash_DEPENDENCIES=	$(LIBRARIES)
  # test_charset_DEPENDENCIES=	$(LIBRARIES)
-@@ -71,8 +74,6 @@
+@@ -71,57 +74,55 @@
  			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
                          @DEFS@
  
 -libmysys_a_DEPENDENCIES= @THREAD_LOBJECTS@
 -
  # I hope this always does the right thing. Otherwise this is only test programs
- FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
+-FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
++FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
  
-@@ -81,47 +82,47 @@
+ #
+ # The CP .. RM stuff is to avoid problems with some compilers (like alpha ccc)
  # which automaticly removes the object files you use to compile a final program
  #
  
@@ -298,8 +300,8 @@ diff -urN mysql-orig/mysys/Makefile.am mysql/mysys/Makefile.am
  	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
  	$(RM) -f ./test_base64.c
 diff -urN mysql-orig/netware/BUILD/compile-linux-tools mysql/netware/BUILD/compile-linux-tools
---- mysql-orig/netware/BUILD/compile-linux-tools	2010-01-17 01:14:38.901559824 -0100
-+++ mysql/netware/BUILD/compile-linux-tools	2010-01-17 01:15:08.275386328 -0100
+--- mysql-orig/netware/BUILD/compile-linux-tools	2010-01-18 01:46:52.466599396 -0100
++++ mysql/netware/BUILD/compile-linux-tools	2010-01-18 01:47:04.224349576 -0100
 @@ -34,14 +34,14 @@
  # Create mysql_version.h which was deleted my previous step
  ./config.status include/mysql_version.h
@@ -324,8 +326,8 @@ diff -urN mysql-orig/netware/BUILD/compile-linux-tools mysql/netware/BUILD/compi
  (cd libmysql; make conf_to_src)
  (cd libmysql_r; make conf_to_src)
 diff -urN mysql-orig/netware/Makefile.am mysql/netware/Makefile.am
---- mysql-orig/netware/Makefile.am	2010-01-17 01:14:38.901559824 -0100
-+++ mysql/netware/Makefile.am	2010-01-17 01:15:08.276474691 -0100
+--- mysql-orig/netware/Makefile.am	2010-01-18 01:46:52.465599546 -0100
++++ mysql/netware/Makefile.am	2010-01-18 01:47:04.224349576 -0100
 @@ -16,14 +16,14 @@
  
  if HAVE_NETWARE
@@ -345,8 +347,8 @@ diff -urN mysql-orig/netware/Makefile.am mysql/netware/Makefile.am
  
  netware_build_files =           client/mysql.def client/mysqladmin.def \
 diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
---- mysql-orig/regex/Makefile.am	2010-01-17 01:14:38.986725326 -0100
-+++ mysql/regex/Makefile.am	2010-01-17 01:15:08.276474691 -0100
+--- mysql-orig/regex/Makefile.am	2010-01-18 01:46:52.552600210 -0100
++++ mysql/regex/Makefile.am	2010-01-18 01:47:04.225349352 -0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -362,8 +364,8 @@ diff -urN mysql-orig/regex/Makefile.am mysql/regex/Makefile.am
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
 diff -urN mysql-orig/server-tools/instance-manager/Makefile.am mysql/server-tools/instance-manager/Makefile.am
---- mysql-orig/server-tools/instance-manager/Makefile.am	2010-01-17 01:14:38.768474122 -0100
-+++ mysql/server-tools/instance-manager/Makefile.am	2010-01-17 01:15:08.277474155 -0100
+--- mysql-orig/server-tools/instance-manager/Makefile.am	2010-01-18 01:46:52.328599488 -0100
++++ mysql/server-tools/instance-manager/Makefile.am	2010-01-18 01:47:04.225349352 -0100
 @@ -87,10 +87,10 @@
  mysqlmanager_LDADD=	@CLIENT_EXTRA_LDFLAGS@ \
  			liboptions.la \
@@ -380,8 +382,8 @@ diff -urN mysql-orig/server-tools/instance-manager/Makefile.am mysql/server-tool
  
  EXTRA_DIST =		WindowsService.cpp WindowsService.h IMService.cpp \
 diff -urN mysql-orig/sql/Makefile.am mysql/sql/Makefile.am
---- mysql-orig/sql/Makefile.am	2010-01-17 01:14:38.919726014 -0100
-+++ mysql/sql/Makefile.am	2010-01-17 01:15:08.277474155 -0100
+--- mysql-orig/sql/Makefile.am	2010-01-18 01:46:52.485600506 -0100
++++ mysql/sql/Makefile.am	2010-01-18 01:47:04.226349803 -0100
 @@ -32,11 +32,11 @@
  noinst_LTLIBRARIES=	libndb.la \
  			udf_example.la
@@ -400,8 +402,8 @@ diff -urN mysql-orig/sql/Makefile.am mysql/sql/Makefile.am
  LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@
  mysqld_LDADD =		libndb.la \
 diff -urN mysql-orig/storage/archive/Makefile.am mysql/storage/archive/Makefile.am
---- mysql-orig/storage/archive/Makefile.am	2010-01-17 01:14:38.983487971 -0100
-+++ mysql/storage/archive/Makefile.am	2010-01-17 01:15:08.277474155 -0100
+--- mysql-orig/storage/archive/Makefile.am	2010-01-18 01:46:52.548600217 -0100
++++ mysql/storage/archive/Makefile.am	2010-01-18 01:47:04.226349803 -0100
 @@ -50,17 +50,17 @@
  
  archive_test_SOURCES =	archive_test.c azio.c
@@ -427,8 +429,8 @@ diff -urN mysql-orig/storage/archive/Makefile.am mysql/storage/archive/Makefile.
  archive_reader_LDFLAGS = @NOINST_LDFLAGS@
  
 diff -urN mysql-orig/storage/heap/Makefile.am mysql/storage/heap/Makefile.am
---- mysql-orig/storage/heap/Makefile.am	2010-01-17 01:14:38.982724762 -0100
-+++ mysql/storage/heap/Makefile.am	2010-01-17 01:15:08.278474571 -0100
+--- mysql-orig/storage/heap/Makefile.am	2010-01-18 01:46:52.547599931 -0100
++++ mysql/storage/heap/Makefile.am	2010-01-18 01:47:04.226349803 -0100
 @@ -26,21 +26,20 @@
  LDADD =
  
@@ -462,8 +464,8 @@ diff -urN mysql-orig/storage/heap/Makefile.am mysql/storage/heap/Makefile.am
  			hp_rsame.c hp_create.c hp_rename.c hp_rfirst.c \
  			hp_rnext.c hp_rlast.c hp_rprev.c hp_clear.c \
 diff -urN mysql-orig/storage/myisam/Makefile.am mysql/storage/myisam/Makefile.am
---- mysql-orig/storage/myisam/Makefile.am	2010-01-17 01:14:38.957475983 -0100
-+++ mysql/storage/myisam/Makefile.am	2010-01-17 01:16:22.933349253 -0100
+--- mysql-orig/storage/myisam/Makefile.am	2010-01-18 01:46:52.523600801 -0100
++++ mysql/storage/myisam/Makefile.am	2010-01-18 01:47:04.227349669 -0100
 @@ -30,60 +30,60 @@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
  pkgdata_DATA =		mi_test_all mi_test_all.res
@@ -584,8 +586,8 @@ diff -urN mysql-orig/storage/myisam/Makefile.am mysql/storage/myisam/Makefile.am
  
  # Move to automake rules ?
 diff -urN mysql-orig/storage/ndb/src/common/util/Makefile.am mysql/storage/ndb/src/common/util/Makefile.am
---- mysql-orig/storage/ndb/src/common/util/Makefile.am	2010-01-17 01:14:38.951476001 -0100
-+++ mysql/storage/ndb/src/common/util/Makefile.am	2010-01-17 01:15:08.279474515 -0100
+--- mysql-orig/storage/ndb/src/common/util/Makefile.am	2010-01-18 01:46:52.517599678 -0100
++++ mysql/storage/ndb/src/common/util/Makefile.am	2010-01-18 01:47:04.227349669 -0100
 @@ -31,9 +31,9 @@
  testBitmask_SOURCES =  testBitmask.cpp
  testBitmask_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -600,8 +602,8 @@ diff -urN mysql-orig/storage/ndb/src/common/util/Makefile.am mysql/storage/ndb/s
  testBitmask.cpp : Bitmask.cpp
  	rm -f testBitmask.cpp
 diff -urN mysql-orig/storage/ndb/src/cw/cpcd/Makefile.am mysql/storage/ndb/src/cw/cpcd/Makefile.am
---- mysql-orig/storage/ndb/src/cw/cpcd/Makefile.am	2010-01-17 01:14:38.936725130 -0100
-+++ mysql/storage/ndb/src/cw/cpcd/Makefile.am	2010-01-17 01:15:08.279474515 -0100
+--- mysql-orig/storage/ndb/src/cw/cpcd/Makefile.am	2010-01-18 01:46:52.502599230 -0100
++++ mysql/storage/ndb/src/cw/cpcd/Makefile.am	2010-01-18 01:47:04.228349376 -0100
 @@ -19,9 +19,9 @@
  
  LDADD_LOC = \
@@ -616,8 +618,8 @@ diff -urN mysql-orig/storage/ndb/src/cw/cpcd/Makefile.am mysql/storage/ndb/src/c
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_util.mk.am
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/backup/Makefile.am mysql/storage/ndb/src/kernel/blocks/backup/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-01-17 01:14:38.947725859 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-01-17 01:15:08.280474285 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-01-18 01:46:52.513600285 -0100
++++ mysql/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-01-18 01:47:04.228349376 -0100
 @@ -17,9 +17,9 @@
  ndb_print_backup_file_SOURCES = read.cpp
  ndb_print_backup_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -632,8 +634,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/backup/Makefile.am mysql/stor
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbdict/Makefile.am mysql/storage/ndb/src/kernel/blocks/dbdict/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-01-17 01:14:38.945725768 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-01-17 01:15:08.280474285 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-01-18 01:46:52.511599989 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-01-18 01:47:04.229349503 -0100
 @@ -19,17 +19,17 @@
  LDADD +=  \
           $(top_builddir)/storage/ndb/src/common/util/libgeneral.la \
@@ -659,8 +661,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbdict/Makefile.am mysql/stor
  # Don't update the files from bitkeeper
  %::SCCS/s.%
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbdih/Makefile.am mysql/storage/ndb/src/kernel/blocks/dbdih/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-01-17 01:14:38.945725768 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-01-17 01:15:08.280474285 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-01-18 01:46:52.511599989 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-01-18 01:47:04.229349503 -0100
 @@ -17,9 +17,9 @@
  ndb_print_sys_file_SOURCES = printSysfile.cpp
  ndb_print_sys_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -675,8 +677,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbdih/Makefile.am mysql/stora
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dblqh/Makefile.am mysql/storage/ndb/src/kernel/blocks/dblqh/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-01-17 01:14:38.943490711 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-01-17 01:15:08.281599550 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-01-18 01:46:52.509350647 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-01-18 01:47:04.229349503 -0100
 @@ -23,9 +23,9 @@
  
  ndbd_redo_log_reader_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -691,8 +693,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dblqh/Makefile.am mysql/stora
  # Don't update the files from bitkeeper
  %::SCCS/s.%
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbtup/Makefile.am mysql/storage/ndb/src/kernel/blocks/dbtup/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-01-17 01:14:38.942351520 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-01-17 01:15:08.281599550 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-01-18 01:46:52.508599179 -0100
++++ mysql/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-01-18 01:47:04.230349438 -0100
 @@ -20,9 +20,9 @@
  test_varpage_SOURCES = test_varpage.cpp tuppage.cpp
  test_varpage_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -707,8 +709,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/dbtup/Makefile.am mysql/stora
  # Don't update the files from bitkeeper
  %::SCCS/s.%
 diff -urN mysql-orig/storage/ndb/src/kernel/blocks/Makefile.am mysql/storage/ndb/src/kernel/blocks/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/blocks/Makefile.am	2010-01-17 01:14:38.940566396 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/Makefile.am	2010-01-17 01:15:08.281599550 -0100
+--- mysql-orig/storage/ndb/src/kernel/blocks/Makefile.am	2010-01-18 01:46:52.506600310 -0100
++++ mysql/storage/ndb/src/kernel/blocks/Makefile.am	2010-01-18 01:47:04.230349438 -0100
 @@ -57,9 +57,9 @@
  ndb_print_file_SOURCES = print_file.cpp diskpage.cpp dbtup/tuppage.cpp
  ndb_print_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -723,8 +725,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/blocks/Makefile.am mysql/storage/ndb
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
 diff -urN mysql-orig/storage/ndb/src/kernel/Makefile.am mysql/storage/ndb/src/kernel/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/Makefile.am	2010-01-17 01:14:38.949724374 -0100
-+++ mysql/storage/ndb/src/kernel/Makefile.am	2010-01-17 01:15:08.282599515 -0100
+--- mysql-orig/storage/ndb/src/kernel/Makefile.am	2010-01-18 01:46:52.515599481 -0100
++++ mysql/storage/ndb/src/kernel/Makefile.am	2010-01-18 01:47:04.231349739 -0100
 @@ -53,9 +53,9 @@
                $(top_builddir)/storage/ndb/src/mgmapi/libmgmapi.la \
                $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la      \
@@ -739,8 +741,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/Makefile.am mysql/storage/ndb/src/ke
  windoze-dsp: ndbd.dsp
  
 diff -urN mysql-orig/storage/ndb/src/kernel/vm/Makefile.am mysql/storage/ndb/src/kernel/vm/Makefile.am
---- mysql-orig/storage/ndb/src/kernel/vm/Makefile.am	2010-01-17 01:14:38.949724374 -0100
-+++ mysql/storage/ndb/src/kernel/vm/Makefile.am	2010-01-17 01:15:08.282599515 -0100
+--- mysql-orig/storage/ndb/src/kernel/vm/Makefile.am	2010-01-18 01:46:52.515599481 -0100
++++ mysql/storage/ndb/src/kernel/vm/Makefile.am	2010-01-18 01:47:04.231349739 -0100
 @@ -65,24 +65,24 @@
  ndbd_malloc_impl_test_SOURCES = ndbd_malloc_impl.cpp
  ndbd_malloc_impl_test_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -776,8 +778,8 @@ diff -urN mysql-orig/storage/ndb/src/kernel/vm/Makefile.am mysql/storage/ndb/src
 +  $(top_builddir)/strings/libmystrings.la
  
 diff -urN mysql-orig/storage/ndb/src/mgmclient/Makefile.am mysql/storage/ndb/src/mgmclient/Makefile.am
---- mysql-orig/storage/ndb/src/mgmclient/Makefile.am	2010-01-17 01:14:38.936725130 -0100
-+++ mysql/storage/ndb/src/mgmclient/Makefile.am	2010-01-17 01:15:08.283599408 -0100
+--- mysql-orig/storage/ndb/src/mgmclient/Makefile.am	2010-01-18 01:46:52.502599230 -0100
++++ mysql/storage/ndb/src/mgmclient/Makefile.am	2010-01-18 01:47:04.232349675 -0100
 @@ -37,9 +37,9 @@
  	    ../common/portlib/libportlib.la \
              @readline_link@ \
@@ -792,8 +794,8 @@ diff -urN mysql-orig/storage/ndb/src/mgmclient/Makefile.am mysql/storage/ndb/src
  
  ndb_mgm_LDFLAGS = @ndb_bin_am_ldflags@
 diff -urN mysql-orig/storage/ndb/src/mgmsrv/Makefile.am mysql/storage/ndb/src/mgmsrv/Makefile.am
---- mysql-orig/storage/ndb/src/mgmsrv/Makefile.am	2010-01-17 01:14:38.939725510 -0100
-+++ mysql/storage/ndb/src/mgmsrv/Makefile.am	2010-01-17 01:15:08.283599408 -0100
+--- mysql-orig/storage/ndb/src/mgmsrv/Makefile.am	2010-01-18 01:46:52.505600159 -0100
++++ mysql/storage/ndb/src/mgmsrv/Makefile.am	2010-01-18 01:47:04.232349675 -0100
 @@ -40,9 +40,9 @@
  
  LDADD_LOC = $(top_builddir)/storage/ndb/src/mgmclient/CommandInterpreter.lo \
@@ -808,8 +810,8 @@ diff -urN mysql-orig/storage/ndb/src/mgmsrv/Makefile.am mysql/storage/ndb/src/mg
              @NDB_SCI_LIBS@ \
  	    @TERMCAP_LIB@
 diff -urN mysql-orig/storage/ndb/src/ndbapi/Makefile.am mysql/storage/ndb/src/ndbapi/Makefile.am
---- mysql-orig/storage/ndb/src/ndbapi/Makefile.am	2010-01-17 01:14:38.938476088 -0100
-+++ mysql/storage/ndb/src/ndbapi/Makefile.am	2010-01-17 01:15:08.283599408 -0100
+--- mysql-orig/storage/ndb/src/ndbapi/Makefile.am	2010-01-18 01:46:52.504600208 -0100
++++ mysql/storage/ndb/src/ndbapi/Makefile.am	2010-01-18 01:47:04.233349487 -0100
 @@ -67,9 +67,9 @@
  include $(top_srcdir)/storage/ndb/config/type_ndbapi.mk.am
  
@@ -824,8 +826,8 @@ diff -urN mysql-orig/storage/ndb/src/ndbapi/Makefile.am mysql/storage/ndb/src/nd
  # Don't update the files from bitkeeper
  %::SCCS/s.%
 diff -urN mysql-orig/storage/ndb/test/run-test/Makefile.am mysql/storage/ndb/test/run-test/Makefile.am
---- mysql-orig/storage/ndb/test/run-test/Makefile.am	2010-01-17 01:14:38.930724641 -0100
-+++ mysql/storage/ndb/test/run-test/Makefile.am	2010-01-17 01:15:08.284600138 -0100
+--- mysql-orig/storage/ndb/test/run-test/Makefile.am	2010-01-18 01:46:52.496599991 -0100
++++ mysql/storage/ndb/test/run-test/Makefile.am	2010-01-18 01:47:04.233349487 -0100
 @@ -34,9 +34,9 @@
  INCLUDES_LOC = -I$(top_srcdir)/storage/ndb/test/include
  LDADD_LOC = $(top_builddir)/storage/ndb/test/src/libNDBT.a \
@@ -840,8 +842,8 @@ diff -urN mysql-orig/storage/ndb/test/run-test/Makefile.am mysql/storage/ndb/tes
  atrt_CXXFLAGS = -I$(top_srcdir)/ndb/src/mgmapi \
                        -I$(top_srcdir)/ndb/src/mgmsrv \
 diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
---- mysql-orig/strings/Makefile.am	2010-01-17 01:14:39.000724960 -0100
-+++ mysql/strings/Makefile.am	2010-01-17 01:15:08.284600138 -0100
+--- mysql-orig/strings/Makefile.am	2010-01-18 01:46:52.566599874 -0100
++++ mysql/strings/Makefile.am	2010-01-18 01:52:17.941349607 -0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
@@ -860,7 +862,7 @@ diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
  noinst_PROGRAMS = conf_to_src
  CLEANFILES = str_test uctypedump test_decimal
  # Default charset definitions
-@@ -56,28 +56,28 @@
+@@ -56,9 +56,9 @@
  			t_ctype.h my_strchr.c CMakeLists.txt \
  			CHARSET_INFO.txt
  
@@ -872,10 +874,8 @@ diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
 +conf_to_src_LDADD= libmystrings.la
  #force static linking of conf_to_src - essential when linking against
  #custom installation of libc
--conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
-+#conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
- 
- # This is because the dependency tracking misses @FOO@ vars in sources.
+ conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
+@@ -67,17 +67,17 @@
  #strtoull.o:		@CHARSET_OBJS@
  
  
@@ -899,8 +899,8 @@ diff -urN mysql-orig/strings/Makefile.am mysql/strings/Makefile.am
  
  # Don't update the files from bitkeeper
 diff -urN mysql-orig/unittest/mysys/Makefile.am mysql/unittest/mysys/Makefile.am
---- mysql-orig/unittest/mysys/Makefile.am	2010-01-17 01:14:38.983487971 -0100
-+++ mysql/unittest/mysys/Makefile.am	2010-01-17 01:15:08.285599636 -0100
+--- mysql-orig/unittest/mysys/Makefile.am	2010-01-18 01:46:52.549600599 -0100
++++ mysql/unittest/mysys/Makefile.am	2010-01-18 01:47:04.234349398 -0100
 @@ -17,9 +17,9 @@
  AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
  
@@ -915,8 +915,8 @@ diff -urN mysql-orig/unittest/mysys/Makefile.am mysql/unittest/mysys/Makefile.am
  noinst_PROGRAMS  = bitmap-t base64-t my_atomic-t
  
 diff -urN mysql-orig/vio/Makefile.am mysql/vio/Makefile.am
---- mysql-orig/vio/Makefile.am	2010-01-17 01:14:39.007724755 -0100
-+++ mysql/vio/Makefile.am	2010-01-17 01:15:08.285599636 -0100
+--- mysql-orig/vio/Makefile.am	2010-01-18 01:46:52.572599866 -0100
++++ mysql/vio/Makefile.am	2010-01-18 01:47:04.234349398 -0100
 @@ -16,11 +16,11 @@
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
  			$(openssl_includes)
