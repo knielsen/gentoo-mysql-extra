@@ -153,7 +153,7 @@ sub selectPatches {
 			}
 		}
 		# Special case for comments
-		if(length($i->{comment})) {
+		if(defined($i) and defined($i->{comment}) and length($i->{comment})) {
 			$match_pn = $match_pv = 1;
 		}
 		if($match_pn == 1 and $match_pv == 1) {
