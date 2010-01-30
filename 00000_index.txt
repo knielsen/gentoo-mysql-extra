@@ -505,7 +505,7 @@
 @@ Gentoo bug 220549
 
 @patch 07210_all_encode_html_entities-5.0.70.patch
-@ver 5.00.45.00 to 5.00.99.99
+@ver 5.00.45.00 to 5.00.89.99
 @pn mysql
 @pn mysql-community
 @@ Fix CVE-2008-4456 XSS in command line client (Gentoo #240407, MySQL #27884)
