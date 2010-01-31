@@ -579,7 +579,7 @@
 @@ Percona 5.0.84-b18-20090811:  SHOW PATCHES
 
 @patch 10010_all_show_patches-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  SHOW PATCHES
 
@@ -604,7 +604,7 @@
 @@ Percona 5.0.84-b18-20090811:  Extended statistics in slow.log
 
 @patch 10020_all_microslow_innodb-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Extended statistics in slow.log
 
@@ -619,7 +619,7 @@
 @@ Percona 5.0.84-b18-20090811:  profiling from SHOW PROFILE to slow.log
 
 @patch 10021_all_profiling_slow-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  profiling from SHOW PROFILE to slow.log
 
@@ -644,7 +644,7 @@
 @@ Percona 5.0.84-b18-20090811:  SHOW USER/TABLE/INDEX statistics
 
 @patch 10030_all_userstatv2-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  SHOW USER/TABLE/INDEX statistics
 
@@ -669,7 +669,7 @@
 @@ Percona 5.0.84-b18-20090811:  Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
 @patch 10040_all_microsec_process-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Adds INFOMATION_SCHEMA.PROCESSLIST with TIME_MS column
 
@@ -694,7 +694,7 @@
 @@ Percona 5.0.84-b18-20090811:  Cluster of past InnoDB IO patches
 
 @patch 10050_all_innodb_io_patches-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Cluster of past InnoDB IO patches
 
@@ -737,7 +737,7 @@
 @@ Percona 5.0.84-b18-20090811:  Patch allows redirect output of error.log to syslog-ng
 
 @patch 10070_all_mysqld_safe_syslog-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Patch allows redirect output of error.log to syslog-ng
 
@@ -762,7 +762,7 @@
 @@ Percona 5.0.84-b18-20090811:  Add locks held, remove locked records in SHOW INNODB STATUS
 
 @patch 10080_all_innodb_locks_held-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Add locks held, remove locked records in SHOW INNODB STATUS
 
@@ -787,7 +787,7 @@
 @@ Percona 5.0.84-b18-20090811:  show innodb buffer pool content
 
 @patch 10090_all_innodb_show_bp-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  show innodb buffer pool content
 
@@ -822,7 +822,7 @@
 @@ Percona 5.0.84-b18-20090811:  Session status to check fragmentation of the last InnoDB scan
 
 @patch 10110_all_innodb_check_fragmentation-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Session status to check fragmentation of the last InnoDB scan
 
@@ -847,7 +847,7 @@
 @@ Percona 5.0.84-b18-20090811:  Information schema table of InnoDB IO counts for each datafile pages
 
 @patch 10120_all_innodb_io_pattern-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Information schema table of InnoDB IO counts for each datafile pages
 
@@ -872,7 +872,7 @@
 @@ Percona 5.0.84-b18-20090811:  Information of fsync callers in InnoDB
 
 @patch 10130_all_innodb_fsync_source-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Information of fsync callers in InnoDB
 
@@ -887,7 +887,7 @@
 @@ Percona 5.0.84-b18-20090811:  Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
 @patch 10139_all_innodb_show_hashed_memory-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Adds additional information of InnoDB internal hash table memories in SHOW INNODB STATUS
 
@@ -907,7 +907,7 @@
 @@ Percona 5.0.84-b18-20090811:  Limit dictionary cache size
 
 @patch 10140_all_innodb_dict_size_limit-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Limit dictionary cache size
 
@@ -922,7 +922,7 @@
 @@ Percona 5.0.84-b18-20090811:  allow to create extra rollback segments
 
 @patch 10160_all_innodb_extra_rseg-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  allow to create extra rollback segments
 
@@ -937,7 +937,7 @@
 @@ Percona 5.0.84-b18-20090811:  Use InnoDB timer based concurrency throttling (backport from MySQL 5.4.0)
 
 @patch 10170_all_innodb_thread_concurrency_timer_based-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Use InnoDB timer based concurrency throttling (backport from MySQL 5.4.0)
 
@@ -952,7 +952,7 @@
 @@ Percona 5.0.84-b18-20090811: 
 
 @patch 10200_all_mysql-test-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116: 
 
@@ -962,7 +962,7 @@
 @@ Percona 5.0.84-b18-20090811:  InnoDB uses malloc directly (backport from InnoDB-Plugin)
 
 @patch 10500_all_innodb_use_sys_malloc-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  InnoDB uses malloc directly (backport from InnoDB-Plugin)
 
@@ -972,12 +972,12 @@
 @@ Percona 5.0.84-b18-20090811:  Bugfixes and adjustments about recovery process
 
 @patch 10510_all_innodb_recovery_patches-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Bugfixes and adjustments about recovery process
 
 @patch 10511_all_innodb_misc_patch-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Identifies if thread is running a SELECT
 
@@ -987,7 +987,7 @@
 @@ Percona 5.0.84-b18-20090811:  InnoDB patch to fix buffer pool scalability
 
 @patch 10520_all_innodb_split_buf_pool_mutex-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  InnoDB patch to fix buffer pool scalability
 
@@ -1027,12 +1027,12 @@
 @@ Percona 5.0.84-b18-20090811:  Fix of InnoDB rw_locks
 
 @patch 11010_all_innodb_rw_lock-percona-5.0.87-b20-20091116.patch
-@ver 5.00.87.00 to 5.00.87.99
+@ver 5.00.87.00 to 5.00.90.99
 @pn mysql
 @@ Percona 5.0.87-b20-20091116:  Fix of InnoDB rw_locks
 
 @patch 15000_all_mysql_gcc-4.4_5.0.77.patch
-@ver 5.00.77.00 to 5.00.87.99
+@ver 5.00.77.00 to 5.00.90.99
 @pn mysql
 @pn mysql-community
 @@ GCC4.4 Fixup for Percona Patch
