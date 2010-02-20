@@ -1,0 +1,88 @@
+GCC4.4 header requirements.
+
+X-Gentoo-Bug: 30522
+X-Gentoo-Patch: http://bugs.gentoo.org/attachment.cgi?id=220053&action=view
+
+--- include/my_getopt.h.bak	2010-01-25 08:57:04.000000000 -0500
++++ include/my_getopt.h	2010-01-25 08:57:12.000000000 -0500
+@@ -16,6 +16,8 @@
+ #ifndef _my_getopt_h
+ #define _my_getopt_h
+ 
++#include <stdbool.h>
++
+ C_MODE_START
+ 
+ #define GET_NO_ARG     1
+--- include/my_time.h.bak	2010-01-25 08:57:36.000000000 -0500
++++ include/my_time.h	2010-01-25 08:57:45.000000000 -0500
+@@ -20,6 +20,9 @@
+ 
+ #ifndef _my_time_h_
+ #define _my_time_h_
++
++#include <stdbool.h>
++
+ #include "my_global.h"
+ #include "mysql_time.h"
+ 
+--- mysys/thr_lock.c.bak	2010-01-25 08:59:36.000000000 -0500
++++ mysys/thr_lock.c	2010-01-25 08:59:45.000000000 -0500
+@@ -74,6 +74,8 @@
+ #define DBUG_OFF
+ #endif
+ 
++#include <stdbool.h>
++
+ #include "mysys_priv.h"
+ 
+ #ifdef THREAD
+--- extra/replace.c.bak	2010-01-25 09:00:30.000000000 -0500
++++ extra/replace.c	2010-01-25 09:00:41.000000000 -0500
+@@ -40,6 +40,7 @@
+ */
+ 
+ #define DONT_USE_RAID
++#include <stdbool.h>
+ #include <my_global.h>
+ #include <m_ctype.h>
+ #include <my_sys.h>
+--- regex/reginit.c.bak	2010-01-25 09:01:06.000000000 -0500
++++ regex/reginit.c	2010-01-25 09:01:22.000000000 -0500
+@@ -1,5 +1,6 @@
+ /* Init cclasses array from ctypes */
+ 
++#include <stdbool.h>
+ #include <my_global.h>
+ #include <m_ctype.h>
+ #include <m_string.h>
+--- myisam/myisamdef.h.bak	2010-01-25 09:01:56.000000000 -0500
++++ myisam/myisamdef.h	2010-01-25 09:02:09.000000000 -0500
+@@ -15,6 +15,7 @@
+ 
+ /* This file is included by all internal myisam files */
+ 
++#include <stdbool.h>
+ #include "myisam.h"			/* Structs & some defines */
+ #include "myisampack.h"			/* packing of keys */
+ #include <my_tree.h>
+--- heap/hp_update.c.bak	2010-01-25 09:02:56.000000000 -0500
++++ heap/hp_update.c	2010-01-25 09:03:06.000000000 -0500
+@@ -15,6 +15,7 @@
+ 
+ /* Update current record in heap-database */
+ 
++#include <stdbool.h>
+ #include "heapdef.h"
+ 
+ int heap_update(HP_INFO *info, const byte *old, const byte *heap_new)
+--- vio/viosslfactories.c.bak	2010-01-25 09:03:54.000000000 -0500
++++ vio/viosslfactories.c	2010-01-25 09:04:05.000000000 -0500
+@@ -13,6 +13,7 @@
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
+ 
++#include <stdbool.h>
+ #include "vio_priv.h"
+ 
+ #ifdef HAVE_OPENSSL

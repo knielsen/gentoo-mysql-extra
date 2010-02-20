@@ -569,6 +569,12 @@
 @pn mysql
 @@ Revert charset initialization changes that broke Akonadi.
 
+@patch 07280_all_stdbool-5.0.90.patch
+@ver 5.00.84.00 to 5.00.99.99
+@ver 5.01.00.00 to 5.01.99.99
+@pn mysql
+@@ Fix GCC4.4 stdbool requirement.
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
