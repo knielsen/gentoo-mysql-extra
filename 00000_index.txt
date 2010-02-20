@@ -564,6 +564,11 @@
 @@ Latin1 is assumed by the testsuite even with --with-charset=utf8 
 @@ is passed to configure. Fix information_schema test.
 
+@patch 07270_all_charset_boot_fix-5.1.43.patch
+@ver 5.01.43.00 to 5.01.99.99
+@pn mysql
+@@ Revert charset initialization changes that broke Akonadi.
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
