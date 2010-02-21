@@ -571,6 +571,10 @@
 
 @patch 07280_all_stdbool-5.0.90.patch
 @ver 5.00.84.00 to 5.00.99.99
+@pn mysql
+@@ Fix GCC4.4 stdbool requirement.
+
+@patch 07280_all_stdbool-5.1.44.patch
 @ver 5.01.00.00 to 5.01.99.99
 @pn mysql
 @@ Fix GCC4.4 stdbool requirement.

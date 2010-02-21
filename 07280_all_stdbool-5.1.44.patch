@@ -1,0 +1,97 @@
+GCC4.4 header requirements.
+
+X-Gentoo-Bug: 30522
+X-Gentoo-Patch: http://bugs.gentoo.org/attachment.cgi?id=220053&action=view
+X-Ported: from 07280_all_stdbool-5.0.90.patch
+
+diff -Nuar --exclude '*.orig' mysql.orig/extra/replace.c mysql/extra/replace.c
+--- mysql.orig/extra/replace.c	2010-02-04 11:37:00.000000000 +0000
++++ mysql/extra/replace.c	2010-02-20 23:59:55.825801320 +0000
+@@ -40,6 +40,7 @@
+ */
+ 
+ #define DONT_USE_RAID
++#include <stdbool.h>
+ #include <my_global.h>
+ #include <m_ctype.h>
+ #include <my_sys.h>
+diff -Nuar --exclude '*.orig' mysql.orig/include/my_getopt.h mysql/include/my_getopt.h
+--- mysql.orig/include/my_getopt.h	2010-02-04 11:37:05.000000000 +0000
++++ mysql/include/my_getopt.h	2010-02-20 23:59:55.825801320 +0000
+@@ -16,6 +16,8 @@
+ #ifndef _my_getopt_h
+ #define _my_getopt_h
+ 
++#include <stdbool.h>
++
+ C_MODE_START
+ 
+ #define GET_NO_ARG     1
+diff -Nuar --exclude '*.orig' mysql.orig/include/my_time.h mysql/include/my_time.h
+--- mysql.orig/include/my_time.h	2010-02-04 11:37:06.000000000 +0000
++++ mysql/include/my_time.h	2010-02-20 23:59:55.825801320 +0000
+@@ -20,6 +20,9 @@
+ 
+ #ifndef _my_time_h_
+ #define _my_time_h_
++
++#include <stdbool.h>
++
+ #include "my_global.h"
+ #include "mysql_time.h"
+ 
+diff -Nuar --exclude '*.orig' mysql.orig/mysys/thr_lock.c mysql/mysys/thr_lock.c
+--- mysql.orig/mysys/thr_lock.c	2010-02-04 11:38:51.000000000 +0000
++++ mysql/mysys/thr_lock.c	2010-02-20 23:59:55.825801320 +0000
+@@ -74,6 +74,8 @@
+ #define FORCE_DBUG_OFF
+ #endif
+ 
++#include <stdbool.h>
++
+ #include "mysys_priv.h"
+ 
+ #ifdef THREAD
+diff -Nuar --exclude '*.orig' mysql.orig/regex/reginit.c mysql/regex/reginit.c
+--- mysql.orig/regex/reginit.c	2010-02-04 11:38:52.000000000 +0000
++++ mysql/regex/reginit.c	2010-02-20 23:59:55.825801320 +0000
+@@ -1,5 +1,6 @@
+ /* Init cclasses array from ctypes */
+ 
++#include <stdbool.h>
+ #include <my_global.h>
+ #include <m_ctype.h>
+ #include <m_string.h>
+diff -Nuar --exclude '*.orig' mysql.orig/storage/heap/hp_update.c mysql/storage/heap/hp_update.c
+--- mysql.orig/storage/heap/hp_update.c	2010-02-04 11:39:55.000000000 +0000
++++ mysql/storage/heap/hp_update.c	2010-02-21 00:00:02.252467298 +0000
+@@ -15,6 +15,7 @@
+ 
+ /* Update current record in heap-database */
+ 
++#include <stdbool.h>
+ #include "heapdef.h"
+ 
+ int heap_update(HP_INFO *info, const uchar *old, const uchar *heap_new)
+diff -Nuar --exclude '*.orig' mysql.orig/storage/myisam/myisamdef.h mysql/storage/myisam/myisamdef.h
+--- mysql.orig/storage/myisam/myisamdef.h	2010-02-04 11:40:07.000000000 +0000
++++ mysql/storage/myisam/myisamdef.h	2010-02-20 23:59:59.805800920 +0000
+@@ -15,6 +15,7 @@
+ 
+ /* This file is included by all internal myisam files */
+ 
++#include <stdbool.h>
+ #include "myisam.h"			/* Structs & some defines */
+ #include "myisampack.h"			/* packing of keys */
+ #include <my_tree.h>
+diff -Nuar --exclude '*.orig' mysql.orig/vio/viosslfactories.c mysql/vio/viosslfactories.c
+--- mysql.orig/vio/viosslfactories.c	2010-02-04 11:40:26.000000000 +0000
++++ mysql/vio/viosslfactories.c	2010-02-21 00:00:02.252467298 +0000
+@@ -13,6 +13,7 @@
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA */
+ 
++#include <stdbool.h>
+ #include "vio_priv.h"
+ 
+ #ifdef HAVE_OPENSSL
