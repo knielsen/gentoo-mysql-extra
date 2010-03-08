@@ -1,6 +1,3 @@
-diff -ur mysql/strings/Makefile.am mysql-new//strings/Makefile.am
---- mysql/strings/Makefile.am	2010-03-08 22:14:57.000000000 -0100
-+++ mysql-new//strings/Makefile.am	2010-03-08 22:19:04.000000000 -0100
 Convert all of the static libraries for the embedded libmysqld to build as
 shared.
 
@@ -666,7 +663,7 @@ diff -ur mysql-5.0.77-old/strings/Makefile.am mysql-5.0.77/strings/Makefile.am
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
 -pkglib_LIBRARIES =	libmystrings.a
-+pkglib_LIBRARIES =	libmystrings.la
++noinst_LIBRARIES =	libmystrings.la
  
  # Exact one of ASSEMBLER_X
  if ASSEMBLER_x86
@@ -700,8 +697,9 @@ diff -ur mysql-5.0.77-old/strings/Makefile.am mysql-5.0.77/strings/Makefile.am
 -FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
 +FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
  
- str_test: str_test.c $(pkglib_LIBRARIES)
+- str_test: str_test.c $(pkglib_LIBRARIES)
 -	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LIBRARIES)
++ str_test: str_test.c $(pkglib_LTLIBRARIES)
 +	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LTLIBRARIES)
  
  uctypedump: uctypedump.c
