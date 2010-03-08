@@ -736,8 +736,8 @@ diff -ur mysql-5.0.77-old/vio/Makefile.am mysql-5.0.77/vio/Makefile.am
  noinst_HEADERS =	vio_priv.h
  
 -libvio_a_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
-+libvio_la_LDADD = -lssl
 +libvio_la_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
++libvio_la_LDADD = -lssl
  
  EXTRA_DIST=		CMakeLists.txt
  
