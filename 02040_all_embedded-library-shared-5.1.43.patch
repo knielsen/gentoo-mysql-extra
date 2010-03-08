@@ -658,27 +658,7 @@ diff -ur mysql-5.0.77-old/sql/Makefile.am mysql-5.0.77/sql/Makefile.am
 diff -ur mysql-5.0.77-old/strings/Makefile.am mysql-5.0.77/strings/Makefile.am
 --- mysql-5.0.77-old/strings/Makefile.am	2009-04-12 02:30:57.000000000 +0000
 +++ mysql-5.0.77/strings/Makefile.am	2009-04-12 03:03:22.000000000 +0000
-@@ -16,7 +16,7 @@
- # This file is public domain and comes with NO WARRANTY of any kind
- 
- INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
--pkglib_LIBRARIES =	libmystrings.a
-+noinst_LIBRARIES =	libmystrings.la
- 
- # Exact one of ASSEMBLER_X
- if ASSEMBLER_x86
-@@ -37,7 +37,7 @@
- endif
- endif
- 
--libmystrings_a_SOURCES = $(ASRCS) $(CSRCS)
-+libmystrings_la_SOURCES = $(ASRCS) $(CSRCS)
- noinst_PROGRAMS = conf_to_src
- CLEANFILES = str_test uctypedump test_decimal
- # Default charset definitions
-@@ -56,28 +56,27 @@
- 			t_ctype.h my_strchr.c CMakeLists.txt \
- 			CHARSET_INFO.txt
+k 			CHARSET_INFO.txt
  
 -libmystrings_a_LIBADD=
 -conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
@@ -697,9 +677,9 @@ diff -ur mysql-5.0.77-old/strings/Makefile.am mysql-5.0.77/strings/Makefile.am
 -FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
 +FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS)
  
-- str_test: str_test.c $(pkglib_LIBRARIES)
+-str_test: str_test.c $(pkglib_LIBRARIES)
 -	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LIBRARIES)
-+ str_test: str_test.c $(pkglib_LTLIBRARIES)
++str_test: str_test.c $(pkglib_LTLIBRARIES)
 +	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LTLIBRARIES)
  
  uctypedump: uctypedump.c
