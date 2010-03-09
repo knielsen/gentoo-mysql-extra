@@ -712,6 +712,8 @@ diff -ur mysql-5.0.77-old/strings/Makefile.am mysql-5.0.77/strings/Makefile.am
 +	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LTLIBRARIES)
  	$(RM) -f ./test_decimal.c
  
+ # Don't update the files from bitkeeper
+diff -ur mysql-5.0.77-old/strings/strings-x86.s mysql-5.0.77/strings/strings-x86.s
 --- mysql-5.0.77-old/strings/strings-x86.s	2009-04-12 02:30:57.000000000 +0000
 +++ mysql-5.0.77/strings/strings-x86.s	2009-04-12 03:03:22.000000000 +0000
 @@ -293,7 +293,7 @@
