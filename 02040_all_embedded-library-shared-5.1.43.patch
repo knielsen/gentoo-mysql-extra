@@ -946,7 +946,7 @@ diff -Nuar mysql.orig/storage/ndb/config/type_ndbapitools.mk.am mysql/storage/nd
 diff -Nuar mysql.orig/storage/ndb/config/win-libraries mysql/storage/ndb/config/win-libraries
 --- mysql.orig/storage/ndb/config/win-libraries	2009-01-15 09:47:06.000000000 -0800
 +++ mysql/storage/ndb/config/win-libraries	2009-04-11 16:44:33.724336658 -0700
-@@ -21,7 +21,7 @@
+@@ -21,6 +21,6 @@
  # the same goes for mysys and strings
    lib=$i
    case $i in
@@ -954,10 +954,11 @@ diff -Nuar mysql.orig/storage/ndb/config/win-libraries mysql/storage/ndb/config/
 +  *libdbug.la | *libmysys.la | *libmystrings.la) 
    lib=`echo $i | sed s'!dbug\/lib!!' | sed 's!mysys\/lib!!' | sed 's!strings\/libmy!!'`
    echo "Changing from $i to $lib"
+
    ;;
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/backup/Makefile.am mysql/storage/ndb/src/kernel/blocks/backup/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-03-08 23:37:57.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/blocks/backup/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/blocks/backup/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/blocks/backup/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/blocks/backup/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -17,9 +17,9 @@
  ndb_print_backup_file_SOURCES = read.cpp
  ndb_print_backup_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -971,9 +972,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/backup/
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbdih/Makefile.am mysql/storage/ndb/src/kernel/blocks/dbdih/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-03-08 23:37:09.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dbdih/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/blocks/dbdih/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -17,9 +17,9 @@
  ndb_print_sys_file_SOURCES = printSysfile.cpp
  ndb_print_sys_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -987,9 +988,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbdih/M
  
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dblqh/Makefile.am mysql/storage/ndb/src/kernel/blocks/dblqh/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-03-08 23:35:47.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dblqh/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/blocks/dblqh/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -23,9 +23,9 @@
  
  ndbd_redo_log_reader_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -1003,9 +1004,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dblqh/M
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbtup/Makefile.am mysql/storage/ndb/src/kernel/blocks/dbtup/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-03-08 23:36:14.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dbtup/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/blocks/dbtup/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -20,9 +20,9 @@
  test_varpage_SOURCES = test_varpage.cpp tuppage.cpp
  test_varpage_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -1019,9 +1020,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/dbtup/M
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/Makefile.am mysql/storage/ndb/src/kernel/blocks/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/Makefile.am	2010-03-08 23:37:37.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/blocks/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/blocks/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/blocks/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/blocks/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/blocks/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -57,9 +57,9 @@
  ndb_print_file_SOURCES = print_file.cpp diskpage.cpp dbtup/tuppage.cpp
  ndb_print_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -1035,9 +1036,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/blocks/Makefil
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/vm/Makefile.am mysql/storage/ndb/src/kernel/vm/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/vm/Makefile.am	2010-03-08 23:35:17.000000000 -0100
-+++ mysql/storage/ndb/src/kernel/vm/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/kernel/vm/Makefile.am mysql-5.0.77/storage/ndb/src/kernel/vm/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/kernel/vm/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/kernel/vm/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -65,23 +65,24 @@
  ndbd_malloc_impl_test_SOURCES = ndbd_malloc_impl.cpp
  ndbd_malloc_impl_test_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -1072,9 +1073,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/kernel/vm/Makefile.am
 +  $(top_builddir)/dbug/libdbug.a \
 +  $(top_builddir)/strings/libmystrings.a
 +
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/ndbapi/Makefile.am mysql/storage/ndb/src/ndbapi/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/ndbapi/Makefile.am	2010-03-08 23:38:36.000000000 -0100
-+++ mysql/storage/ndb/src/ndbapi/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/ndb/src/ndbapi/Makefile.am mysql-5.0.77/storage/ndb/src/ndbapi/Makefile.am
+--- mysql-5.0.77-old/storage/ndb/src/ndbapi/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/ndb/src/ndbapi/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -67,9 +67,9 @@
  include $(top_srcdir)/storage/ndb/config/type_ndbapi.mk.am
  
@@ -1088,9 +1089,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/storage/ndb/src/ndbapi/Makefile.am my
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-diff -ur /var/tmp/portage/dev-db/mysql-new/unittest/mysys/Makefile.am mysql/unittest/mysys/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/unittest/mysys/Makefile.am	2010-03-08 23:39:05.000000000 -0100
-+++ mysql/unittest/mysys/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/unittest/mysys/Makefile.am mysql-5.0.77/unittest/mysys/Makefile.am
+--- mysql-5.0.77-old/unittest/mysys/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/unittest/mysys/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -17,9 +17,9 @@
  AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
  
@@ -1104,9 +1105,9 @@ diff -ur /var/tmp/portage/dev-db/mysql-new/unittest/mysys/Makefile.am mysql/unit
  
  noinst_PROGRAMS  = bitmap-t base64-t
  
-diff -ur /var/tmp/portage/dev-db/mysql-new/storage/archive/Makefile.am mysql/storage/archive/Makefile.am
---- /var/tmp/portage/dev-db/mysql-new/storage/archive/Makefile.am	2010-03-08 23:33:21.000000000 -0100
-+++ mysql/storage/archive/Makefile.am	2010-03-09 00:20:50.000000000 -0100
+diff -ur mysql-5.0.77-old/storage/archive/Makefile.am mysql-5.0.77/storage/archive/Makefile.am
+--- mysql-5.0.77-old/storage/archive/Makefile.am	2009-04-12 02:30:59.000000000 +0000
++++ mysql-5.0.77/storage/archive/Makefile.am	2009-04-12 03:03:22.000000000 +0000
 @@ -50,17 +50,17 @@
  
  archive_test_SOURCES =	archive_test.c azio.c
