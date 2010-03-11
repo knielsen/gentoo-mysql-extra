@@ -1,0 +1,108 @@
+--- a/mysql-test/r/information_schema.result	2009-05-07 19:31:26.000000000 +0000
++++ b/mysql-test/r/information_schema.result	2009-05-07 19:32:59.000000000 +0000
+@@ -60,6 +60,7 @@
+ USER_STATISTICS
+ VIEWS
+ INNODB_IO_PATTERN
++INNODB_RSEG
+ columns_priv
+ db
+ func
+@@ -743,7 +744,7 @@
+ CREATE VIEW a1 (t_CRASHME) AS SELECT f1 FROM t_crashme GROUP BY f1;
+ CREATE VIEW a2 AS SELECT t_CRASHME FROM a1;
+ count(*)
+-109
++110
+ drop view a2, a1;
+ drop table t_crashme;
+ select table_schema,table_name, column_name from
+@@ -819,7 +820,7 @@
+ flush privileges;
+ SELECT table_schema, count(*) FROM information_schema.TABLES GROUP BY TABLE_SCHEMA;
+ table_schema	count(*)
+-information_schema	24
++information_schema	25
+ mysql	17
+ create table t1 (i int, j int);
+ create trigger trg1 before insert on t1 for each row
+@@ -1228,6 +1229,7 @@
+ USER_STATISTICS	USER
+ VIEWS	TABLE_SCHEMA
+ INNODB_IO_PATTERN	SPACE
++INNODB_RSEG	RSEG_ID
+ SELECT t.table_name, c1.column_name
+ FROM information_schema.tables t
+ INNER JOIN
+@@ -1267,6 +1269,7 @@
+ USER_STATISTICS	USER
+ VIEWS	TABLE_SCHEMA
+ INNODB_IO_PATTERN	SPACE
++INNODB_RSEG	RSEG_ID
+ SELECT MAX(table_name) FROM information_schema.tables;
+ MAX(table_name)
+ VIEWS
+@@ -1342,6 +1345,7 @@
+ INDEX_STATISTICS	information_schema.INDEX_STATISTICS	1
+ INNODB_BUFFER_POOL_CONTENT	information_schema.INNODB_BUFFER_POOL_CONTENT	1
+ INNODB_IO_PATTERN	information_schema.INNODB_IO_PATTERN	1
++INNODB_RSEG	information_schema.INNODB_RSEG	1
+ KEY_COLUMN_USAGE	information_schema.KEY_COLUMN_USAGE	1
+ PROCESSLIST	information_schema.PROCESSLIST	1
+ PROFILING	information_schema.PROFILING	1
+--- a/mysql-test/r/information_schema_db.result	2009-05-07 19:31:27.000000000 +0000
++++ b/mysql-test/r/information_schema_db.result	2009-05-07 19:35:01.000000000 +0000
+@@ -29,6 +29,7 @@
+ USER_STATISTICS
+ VIEWS
+ INNODB_IO_PATTERN
++INNODB_RSEG
+ show tables from INFORMATION_SCHEMA like 'T%';
+ Tables_in_information_schema (T%)
+ TABLES
+--- a/mysql-test/r/mysqlshow.result	2009-05-07 19:31:26.000000000 +0000
++++ b/mysql-test/r/mysqlshow.result	2009-05-07 19:36:32.000000000 +0000
+@@ -103,6 +103,7 @@
+ | USER_STATISTICS                       |
+ | VIEWS                                 |
+ | INNODB_IO_PATTERN                     |
++| INNODB_RSEG                           |
+ +---------------------------------------+
+ Database: INFORMATION_SCHEMA
+ +---------------------------------------+
+@@ -132,6 +133,7 @@
+ | USER_STATISTICS                       |
+ | VIEWS                                 |
+ | INNODB_IO_PATTERN                     |
++| INNODB_RSEG                           |
+ +---------------------------------------+
+ Wildcard: inf_rmation_schema
+ +--------------------+
+--- a/mysql-test/r/profiling.result	2009-05-28 19:39:42.000000000 +0000
++++ b/mysql-test/r/profiling.result	2009-05-28 19:40:14.000000000 +0000
+@@ -6,6 +6,8 @@
+ Variable_name	Value
+ profiling	OFF
+ profiling_history_size	15
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ select @@profiling;
+ @@profiling
+ 0
+@@ -16,12 +18,16 @@
+ Variable_name	Value
+ profiling	OFF
+ profiling_history_size	100
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ set session profiling = ON;
+ set session profiling_history_size=30;
+ show session variables like 'profil%';
+ Variable_name	Value
+ profiling	ON
+ profiling_history_size	30
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ select @@profiling;
+ @@profiling
+ 1
