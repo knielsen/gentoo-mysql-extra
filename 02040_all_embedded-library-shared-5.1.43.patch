@@ -153,7 +153,7 @@ diff -ur mysql/libmysqld/examples/Makefile.am mysql-new/libmysqld/examples/Makef
 -LDADD =		@CLIENT_EXTRA_LDFLAGS@ ../libmysqld.a @LIBDL@ $(CXXLDFLAGS) \
 -                @NDB_SCI_LIBS@
 +LDADD =		@CLIENT_EXTRA_LDFLAGS@ ../libmysqld.la @LIBDL@ $(CXXLDFLAGS) \
-+                @NDB_SCI_LIBS@ ../../mysql/libmysqlclient.la
++                @NDB_SCI_LIBS@ ../../libmysql/libmysqlclient.la
  
  mysqltest_embedded_LINK = $(CXXLINK)
  nodist_mysqltest_embedded_SOURCES =	mysqltest.cc
