@@ -103,6 +103,7 @@
 @patch 00350_x86_asm-pic-fixes-5.1.41.patch
 @ver 5.01.39.00 to 5.01.99.99
 @pn mysql
+@pn mariadb
 @@ remove page relocations
 @@ Most of the original patch has already been accepted by MysQL,
 @@ here is the remaining.
@@ -225,6 +226,11 @@
 @pn mysql
 @@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
 
+@patch 01050_all_mariadb_config_cleanup-5.1.41.patch
+@ver 5.01.39.00 to 5.01.99.99
+@pn mariadb
+@@ fix bug #156301 mysql_config wrongly retains too much info from CFLAGS
+
 @patch 02000_all_query-logging-bypass-4.1.19.patch
 @ver 4.01.14.00 to 4.01.99.99
 @pn mysql
@@ -344,6 +350,7 @@
 @patch 07040_all_disable_mybug_9735_test-5.1.41.patch
 @ver 5.01.39.00 to 5.01.99.99
 @pn mysql
+@pn mariadb
 @@ disable a test that fail on longtext field length, the expected value is
 @@ three times the returned one, look like a multibyte character related
 @@ failure.
@@ -555,12 +562,14 @@
 @patch 07250_all_testcase_latin1_fix-5.1.42.patch
 @ver 5.01.42.00 to 5.01.99.99
 @pn mysql
+@pn mariadb
 @@ Latin1 is assumed by the testsuite even with --with-charset=utf8 
 @@ is passed to configure. Fix mysql_comments test.
 
 @patch 07260_all_testsuite_mtr_latin1_fix-5.1.42.patch
 @ver 5.01.42.00 to 5.01.99.99
 @pn mysql
+@pn mariadb
 @@ Latin1 is assumed by the testsuite even with --with-charset=utf8 
 @@ is passed to configure. Fix information_schema test.
 
@@ -1064,3 +1073,8 @@
 @pn mysql
 @pn mysql-community
 @@ GCC4.4 Fixup for Percona Patch
+
+@patch 15000_all_mariadb_libevent-system_5.1.42.patch
+@ver 5.01.39.00 to 5.01.99.99
+@pn mariadb
+@@ Clean up libevent autoconf usage
