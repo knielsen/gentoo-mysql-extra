@@ -600,6 +600,11 @@
 @pn mysql
 @@ Fix GCC4.4 stdbool requirement.
 
+@patch 07280_all_stdbool-maria-5.1.42.patch
+@ver 5.01.00.00 to 5.01.99.99
+@pn mariadb
+@@ Fix GCC4.4 stdbool requirement.
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
@@ -1080,6 +1085,6 @@
 @@ GCC4.4 Fixup for Percona Patch
 
 @patch 15000_all_mariadb_libevent-system_5.1.42.patch
-@ver 5.01.39.00 to 5.01.99.99
+@ver 5.01.39.00 to 5.01.42.99
 @pn mariadb
 @@ Clean up libevent autoconf usage
