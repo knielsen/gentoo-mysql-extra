@@ -1,3 +1,9 @@
+
+X-Gentoo-Bug: 280843
+X-Upstream-Bug: 30866
+X-Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=280843
+X-Upstream-Bug-URL: http://bugs.mysql.com/bug.php?id=30866
+
 diff -Nuarp mysql.orig/client/mysql.cc mysql/client/mysql.cc
 --- mysql.orig/client/mysql.cc	2010-01-15 17:14:28.000000000 +0000
 +++ mysql/client/mysql.cc	2010-01-31 22:38:33.000000000 +0000

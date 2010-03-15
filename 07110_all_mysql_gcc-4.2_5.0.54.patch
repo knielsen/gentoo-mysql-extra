@@ -1,4 +1,10 @@
 This patch was made against mysql-5.0.54 
+
+X-Gentoo-Bug: 280843
+X-Upstream-Bug: 30866
+X-Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=280843
+X-Upstream-Bug-URL: http://bugs.mysql.com/bug.php?id=30866
+
 diff -Nuar --exclude mysql_client_test.c.orig mysql.orig/client/mysqlbinlog.cc mysql/client/mysqlbinlog.cc
 --- mysql.orig/client/mysqlbinlog.cc	2007-12-14 12:43:51.000000000 -0800
 +++ mysql/client/mysqlbinlog.cc	2008-01-15 02:53:13.369209185 -0800

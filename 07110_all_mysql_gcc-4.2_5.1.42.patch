@@ -1,3 +1,9 @@
+
+X-Gentoo-Bug: 280843
+X-Upstream-Bug: 30866
+X-Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=280843
+X-Upstream-Bug-URL: http://bugs.mysql.com/bug.php?id=30866
+
 diff -ur mysql-orig/client/mysqlbinlog.cc mysql/client/mysqlbinlog.cc
 --- mysql-orig/client/mysqlbinlog.cc	2010-01-01 15:09:02.611335134 -0100
 +++ mysql/client/mysqlbinlog.cc	2010-01-01 15:09:47.313334938 -0100
