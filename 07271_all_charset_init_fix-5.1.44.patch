@@ -1,0 +1,28 @@
+Workaround the pthread_once_t static initialization. Per the POSIX standard,
+reinitialization of a pthread_once is a gray area, but it is needed to
+supportsubsequent initializations of the client library (upstream bug 45058).
+
+Gentoo-Bug: 310535
+Gentoo-Bug-URL: https://bugs.gentoo.org/show_bug.cgi?id=310535
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=45058
+MySQL-Bug: 45058
+
+--- mysys/charset.c	2010-03-21 12:08:59.000000000 +0100
++++ mysys/charset.c	2010-03-21 12:13:53.000000000 +0100
+@@ -400,6 +400,7 @@ static void *cs_alloc(size_t size)
+ 
+ 
+ static my_pthread_once_t charsets_initialized= MY_PTHREAD_ONCE_INIT;
++static my_pthread_once_t charsets_template= MY_PTHREAD_ONCE_INIT;
+ 
+ static void init_available_charsets(void)
+ {
+@@ -429,7 +430,7 @@ static void init_available_charsets(void
+ 
+ void free_charsets(void)
+ {
+-  charsets_initialized= MY_PTHREAD_ONCE_INIT;
++  charsets_initialized= charsets_template;
+ }
+ 
+ uint get_collation_number(const char *name)

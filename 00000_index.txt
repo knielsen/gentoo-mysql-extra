@@ -588,7 +588,10 @@
 @pn mysql
 @@ Revert charset initialization changes that broke Akonadi.
 
-07270_all_charset_boot_fix-5.1.44.patch
+@patch 07271_all_charset_init_fix-5.1.44.patch
+@ver 5.01.44.01 to 5.01.44.99
+@pn mysql
+@@ Workaround the pthread_once_t static initialization.
 
 @patch 07280_all_stdbool-5.0.90.patch
 @ver 5.00.84.00 to 5.00.99.99
