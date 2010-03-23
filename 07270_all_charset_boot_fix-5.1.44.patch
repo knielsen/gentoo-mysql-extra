@@ -1,5 +1,8 @@
 This patch is for testing only, it's proposed by upstream MySQL.
 
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=45058
+MySQL-Bug: 45058
+
 === modified file 'include/my_sys.h'
 --- include/my_sys.h	2009-12-12 18:11:25 +0000
 +++ include/my_sys.h	2010-02-23 01:58:03 +0000
