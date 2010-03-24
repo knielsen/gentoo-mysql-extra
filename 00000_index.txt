@@ -608,6 +608,12 @@
 @pn mariadb
 @@ Fix GCC4.4 stdbool requirement.
 
+@patch 07290_all_myisam_cast_warning_issue_gcc43.patch
+@ver 5.00.00.00 to 5.00.99.99
+@pn mysql
+@pn mysql-cluster
+@@ Bug #308999: Fix false positives with between OK/"Table is already up to date" output
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community

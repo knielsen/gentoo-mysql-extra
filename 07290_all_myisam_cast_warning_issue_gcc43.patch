@@ -1,0 +1,44 @@
+Gentoo-Bug: 308999
+Gentoo-Bug-URL: https://bugs.gentoo.org/show_bug.cgi?id=308999
+MySQL-Bug: 31171
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=31171
+X-Patch-URL: http://lists.mysql.com/commits/38217
+
+From: Date: November 21 2007 5:52pm
+Subject: bk commit into 5.1 tree (gkodinov:1.2635) BUG#31171
+List-Archive: http://lists.mysql.com/commits/38217
+X-Bug: 31171
+Message-Id: <20071121165244.2547B1EF944@macbook.gmz>
+
+Below is the list of changes that have just been committed into a local
+5.1 repository of kgeorge. When kgeorge does a push these changes will
+be propagated to the main repository and, within 24 hours after the
+push, to the public repository.
+For information on how to access the public repository
+see http://dev.mysql.com/doc/mysql/en/installing-source-tree.html
+
+ChangeSet@stripped, 2007-11-21 18:52:38+02:00, gkodinov@stripped +1 -0
+  Bug #31171: test alter_table, fulltext2, ps, sp fail, 
+   "Table is already up to date" vs. "OK"
+  
+  On MacOSX 10.5 when you cast something to "bool"
+  (the built in C type) it takes values 0 or 1 
+  instead of 0-255 as it seems to be on older compilers.
+  Fixed by removing the typecast (not needed).
+  No test case needed : there are tests that test it.
+
+  storage/myisam/mi_open.c@stripped, 2007-11-21 18:52:37+02:00, gkodinov@stripped +1 -1
+    Bug #31171: don't typecast when not needed
+
+diff -Nrup a/storage/myisam/mi_open.c b/storage/myisam/mi_open.c
+--- a/storage/myisam/mi_open.c	2007-08-13 16:11:16 +03:00
++++ b/storage/myisam/mi_open.c	2007-11-21 18:52:37 +02:00
+@@ -916,7 +916,7 @@ uchar *mi_state_info_read(uchar *ptr, MI
+   key_blocks=state->header.max_block_size_index;
+ 
+   state->open_count = mi_uint2korr(ptr);	ptr +=2;
+-  state->changed= (bool) *ptr++;
++  state->changed= *ptr++;
+   state->sortkey = (uint) *ptr++;
+   state->state.records= mi_rowkorr(ptr);	ptr +=8;
+   state->state.del = mi_rowkorr(ptr);		ptr +=8;
