@@ -155,7 +155,7 @@ diff -ur mysql/libmysqld/examples/Makefile.am mysql-new/libmysqld/examples/Makef
 +LDADD =		@CLIENT_EXTRA_LDFLAGS@ ../libmysqld.la @LIBDL@ $(CXXLDFLAGS) \
 +                @NDB_SCI_LIBS@ ../../libmysql/libmysqlclient.la \
 +                ../../mysys/libmysys.la ../../regex/libregex.la \
-+                ../../storage/heap/libheap.la ../../storage/myisam/libmyisam.a
++                ../../storage/heap/libheap.la ../../storage/myisam/libmyisam.la
  
  mysqltest_embedded_LINK = $(CXXLINK)
  nodist_mysqltest_embedded_SOURCES =	mysqltest.cc
