@@ -514,7 +514,7 @@ diff -ur mysql/server-tools/instance-manager/Makefile.am mysql-new/server-tools/
 diff -ur mysql/sql/Makefile.am mysql-new/sql/Makefile.am
 --- mysql/sql/Makefile.am	2010-04-24 23:20:52.000000000 +0000
 +++ mysql-new/sql/Makefile.am	2010-04-24 23:54:16.000000000 +0000
-@@ -32,11 +32,11 @@
+@@ -32,11 +32,12 @@
  noinst_LTLIBRARIES=	libndb.la \
  			udf_example.la
  
@@ -527,7 +527,8 @@ diff -ur mysql/sql/Makefile.am mysql-new/sql/Makefile.am
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/regex/libregex.la \
-+			$(top_builddir)/strings/libmystrings.la
++			$(top_builddir)/strings/libmystrings.la \
++			$(top_builddir)/storage/myisam/libmyisam.la
  mysqld_DEPENDENCIES=	@mysql_plugin_libs@ $(SUPPORTING_LIBS) libndb.la
  LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@
  mysqld_LDADD =		libndb.la \
