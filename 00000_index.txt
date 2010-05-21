@@ -626,6 +626,11 @@
 @pn mysql-cluster
 @@ Bug #308999: Fix false positives with between OK/"Table is already up to date" output
 
+@patch 07300_all_mysql_embedded_compilefix-5.0.91.patch
+@ver 5.00.91.00 to 5.00.99.99
+@pn mysql
+@@ Compile fix for bug introduced by upstream in 5.0.91
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community

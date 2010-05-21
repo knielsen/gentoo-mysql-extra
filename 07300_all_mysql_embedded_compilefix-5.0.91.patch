@@ -1,0 +1,13 @@
+diff -Nuar mysql-5.0.91.orig//sql/sql_parse.cc mysql-5.0.91//sql/sql_parse.cc
+--- mysql-5.0.91.orig//sql/sql_parse.cc	2010-05-05 14:07:10.000000000 +0000
++++ mysql-5.0.91//sql/sql_parse.cc	2010-05-21 20:29:16.714903163 +0000
+@@ -499,7 +499,9 @@
+         big packets indefinitely, this is a previously established behavior
+         that needs to be preserved as to not break backwards compatibility.
+       */
++#if defined(MYSQL_SERVER) && !defined(EMBEDDED_LIBRARY)
+       thd->net.skip_big_packet= TRUE;
++#endif
+       /* Ready to handle queries */
+       DBUG_RETURN(0);
+     }
