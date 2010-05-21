@@ -1109,3 +1109,8 @@
 @ver 5.01.39.00 to 5.01.42.99
 @pn mariadb
 @@ Clean up libevent autoconf usage
+
+@patch 15010_all_innodb_show_bp-fixes-5.0.91.patch
+@ver 5.00.87.00 to 5.00.99.99
+@pn mysql
+@@ Fixup of crash caused by Percona code + compile fix for strchr input type.

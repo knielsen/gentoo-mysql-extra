@@ -1,0 +1,35 @@
+Gentoo-Bug: 320539
+Gentoo-Bug-URL: https://bugs.gentoo.org/show_bug.cgi?id=320539
+MySQL-Bug: 48203
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=48203
+
+If you disable InnoDB with skip-innodb, then use:
+SELECT COUNT(*) FROM information_schema.INNODB_BUFFER_POOL_CONTENT;
+You get a crash.
+
+diff -Nuar mysql/sql/ha_innodb.cc mysql/sql/ha_innodb.cc
+--- mysql/sql/ha_innodb.cc	2010-05-21 19:39:34.633097661 +0000
++++ mysql/sql/ha_innodb.cc	2010-05-21 19:49:22.865142740 +0000
+@@ -6729,6 +6729,13 @@
+ 	char table_name_raw[NAME_LEN*5+1];
+ 
+         DBUG_ENTER("innodb_I_S_buffer_pool_content");
++        
++		if (have_innodb != SHOW_OPTION_YES) {
++                my_message(ER_NOT_SUPPORTED_YET,
++          "Cannot use the INNODB_BUFFER_POOL_CONTENT table because skip-innodb is defined",
++                           MYF(0));
++                DBUG_RETURN(TRUE);
++        }
+ 
+ 
+ 	size = buf_pool->curr_size;
+@@ -6790,7 +6797,7 @@
+ 				table->field[10]->store(index->name, strlen(index->name), system_charset_info);
+ 				// fprintf(stderr, " index %s, table %s", index->name, index->table_name);
+ 
+-				if((p = strchr(index->table_name, '/')))
++				if((p = strchr((char *)(index->table_name), '/')))
+ 				{
+ 					strncpy(db_name_raw, index->table_name, p-index->table_name);
+ 					db_name_raw[p-index->table_name] = 0;
