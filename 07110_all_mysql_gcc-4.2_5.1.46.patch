@@ -1,0 +1,3444 @@
+
+X-Gentoo-Bug: 280843
+X-Upstream-Bug: 30866
+X-Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=280843
+X-Upstream-Bug-URL: http://bugs.mysql.com/bug.php?id=30866
+
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/mysqlbinlog.cc mysql/client/mysqlbinlog.cc
+--- mysql.orig/client/mysqlbinlog.cc	2010-04-06 14:03:48.000000000 +0000
++++ mysql/client/mysqlbinlog.cc	2010-04-25 20:07:20.950488097 +0000
+@@ -1946,7 +1946,7 @@
+       my_off_t length,tmp;
+       for (length= start_position_mot ; length > 0 ; length-=tmp)
+       {
+-	tmp=min(length,sizeof(buff));
++	tmp=MYSQL_MIN(length,sizeof(buff));
+ 	if (my_b_read(file, buff, (uint) tmp))
+         {
+           error("Failed reading from file.");
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/mysql.cc mysql/client/mysql.cc
+--- mysql.orig/client/mysql.cc	2010-04-06 14:03:48.000000000 +0000
++++ mysql/client/mysql.cc	2010-04-25 20:07:20.950488097 +0000
+@@ -3310,9 +3310,9 @@
+   {
+     uint length= column_names ? field->name_length : 0;
+     if (quick)
+-      length=max(length,field->length);
++      length=MYSQL_MAX(length,field->length);
+     else
+-      length=max(length,field->max_length);
++      length=MYSQL_MAX(length,field->max_length);
+     if (length < 4 && !IS_NOT_NULL(field->flags))
+       length=4;					// Room for "NULL"
+     field->max_length=length;
+@@ -3332,7 +3332,7 @@
+                                                   field->name,
+                                                   field->name + name_length);
+       uint display_length= field->max_length + name_length - numcells;
+-      tee_fprintf(PAGER, " %-*s |",(int) min(display_length,
++      tee_fprintf(PAGER, " %-*s |",(int) MYSQL_MIN(display_length,
+                                             MAX_COLUMN_LENGTH),
+                   field->name);
+       num_flag[off]= IS_NUM(field->type);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/mysqldump.c mysql/client/mysqldump.c
+--- mysql.orig/client/mysqldump.c	2010-04-06 14:03:49.000000000 +0000
++++ mysql/client/mysqldump.c	2010-04-25 20:07:20.953406902 +0000
+@@ -830,7 +830,7 @@
+                                     &err_ptr, &err_len);
+       if (err_len)
+       {
+-        strmake(buff, err_ptr, min(sizeof(buff) - 1, err_len));
++        strmake(buff, err_ptr, MYSQL_MIN(sizeof(buff) - 1, err_len));
+         fprintf(stderr, "Invalid mode to --compatible: %s\n", buff);
+         exit(1);
+       }
+@@ -4508,7 +4508,7 @@
+ 
+       for (; pos != end && *pos != ','; pos++) ;
+       var_len= (uint) (pos - start);
+-      strmake(buff, start, min(sizeof(buff) - 1, var_len));
++      strmake(buff, start, MYSQL_MIN(sizeof(buff) - 1, var_len));
+       find= find_type(buff, lib, var_len);
+       if (!find)
+       {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/mysqltest.cc mysql/client/mysqltest.cc
+--- mysql.orig/client/mysqltest.cc	2010-04-06 14:03:49.000000000 +0000
++++ mysql/client/mysqltest.cc	2010-04-25 20:07:20.957153743 +0000
+@@ -5496,9 +5496,9 @@
+       }
+       else if ((c == '{' &&
+                 (!my_strnncoll_simple(charset_info, (const uchar*) "while", 5,
+-                                      (uchar*) buf, min(5, p - buf), 0) ||
++                                      (uchar*) buf, MYSQL_MIN(5, p - buf), 0) ||
+                  !my_strnncoll_simple(charset_info, (const uchar*) "if", 2,
+-                                      (uchar*) buf, min(2, p - buf), 0))))
++                                      (uchar*) buf, MYSQL_MIN(2, p - buf), 0))))
+       {
+         /* Only if and while commands can be terminated by { */
+         *p++= c;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/mysql_upgrade.c mysql/client/mysql_upgrade.c
+--- mysql.orig/client/mysql_upgrade.c	2010-04-06 14:03:48.000000000 +0000
++++ mysql/client/mysql_upgrade.c	2010-04-25 20:07:20.950488097 +0000
+@@ -528,7 +528,7 @@
+   if ((value_end= strchr(value_start, '\n')) == NULL)
+     return 1; /* Unexpected result */
+ 
+-  strncpy(value, value_start, min(FN_REFLEN, value_end-value_start));
++  strncpy(value, value_start, MYSQL_MIN(FN_REFLEN, value_end-value_start));
+   return 0;
+ }
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/client/sql_string.cc mysql/client/sql_string.cc
+--- mysql.orig/client/sql_string.cc	2010-04-06 14:03:49.000000000 +0000
++++ mysql/client/sql_string.cc	2010-04-25 20:07:20.960487004 +0000
+@@ -659,7 +659,7 @@
+ {
+   if (Alloced_length < str_length + space_needed)
+   {
+-    if (realloc(Alloced_length + max(space_needed, grow_by) - 1))
++    if (realloc(Alloced_length + MYSQL_MAX(space_needed, grow_by) - 1))
+       return TRUE;
+   }
+   return FALSE;
+@@ -745,7 +745,7 @@
+ 
+ int stringcmp(const String *s,const String *t)
+ {
+-  uint32 s_len=s->length(),t_len=t->length(),len=min(s_len,t_len);
++  uint32 s_len=s->length(),t_len=t->length(),len=MYSQL_MIN(s_len,t_len);
+   int cmp= memcmp(s->ptr(), t->ptr(), len);
+   return (cmp) ? cmp : (int) (s_len - t_len);
+ }
+@@ -762,7 +762,7 @@
+   }
+   if (to->realloc(from_length))
+     return from;				// Actually an error
+-  if ((to->str_length=min(from->str_length,from_length)))
++  if ((to->str_length=MYSQL_MIN(from->str_length,from_length)))
+     memcpy(to->Ptr,from->Ptr,to->str_length);
+   to->str_charset=from->str_charset;
+   return to;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/dbug/dbug.c mysql/dbug/dbug.c
+--- mysql.orig/dbug/dbug.c	2010-04-06 14:03:57.000000000 +0000
++++ mysql/dbug/dbug.c	2010-04-25 20:07:20.960487004 +0000
+@@ -1202,7 +1202,7 @@
+     if (TRACING)
+     {
+       Indent(cs, cs->level + 1);
+-      pos= min(max(cs->level-cs->stack->sub_level,0)*INDENT,80);
++      pos= MYSQL_MIN(MYSQL_MAX(cs->level-cs->stack->sub_level,0)*INDENT,80);
+     }
+     else
+     {
+@@ -1687,7 +1687,7 @@
+ {
+   REGISTER int count;
+ 
+-  indent= max(indent-1-cs->stack->sub_level,0)*INDENT;
++  indent= MYSQL_MAX(indent-1-cs->stack->sub_level,0)*INDENT;
+   for (count= 0; count < indent ; count++)
+   {
+     if ((count % INDENT) == 0)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/extra/yassl/src/ssl.cpp mysql/extra/yassl/src/ssl.cpp
+--- mysql.orig/extra/yassl/src/ssl.cpp	2010-04-06 14:03:59.000000000 +0000
++++ mysql/extra/yassl/src/ssl.cpp	2010-04-25 20:07:20.960487004 +0000
+@@ -38,6 +38,7 @@
+ #include "file.hpp"             // for TaoCrypt Source
+ #include "coding.hpp"           // HexDecoder
+ #include "helpers.hpp"          // for placement new hack
++#include "my_global.h"
+ #include <stdio.h>
+ 
+ #ifdef _WIN32
+@@ -113,7 +114,7 @@
+                 // use file's salt for key derivation, but not real iv
+                 TaoCrypt::Source source(info.iv, info.ivSz);
+                 TaoCrypt::HexDecoder dec(source);
+-                memcpy(info.iv, source.get_buffer(), min((uint)sizeof(info.iv),
++                memcpy(info.iv, source.get_buffer(), MYSQL_MIN((uint)sizeof(info.iv),
+                                                          source.size()));
+                 EVP_BytesToKey(info.name, "MD5", info.iv, (byte*)password,
+                                passwordSz, 1, key, iv);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/extra/yassl/taocrypt/src/dh.cpp mysql/extra/yassl/taocrypt/src/dh.cpp
+--- mysql.orig/extra/yassl/taocrypt/src/dh.cpp	2010-04-06 14:04:01.000000000 +0000
++++ mysql/extra/yassl/taocrypt/src/dh.cpp	2010-04-25 20:07:20.960487004 +0000
+@@ -23,6 +23,7 @@
+ #include "runtime.hpp"
+ #include "dh.hpp"
+ #include "asn.hpp"
++#include "my_global.h"
+ #include <math.h>
+ 
+ namespace TaoCrypt {
+@@ -54,7 +55,7 @@
+ // Generate private value
+ void DH::GeneratePrivate(RandomNumberGenerator& rng, byte* priv)
+ {
+-    Integer x(rng, Integer::One(), min(p_ - 1,
++    Integer x(rng, Integer::One(), MYSQL_MIN(p_ - 1,
+         Integer::Power2(2*DiscreteLogWorkFactor(p_.BitCount())) ) );
+     x.Encode(priv, p_.ByteCount());
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/include/my_global.h mysql/include/my_global.h
+--- mysql.orig/include/my_global.h	2010-04-06 14:04:02.000000000 +0000
++++ mysql/include/my_global.h	2010-04-25 20:07:20.960487004 +0000
+@@ -572,10 +572,8 @@
+ #endif
+ 
+ /* Define some useful general macros */
+-#if !defined(max)
+-#define max(a, b)	((a) > (b) ? (a) : (b))
+-#define min(a, b)	((a) < (b) ? (a) : (b))
+-#endif
++#define MYSQL_MAX(a, b)	((a) > (b) ? (a) : (b))
++#define MYSQL_MIN(a, b)	((a) < (b) ? (a) : (b))
+ 
+ #if !defined(HAVE_UINT)
+ #undef HAVE_UINT
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/libmysql/libmysql.c mysql/libmysql/libmysql.c
+--- mysql.orig/libmysql/libmysql.c	2010-04-06 14:04:05.000000000 +0000
++++ mysql/libmysql/libmysql.c	2010-04-25 20:07:20.963820366 +0000
+@@ -1573,7 +1573,7 @@
+   my_net_set_read_timeout(net, CLIENT_NET_READ_TIMEOUT);
+   my_net_set_write_timeout(net, CLIENT_NET_WRITE_TIMEOUT);
+   net->retry_count=  1;
+-  net->max_packet_size= max(net_buffer_length, max_allowed_packet);
++  net->max_packet_size= MYSQL_MAX(net_buffer_length, max_allowed_packet);
+ }
+ 
+ /*
+@@ -3606,7 +3606,7 @@
+       copy_length= end - start;
+       /* We've got some data beyond offset: copy up to buffer_length bytes */
+       if (param->buffer_length)
+-        memcpy(buffer, start, min(copy_length, param->buffer_length));
++        memcpy(buffer, start, MYSQL_MIN(copy_length, param->buffer_length));
+     }
+     else
+       copy_length= 0;
+@@ -3839,9 +3839,9 @@
+         precisions. This will ensure that on the same machine you get the
+         same value as a string independent of the protocol you use.
+       */
+-      sprintf(buff, "%-*.*g", (int) min(sizeof(buff)-1,
++      sprintf(buff, "%-*.*g", (int) MYSQL_MIN(sizeof(buff)-1,
+                                         param->buffer_length),
+-              min(DBL_DIG, width), value);
++              MYSQL_MIN(DBL_DIG,width), value);
+       end= strcend(buff, ' ');
+       *end= 0;
+     }
+@@ -4159,7 +4159,7 @@
+                              uchar **row)
+ {
+   ulong length= net_field_length(row);
+-  ulong copy_length= min(length, param->buffer_length);
++  ulong copy_length= MYSQL_MIN(length, param->buffer_length);
+   memcpy(param->buffer, (char *)*row, copy_length);
+   *param->length= length;
+   *param->error= copy_length < length;
+@@ -4171,7 +4171,7 @@
+                              uchar **row)
+ {
+   ulong length= net_field_length(row);
+-  ulong copy_length= min(length, param->buffer_length);
++  ulong copy_length= MYSQL_MIN(length, param->buffer_length);
+   memcpy(param->buffer, (char *)*row, copy_length);
+   /* Add an end null if there is room in the buffer */
+   if (copy_length != param->buffer_length)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/libmysqld/lib_sql.cc mysql/libmysqld/lib_sql.cc
+--- mysql.orig/libmysqld/lib_sql.cc	2010-04-06 14:04:05.000000000 +0000
++++ mysql/libmysqld/lib_sql.cc	2010-04-25 20:07:20.963820366 +0000
+@@ -824,7 +824,7 @@
+     is cleared between substatements, and mysqltest gets confused
+   */
+   thd->cur_data->embedded_info->warning_count=
+-    (thd->spcont ? 0 : min(total_warn_count, 65535));
++    (thd->spcont ? 0 : MYSQL_MIN(total_warn_count, 65535));
+   return FALSE;
+ }
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/array.c mysql/mysys/array.c
+--- mysql.orig/mysys/array.c	2010-04-06 14:06:01.000000000 +0000
++++ mysql/mysys/array.c	2010-04-25 20:07:20.963820366 +0000
+@@ -47,7 +47,7 @@
+   DBUG_ENTER("init_dynamic_array");
+   if (!alloc_increment)
+   {
+-    alloc_increment=max((8192-MALLOC_OVERHEAD)/element_size,16);
++    alloc_increment=MYSQL_MAX((8192-MALLOC_OVERHEAD)/element_size,16);
+     if (init_alloc > 8 && alloc_increment > init_alloc * 2)
+       alloc_increment=init_alloc*2;
+   }
+@@ -341,7 +341,7 @@
+ 
+ void freeze_size(DYNAMIC_ARRAY *array)
+ {
+-  uint elements=max(array->elements,1);
++  uint elements=MYSQL_MAX(array->elements,1);
+ 
+   /*
+     Do nothing if we are using a static buffer
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/default.c mysql/mysys/default.c
+--- mysql.orig/mysys/default.c	2010-04-06 14:06:01.000000000 +0000
++++ mysql/mysys/default.c	2010-04-25 20:07:20.963820366 +0000
+@@ -793,7 +793,7 @@
+       for ( ; my_isspace(&my_charset_latin1,end[-1]) ; end--) ;
+       end[0]=0;
+ 
+-      strmake(curr_gr, ptr, min((size_t) (end-ptr)+1, sizeof(curr_gr)-1));
++      strmake(curr_gr, ptr, MYSQL_MIN((size_t) (end-ptr)+1, sizeof(curr_gr)-1));
+ 
+       /* signal that a new group is found */
+       opt_handler(handler_ctx, curr_gr, NULL);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/mf_format.c mysql/mysys/mf_format.c
+--- mysql.orig/mysys/mf_format.c	2010-04-06 14:06:01.000000000 +0000
++++ mysql/mysys/mf_format.c	2010-04-25 20:07:20.963820366 +0000
+@@ -83,7 +83,7 @@
+     tmp_length= strlength(startpos);
+     DBUG_PRINT("error",("dev: '%s'  ext: '%s'  length: %u",dev,ext,
+                         (uint) length));
+-    (void) strmake(to,startpos,min(tmp_length,FN_REFLEN-1));
++    (void) strmake(to,startpos,MYSQL_MIN(tmp_length,FN_REFLEN-1));
+   }
+   else
+   {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/mf_iocache.c mysql/mysys/mf_iocache.c
+--- mysql.orig/mysys/mf_iocache.c	2010-04-06 14:06:01.000000000 +0000
++++ mysql/mysys/mf_iocache.c	2010-04-25 20:07:20.963820366 +0000
+@@ -1097,7 +1097,7 @@
+   */
+   while (write_length)
+   {
+-    size_t copy_length= min(write_length, write_cache->buffer_length);
++    size_t copy_length= MYSQL_MIN(write_length, write_cache->buffer_length);
+     int  __attribute__((unused)) rc;
+ 
+     rc= lock_io_cache(write_cache, write_cache->pos_in_file);
+@@ -1256,7 +1256,7 @@
+       TODO: figure out if the assert below is needed or correct.
+     */
+     DBUG_ASSERT(pos_in_file == info->end_of_file);
+-    copy_len=min(Count, len_in_buff);
++    copy_len=MYSQL_MIN(Count, len_in_buff);
+     memcpy(Buffer, info->append_read_pos, copy_len);
+     info->append_read_pos += copy_len;
+     Count -= copy_len;
+@@ -1365,7 +1365,7 @@
+     }
+ #endif
+ 	/* Copy found bytes to buffer */
+-    length=min(Count,read_length);
++    length=MYSQL_MIN(Count,read_length);
+     memcpy(Buffer,info->read_pos,(size_t) length);
+     Buffer+=length;
+     Count-=length;
+@@ -1399,7 +1399,7 @@
+       if ((read_length=my_read(info->file,info->request_pos,
+ 			       read_length, info->myflags)) == (size_t) -1)
+         return info->error= -1;
+-      use_length=min(Count,read_length);
++      use_length=MYSQL_MIN(Count,read_length);
+       memcpy(Buffer,info->request_pos,(size_t) use_length);
+       info->read_pos=info->request_pos+Count;
+       info->read_end=info->request_pos+read_length;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_alloc.c mysql/mysys/my_alloc.c
+--- mysql.orig/mysys/my_alloc.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_alloc.c	2010-04-25 20:07:20.967153626 +0000
+@@ -196,7 +196,7 @@
+   {						/* Time to alloc new block */
+     block_size= mem_root->block_size * (mem_root->block_num >> 2);
+     get_size= length+ALIGN_SIZE(sizeof(USED_MEM));
+-    get_size= max(get_size, block_size);
++    get_size= MYSQL_MAX(get_size, block_size);
+ 
+     if (!(next = (USED_MEM*) my_malloc(get_size,MYF(MY_WME))))
+     {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_bitmap.c mysql/mysys/my_bitmap.c
+--- mysql.orig/mysys/my_bitmap.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_bitmap.c	2010-04-25 20:07:20.967153626 +0000
+@@ -365,7 +365,7 @@
+ 
+   DBUG_ASSERT(map->bitmap && map2->bitmap);
+ 
+-  end= to+min(len,len2);
++  end= to+MYSQL_MIN(len,len2);
+   *map2->last_word_ptr&= ~map2->last_word_mask; /*Clear last bits in map2*/
+   while (to < end)
+     *to++ &= *from++;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_compress.c mysql/mysys/my_compress.c
+--- mysql.orig/mysys/my_compress.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_compress.c	2010-04-25 20:07:20.967153626 +0000
+@@ -244,7 +244,7 @@
+ 
+    if (ver != 1)
+      DBUG_RETURN(1);
+-   if (!(data= my_malloc(max(orglen, complen), MYF(MY_WME))))
++   if (!(data= my_malloc(MYSQL_MAX(orglen, complen), MYF(MY_WME))))
+      DBUG_RETURN(2);
+    memcpy(data, pack_data + BLOB_HEADER, complen);
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_conio.c mysql/mysys/my_conio.c
+--- mysql.orig/mysys/my_conio.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_conio.c	2010-04-25 20:07:20.967153626 +0000
+@@ -165,13 +165,13 @@
+     though it is known it should not be more than 64K               
+     so we cut 64K and try first size of screen buffer               
+     if it is still to large we cut half of it and try again         
+-    later we may want to cycle from min(clen, 65535) to allowed size
++    later we may want to cycle from MYSQL_MIN(clen, 65535) to allowed size
+     with small decrement to determine exact allowed buffer           
+   */
+-  clen= min(clen, 65535);
++  clen= MYSQL_MIN(clen, 65535);
+   do
+   {
+-    clen= min(clen, (size_t) csbi.dwSize.X*csbi.dwSize.Y);
++    clen= MYSQL_MIN(clen, (size_t) csbi.dwSize.X*csbi.dwSize.Y);
+     if (!ReadConsole((HANDLE)my_coninpfh, (LPVOID)buffer, (DWORD) clen - 1, &plen_res,
+                      NULL))
+     {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_file.c mysql/mysys/my_file.c
+--- mysql.orig/mysys/my_file.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_file.c	2010-04-25 20:07:20.967153626 +0000
+@@ -75,7 +75,7 @@
+ static int set_max_open_files(uint max_file_limit)
+ {
+   /* We don't know the limit. Return best guess */
+-  return min(max_file_limit, OS_FILE_LIMIT);
++  return MYSQL_MIN(max_file_limit, OS_FILE_LIMIT);
+ }
+ #endif
+ 
+@@ -97,7 +97,7 @@
+   DBUG_ENTER("my_set_max_open_files");
+   DBUG_PRINT("enter",("files: %u  my_file_limit: %u", files, my_file_limit));
+ 
+-  files= set_max_open_files(min(files, OS_FILE_LIMIT));
++  files= set_max_open_files(MYSQL_MIN(files, OS_FILE_LIMIT));
+   if (files <= MY_NFILE)
+     DBUG_RETURN(files);
+ 
+@@ -107,9 +107,9 @@
+ 
+   /* Copy any initialized files */
+   memcpy((char*) tmp, (char*) my_file_info,
+-         sizeof(*tmp) * min(my_file_limit, files));
++         sizeof(*tmp) * MYSQL_MIN(my_file_limit, files));
+   bzero((char*) (tmp + my_file_limit),
+-        max((int) (files- my_file_limit), 0)*sizeof(*tmp));
++        MYSQL_MAX((int) (files- my_file_limit), 0)*sizeof(*tmp));
+   my_free_open_file_info();			/* Free if already allocated */
+   my_file_info= tmp;
+   my_file_limit= files;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_getopt.c mysql/mysys/my_getopt.c
+--- mysql.orig/mysys/my_getopt.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_getopt.c	2010-04-25 20:07:20.967153626 +0000
+@@ -982,7 +982,7 @@
+   }
+   if (optp->max_value && num > (double) optp->max_value)
+     num= (double) optp->max_value;
+-  return max(num, (double) optp->min_value);
++  return MYSQL_MAX(num, (double) optp->min_value);
+ }
+ 
+ /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/my_handler.c mysql/mysys/my_handler.c
+--- mysql.orig/mysys/my_handler.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/my_handler.c	2010-04-25 20:07:20.967153626 +0000
+@@ -38,7 +38,7 @@
+ static int compare_bin(uchar *a, uint a_length, uchar *b, uint b_length,
+                        my_bool part_key, my_bool skip_end_space)
+ {
+-  uint length= min(a_length,b_length);
++  uint length= MYSQL_MIN(a_length,b_length);
+   uchar *end= a+ length;
+   int flag;
+ 
+@@ -166,7 +166,7 @@
+         continue;                               /* To next key part */
+       }
+     }
+-    end= a+ min(keyseg->length,key_length);
++    end= a+ MYSQL_MIN(keyseg->length,key_length);
+     next_key_length=key_length-keyseg->length;
+ 
+     switch ((enum ha_base_keytype) keyseg->type) {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/safemalloc.c mysql/mysys/safemalloc.c
+--- mysql.orig/mysys/safemalloc.c	2010-04-06 14:06:02.000000000 +0000
++++ mysql/mysys/safemalloc.c	2010-04-25 20:07:20.967153626 +0000
+@@ -238,7 +238,7 @@
+ 
+   if ((data= _mymalloc(size,filename,lineno,MyFlags))) /* Allocate new area */
+   {
+-    size=min(size, irem->datasize);		/* Move as much as possibly */
++    size=MYSQL_MIN(size, irem->datasize);		/* Move as much as possibly */
+     memcpy((uchar*) data, ptr, (size_t) size);	/* Copy old data */
+     _myfree(ptr, filename, lineno, 0);		/* Free not needed area */
+   }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/mysys/stacktrace.c mysql/mysys/stacktrace.c
+--- mysql.orig/mysys/stacktrace.c	2010-04-06 14:06:03.000000000 +0000
++++ mysql/mysys/stacktrace.c	2010-04-25 20:07:20.967153626 +0000
+@@ -229,7 +229,7 @@
+ 
+   if (!stack_bottom || (uchar*) stack_bottom > (uchar*) &fp)
+   {
+-    ulong tmp= min(0x10000,thread_stack);
++    ulong tmp= MYSQL_MIN(0x10000,thread_stack);
+     /* Assume that the stack starts at the previous even 65K */
+     stack_bottom= (uchar*) (((ulong) &fp + tmp) &
+ 			  ~(ulong) 0xFFFF);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/server-tools/instance-manager/buffer.cc mysql/server-tools/instance-manager/buffer.cc
+--- mysql.orig/server-tools/instance-manager/buffer.cc	2010-04-06 14:06:04.000000000 +0000
++++ mysql/server-tools/instance-manager/buffer.cc	2010-04-25 20:07:20.967153626 +0000
+@@ -83,8 +83,8 @@
+   if (position + len_arg >= buffer_size)
+   {
+     buffer= (uchar*) my_realloc(buffer,
+-                                min(MAX_BUFFER_SIZE,
+-                                    max((uint) (buffer_size*1.5),
++                                MYSQL_MIN(MAX_BUFFER_SIZE,
++                                    MYSQL_MAX((uint) (buffer_size*1.5),
+                                         position + len_arg)), MYF(0));
+     if (!(buffer))
+       goto err;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/server-tools/instance-manager/listener.cc mysql/server-tools/instance-manager/listener.cc
+--- mysql.orig/server-tools/instance-manager/listener.cc	2010-04-06 14:06:05.000000000 +0000
++++ mysql/server-tools/instance-manager/listener.cc	2010-04-25 20:07:20.967153626 +0000
+@@ -103,7 +103,7 @@
+ 
+   /* II. Listen sockets and spawn childs */
+   for (i= 0; i < num_sockets; i++)
+-    n= max(n, sockets[i]);
++    n= MYSQL_MAX(n, sockets[i]);
+   n++;
+ 
+   timeval tv;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/field.cc mysql/sql/field.cc
+--- mysql.orig/sql/field.cc	2010-04-06 14:06:05.000000000 +0000
++++ mysql/sql/field.cc	2010-04-25 20:07:20.972988760 +0000
+@@ -54,7 +54,7 @@
+ #define LONGLONG_TO_STRING_CONVERSION_BUFFER_SIZE 128
+ #define DECIMAL_TO_STRING_CONVERSION_BUFFER_SIZE 128
+ #define BLOB_PACK_LENGTH_TO_MAX_LENGH(arg) \
+-((ulong) ((LL(1) << min(arg, 4) * 8) - LL(1)))
++((ulong) ((LL(1) << MYSQL_MIN(arg, 4) * 8) - LL(1)))
+ 
+ #define ASSERT_COLUMN_MARKED_FOR_READ DBUG_ASSERT(!table || (!table->read_set || bitmap_is_set(table->read_set, field_index)))
+ #define ASSERT_COLUMN_MARKED_FOR_WRITE DBUG_ASSERT(!table || (!table->write_set || bitmap_is_set(table->write_set, field_index)))
+@@ -2072,7 +2072,7 @@
+     tmp_uint=tmp_dec+(uint)(int_digits_end-int_digits_from);
+   else if (expo_sign_char == '-') 
+   {
+-    tmp_uint=min(exponent,(uint)(int_digits_end-int_digits_from));
++    tmp_uint=MYSQL_MIN(exponent,(uint)(int_digits_end-int_digits_from));
+     frac_digits_added_zeros=exponent-tmp_uint;
+     int_digits_end -= tmp_uint;
+     frac_digits_head_end=int_digits_end+tmp_uint;
+@@ -2080,7 +2080,7 @@
+   }
+   else // (expo_sign_char=='+') 
+   {
+-    tmp_uint=min(exponent,(uint)(frac_digits_end-frac_digits_from));
++    tmp_uint=MYSQL_MIN(exponent,(uint)(frac_digits_end-frac_digits_from));
+     int_digits_added_zeros=exponent-tmp_uint;
+     int_digits_tail_from=frac_digits_from;
+     frac_digits_from=frac_digits_from+tmp_uint;
+@@ -3091,7 +3091,7 @@
+   ASSERT_COLUMN_MARKED_FOR_READ;
+   CHARSET_INFO *cs= &my_charset_bin;
+   uint length;
+-  uint mlength=max(field_length+1,5*cs->mbmaxlen);
++  uint mlength=MYSQL_MAX(field_length+1,5*cs->mbmaxlen);
+   val_buffer->alloc(mlength);
+   char *to=(char*) val_buffer->ptr();
+ 
+@@ -3303,7 +3303,7 @@
+   ASSERT_COLUMN_MARKED_FOR_READ;
+   CHARSET_INFO *cs= &my_charset_bin;
+   uint length;
+-  uint mlength=max(field_length+1,7*cs->mbmaxlen);
++  uint mlength=MYSQL_MAX(field_length+1,7*cs->mbmaxlen);
+   val_buffer->alloc(mlength);
+   char *to=(char*) val_buffer->ptr();
+   short j;
+@@ -3520,7 +3520,7 @@
+   ASSERT_COLUMN_MARKED_FOR_READ;
+   CHARSET_INFO *cs= &my_charset_bin;
+   uint length;
+-  uint mlength=max(field_length+1,10*cs->mbmaxlen);
++  uint mlength=MYSQL_MAX(field_length+1,10*cs->mbmaxlen);
+   val_buffer->alloc(mlength);
+   char *to=(char*) val_buffer->ptr();
+   long j= unsigned_flag ? (long) uint3korr(ptr) : sint3korr(ptr);
+@@ -3739,7 +3739,7 @@
+   ASSERT_COLUMN_MARKED_FOR_READ;
+   CHARSET_INFO *cs= &my_charset_bin;
+   uint length;
+-  uint mlength=max(field_length+1,12*cs->mbmaxlen);
++  uint mlength=MYSQL_MAX(field_length+1,12*cs->mbmaxlen);
+   val_buffer->alloc(mlength);
+   char *to=(char*) val_buffer->ptr();
+   int32 j;
+@@ -3980,7 +3980,7 @@
+ {
+   CHARSET_INFO *cs= &my_charset_bin;
+   uint length;
+-  uint mlength=max(field_length+1,22*cs->mbmaxlen);
++  uint mlength=MYSQL_MAX(field_length+1,22*cs->mbmaxlen);
+   val_buffer->alloc(mlength);
+   char *to=(char*) val_buffer->ptr();
+   longlong j;
+@@ -4203,7 +4203,7 @@
+ #endif
+     memcpy_fixed((uchar*) &nr,ptr,sizeof(nr));
+ 
+-  uint to_length=max(field_length,70);
++  uint to_length=MYSQL_MAX(field_length,70);
+   val_buffer->alloc(to_length);
+   char *to=(char*) val_buffer->ptr();
+ 
+@@ -4561,7 +4561,7 @@
+ #endif
+     doubleget(nr,ptr);
+ 
+-  uint to_length=max(field_length, DOUBLE_TO_STRING_CONVERSION_BUFFER_SIZE);
++  uint to_length=MYSQL_MAX(field_length, DOUBLE_TO_STRING_CONVERSION_BUFFER_SIZE);
+   val_buffer->alloc(to_length);
+   char *to=(char*) val_buffer->ptr();
+ 
+@@ -6455,13 +6455,13 @@
+     calculate the maximum number of significant digits if the 'f'-format
+     would be used (+1 for decimal point if the number has a fractional part).
+   */
+-  digits= max(1, (int) max_length - fractional);
++  digits= MYSQL_MAX(1, (int) max_length - fractional);
+   /*
+     If the exponent is negative, decrease digits by the number of leading zeros
+     after the decimal point that do not count as significant digits.
+   */
+   if (exp < 0)
+-    digits= max(1, (int) digits + exp);
++    digits= MYSQL_MAX(1, (int) digits + exp);
+   /*
+     'e'-format is used only if the exponent is less than -4 or greater than or
+     equal to the precision. In this case we need to adjust the number of
+@@ -6469,7 +6469,7 @@
+     We also have to reserve one additional character if abs(exp) >= 100.
+   */
+   if (exp >= (int) digits || exp < -4)
+-    digits= max(1, (int) (max_length - 5 - (exp >= 100 || exp <= -100)));
++    digits= MYSQL_MAX(1, (int) (max_length - 5 - (exp >= 100 || exp <= -100)));
+ 
+   /* Limit precision to DBL_DIG to avoid garbage past significant digits */
+   set_if_smaller(digits, DBL_DIG);
+@@ -6727,7 +6727,7 @@
+                           uint max_length,
+                           bool low_byte_first __attribute__((unused)))
+ {
+-  uint length=      min(field_length,max_length);
++  uint length=      MYSQL_MIN(field_length,max_length);
+   uint local_char_length= max_length/field_charset->mbmaxlen;
+   if (length > local_char_length)
+     local_char_length= my_charpos(field_charset, from, from+length,
+@@ -7721,7 +7721,7 @@
+     from= tmpstr.ptr();
+   }
+ 
+-  new_length= min(max_data_length(), field_charset->mbmaxlen * length);
++  new_length= MYSQL_MIN(max_data_length(), field_charset->mbmaxlen * length);
+   if (value.alloc(new_length))
+     goto oom_error;
+ 
+@@ -7881,7 +7881,7 @@
+   b_length=get_length(b_ptr);
+   if (b_length > max_length)
+     b_length=max_length;
+-  diff=memcmp(a,b,min(a_length,b_length));
++  diff=memcmp(a,b,MYSQL_MIN(a_length,b_length));
+   return diff ? diff : (int) (a_length - b_length);
+ }
+ 
+@@ -9112,7 +9112,7 @@
+ {
+   ASSERT_COLUMN_MARKED_FOR_READ;
+   char buff[sizeof(longlong)];
+-  uint length= min(pack_length(), sizeof(longlong));
++  uint length= MYSQL_MIN(pack_length(), sizeof(longlong));
+   ulonglong bits= val_int();
+   mi_int8store(buff,bits);
+ 
+@@ -9198,7 +9198,7 @@
+     *buff++= bits;
+     length--;
+   }
+-  uint data_length = min(length, bytes_in_rec);
++  uint data_length = MYSQL_MIN(length, bytes_in_rec);
+   memcpy(buff, ptr, data_length);
+   return data_length + 1;
+ }
+@@ -9326,7 +9326,7 @@
+     uchar bits= get_rec_bits(bit_ptr + (from - ptr), bit_ofs, bit_len);
+     *to++= bits;
+   }
+-  length= min(bytes_in_rec, max_length - (bit_len > 0));
++  length= MYSQL_MIN(bytes_in_rec, max_length - (bit_len > 0));
+   memcpy(to, from, length);
+   return to + length;
+ }
+@@ -9782,7 +9782,7 @@
+       DBUG_ASSERT(MAX_DATETIME_COMPRESSED_WIDTH < UINT_MAX);
+       if (length != UINT_MAX)  /* avoid overflow; is safe because of min() */
+         length= ((length+1)/2)*2;
+-      length= min(length, MAX_DATETIME_COMPRESSED_WIDTH);
++      length= MYSQL_MIN(length, MAX_DATETIME_COMPRESSED_WIDTH);
+     }
+     flags|= ZEROFILL_FLAG | UNSIGNED_FLAG;
+     /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/filesort.cc mysql/sql/filesort.cc
+--- mysql.orig/sql/filesort.cc	2010-04-06 14:06:05.000000000 +0000
++++ mysql/sql/filesort.cc	2010-04-25 20:07:20.972988760 +0000
+@@ -193,7 +193,7 @@
+ #ifdef CAN_TRUST_RANGE
+   if (select && select->quick && select->quick->records > 0L)
+   {
+-    records=min((ha_rows) (select->quick->records*2+EXTRA_RECORDS*2),
++    records=MYSQL_MIN((ha_rows) (select->quick->records*2+EXTRA_RECORDS*2),
+ 		table->file->stats.records)+EXTRA_RECORDS;
+     selected_records_file=0;
+   }
+@@ -215,12 +215,12 @@
+     goto err;
+ 
+   memavl= thd->variables.sortbuff_size;
+-  min_sort_memory= max(MIN_SORT_MEMORY, param.sort_length*MERGEBUFF2);
++  min_sort_memory= MYSQL_MAX(MIN_SORT_MEMORY, param.sort_length*MERGEBUFF2);
+   while (memavl >= min_sort_memory)
+   {
+     ulong old_memavl;
+     ulong keys= memavl/(param.rec_length+sizeof(char*));
+-    param.keys=(uint) min(records+1, keys);
++    param.keys=(uint) MYSQL_MIN(records+1, keys);
+     if ((table_sort.sort_keys=
+ 	 (uchar **) make_char_array((char **) table_sort.sort_keys,
+                                     param.keys, param.rec_length, MYF(0))))
+@@ -1115,7 +1115,7 @@
+   register uint count;
+   uint length;
+ 
+-  if ((count=(uint) min((ha_rows) buffpek->max_keys,buffpek->count)))
++  if ((count=(uint) MYSQL_MIN((ha_rows) buffpek->max_keys,buffpek->count)))
+   {
+     if (my_pread(fromfile->file,(uchar*) buffpek->base,
+ 		 (length= rec_length*count),buffpek->file_pos,MYF_RW))
+@@ -1378,7 +1378,7 @@
+          != -1 && error != 0);
+ 
+ end:
+-  lastbuff->count= min(org_max_rows-max_rows, param->max_rows);
++  lastbuff->count= MYSQL_MIN(org_max_rows-max_rows, param->max_rows);
+   lastbuff->file_pos= to_start_filepos;
+ err:
+   delete_queue(&queue);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/ha_ndbcluster.cc mysql/sql/ha_ndbcluster.cc
+--- mysql.orig/sql/ha_ndbcluster.cc	2010-04-06 14:06:06.000000000 +0000
++++ mysql/sql/ha_ndbcluster.cc	2010-04-25 20:07:20.976321930 +0000
+@@ -800,7 +800,7 @@
+ 
+       DBUG_PRINT("value", ("set blob ptr: 0x%lx  len: %u",
+                            (long) blob_ptr, blob_len));
+-      DBUG_DUMP("value", blob_ptr, min(blob_len, 26));
++      DBUG_DUMP("value", blob_ptr, MYSQL_MIN(blob_len, 26));
+ 
+       if (set_blob_value)
+         *set_blob_value= TRUE;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/handler.h mysql/sql/handler.h
+--- mysql.orig/sql/handler.h	2010-04-06 14:06:06.000000000 +0000
++++ mysql/sql/handler.h	2010-04-25 20:07:20.976321930 +0000
+@@ -1598,15 +1598,15 @@
+   { return (HA_ERR_WRONG_COMMAND); }
+ 
+   uint max_record_length() const
+-  { return min(HA_MAX_REC_LENGTH, max_supported_record_length()); }
++  { return MYSQL_MIN(HA_MAX_REC_LENGTH, max_supported_record_length()); }
+   uint max_keys() const
+-  { return min(MAX_KEY, max_supported_keys()); }
++  { return MYSQL_MIN(MAX_KEY, max_supported_keys()); }
+   uint max_key_parts() const
+-  { return min(MAX_REF_PARTS, max_supported_key_parts()); }
++  { return MYSQL_MIN(MAX_REF_PARTS, max_supported_key_parts()); }
+   uint max_key_length() const
+-  { return min(MAX_KEY_LENGTH, max_supported_key_length()); }
++  { return MYSQL_MIN(MAX_KEY_LENGTH, max_supported_key_length()); }
+   uint max_key_part_length() const
+-  { return min(MAX_KEY_LENGTH, max_supported_key_part_length()); }
++  { return MYSQL_MIN(MAX_KEY_LENGTH, max_supported_key_part_length()); }
+ 
+   virtual uint max_supported_record_length() const { return HA_MAX_REC_LENGTH; }
+   virtual uint max_supported_keys() const { return 0; }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_buff.cc mysql/sql/item_buff.cc
+--- mysql.orig/sql/item_buff.cc	2010-04-06 14:06:06.000000000 +0000
++++ mysql/sql/item_buff.cc	2010-04-25 20:07:20.979654875 +0000
+@@ -58,7 +58,7 @@
+ */
+ 
+ Cached_item_str::Cached_item_str(THD *thd, Item *arg)
+-  :item(arg), value(min(arg->max_length, thd->variables.max_sort_length))
++  :item(arg), value(MYSQL_MIN(arg->max_length, thd->variables.max_sort_length))
+ {}
+ 
+ bool Cached_item_str::cmp(void)
+@@ -67,7 +67,7 @@
+   bool tmp;
+ 
+   if ((res=item->val_str(&tmp_value)))
+-    res->length(min(res->length(), value.alloced_length()));
++    res->length(MYSQL_MIN(res->length(), value.alloced_length()));
+   if (null_value != item->null_value)
+   {
+     if ((null_value= item->null_value))
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item.cc mysql/sql/item.cc
+--- mysql.orig/sql/item.cc	2010-04-06 14:06:06.000000000 +0000
++++ mysql/sql/item.cc	2010-04-25 20:07:20.979654875 +0000
+@@ -74,7 +74,7 @@
+ Hybrid_type_traits_decimal::fix_length_and_dec(Item *item, Item *arg) const
+ {
+   item->decimals= arg->decimals;
+-  item->max_length= min(arg->max_length + DECIMAL_LONGLONG_DIGITS,
++  item->max_length= MYSQL_MIN(arg->max_length + DECIMAL_LONGLONG_DIGITS,
+                         DECIMAL_MAX_STR_LENGTH);
+ }
+ 
+@@ -443,9 +443,9 @@
+   {
+     uint prec= 
+       my_decimal_length_to_precision(max_length, decimals, unsigned_flag);
+-    return min(prec, DECIMAL_MAX_PRECISION);
++    return MYSQL_MIN(prec, DECIMAL_MAX_PRECISION);
+   }
+-  return min(max_length, DECIMAL_MAX_PRECISION);
++  return MYSQL_MIN(max_length, DECIMAL_MAX_PRECISION);
+ }
+ 
+ 
+@@ -751,7 +751,7 @@
+ 				   &res_length);
+   }
+   else
+-    name= sql_strmake(str, (name_length= min(length,MAX_ALIAS_NAME)));
++    name= sql_strmake(str, (name_length= MYSQL_MIN(length,MAX_ALIAS_NAME)));
+ }
+ 
+ 
+@@ -5384,7 +5384,7 @@
+   // following assert is redundant, because fixed=1 assigned in constructor
+   DBUG_ASSERT(fixed == 1);
+   char *end=(char*) str_value.ptr()+str_value.length(),
+-       *ptr=end-min(str_value.length(),sizeof(longlong));
++       *ptr=end-MYSQL_MIN(str_value.length(),sizeof(longlong));
+ 
+   ulonglong value=0;
+   for (; ptr != end ; ptr++)
+@@ -7558,7 +7558,7 @@
+      */
+     if (collation.collation != &my_charset_bin)
+     {
+-      max_length= max(old_max_chars * collation.collation->mbmaxlen,
++      max_length= MYSQL_MAX(old_max_chars * collation.collation->mbmaxlen,
+                       display_length(item) /
+                       item->collation.collation->mbmaxlen *
+                       collation.collation->mbmaxlen);
+@@ -7580,7 +7580,7 @@
+       {
+         int delta1= max_length_orig - decimals_orig;
+         int delta2= item->max_length - item->decimals;
+-        max_length= max(delta1, delta2) + decimals;
++        max_length= MYSQL_MAX(delta1, delta2) + decimals;
+         if (fld_type == MYSQL_TYPE_FLOAT && max_length > FLT_DIG + 2)
+         {
+           max_length= MAX_FLOAT_STR_LENGTH;
+@@ -7598,7 +7598,7 @@
+     break;
+   }
+   default:
+-    max_length= max(max_length, display_length(item));
++    max_length= MYSQL_MAX(max_length, display_length(item));
+   };
+   maybe_null|= item->maybe_null;
+   get_full_info(item);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_cmpfunc.cc mysql/sql/item_cmpfunc.cc
+--- mysql.orig/sql/item_cmpfunc.cc	2010-04-06 14:06:06.000000000 +0000
++++ mysql/sql/item_cmpfunc.cc	2010-04-25 20:07:20.979654875 +0000
+@@ -628,7 +628,7 @@
+   {
+     if ((*a)->decimals < NOT_FIXED_DEC && (*b)->decimals < NOT_FIXED_DEC)
+     {
+-      precision= 5 / log_10[max((*a)->decimals, (*b)->decimals) + 1];
++      precision= 5 / log_10[MYSQL_MAX((*a)->decimals, (*b)->decimals) + 1];
+       if (func == &Arg_comparator::compare_real)
+         func= &Arg_comparator::compare_real_fixed;
+       else if (func == &Arg_comparator::compare_e_real)
+@@ -1312,7 +1312,7 @@
+         owner->null_value= 0;
+       uint res1_length= res1->length();
+       uint res2_length= res2->length();
+-      int cmp= memcmp(res1->ptr(), res2->ptr(), min(res1_length,res2_length));
++      int cmp= memcmp(res1->ptr(), res2->ptr(), MYSQL_MIN(res1_length,res2_length));
+       return cmp ? cmp : (int) (res1_length - res2_length);
+     }
+   }
+@@ -2364,7 +2364,7 @@
+ {
+   agg_result_type(&hybrid_type, args, 2);
+   maybe_null=args[1]->maybe_null;
+-  decimals= max(args[0]->decimals, args[1]->decimals);
++  decimals= MYSQL_MAX(args[0]->decimals, args[1]->decimals);
+   unsigned_flag= args[0]->unsigned_flag && args[1]->unsigned_flag;
+ 
+   if (hybrid_type == DECIMAL_RESULT || hybrid_type == INT_RESULT) 
+@@ -2375,10 +2375,10 @@
+     int len1= args[1]->max_length - args[1]->decimals
+       - (args[1]->unsigned_flag ? 0 : 1);
+ 
+-    max_length= max(len0, len1) + decimals + (unsigned_flag ? 0 : 1);
++    max_length= MYSQL_MAX(len0, len1) + decimals + (unsigned_flag ? 0 : 1);
+   }
+   else
+-    max_length= max(args[0]->max_length, args[1]->max_length);
++    max_length= MYSQL_MAX(args[0]->max_length, args[1]->max_length);
+ 
+   switch (hybrid_type) {
+   case STRING_RESULT:
+@@ -2402,9 +2402,9 @@
+ {
+   int arg0_int_part= args[0]->decimal_int_part();
+   int arg1_int_part= args[1]->decimal_int_part();
+-  int max_int_part= max(arg0_int_part, arg1_int_part);
++  int max_int_part= MYSQL_MAX(arg0_int_part, arg1_int_part);
+   int precision= max_int_part + decimals;
+-  return min(precision, DECIMAL_MAX_PRECISION);
++  return MYSQL_MIN(precision, DECIMAL_MAX_PRECISION);
+ }
+ 
+ 
+@@ -2532,7 +2532,7 @@
+ Item_func_if::fix_length_and_dec()
+ {
+   maybe_null=args[1]->maybe_null || args[2]->maybe_null;
+-  decimals= max(args[1]->decimals, args[2]->decimals);
++  decimals= MYSQL_MAX(args[1]->decimals, args[2]->decimals);
+   unsigned_flag=args[1]->unsigned_flag && args[2]->unsigned_flag;
+ 
+   enum Item_result arg1_type=args[1]->result_type();
+@@ -2576,10 +2576,10 @@
+     int len2= args[2]->max_length - args[2]->decimals
+       - (args[2]->unsigned_flag ? 0 : 1);
+ 
+-    max_length=max(len1, len2) + decimals + (unsigned_flag ? 0 : 1);
++    max_length=MYSQL_MAX(len1, len2) + decimals + (unsigned_flag ? 0 : 1);
+   }
+   else
+-    max_length= max(args[1]->max_length, args[2]->max_length);
++    max_length= MYSQL_MAX(args[1]->max_length, args[2]->max_length);
+ }
+ 
+ 
+@@ -2587,8 +2587,8 @@
+ {
+   int arg1_prec= args[1]->decimal_int_part();
+   int arg2_prec= args[2]->decimal_int_part();
+-  int precision=max(arg1_prec,arg2_prec) + decimals;
+-  return min(precision, DECIMAL_MAX_PRECISION);
++  int precision=MYSQL_MAX(arg1_prec,arg2_prec) + decimals;
++  return MYSQL_MIN(precision, DECIMAL_MAX_PRECISION);
+ }
+ 
+ 
+@@ -2996,7 +2996,7 @@
+ 
+   if (else_expr_num != -1) 
+     set_if_bigger(max_int_part, args[else_expr_num]->decimal_int_part());
+-  return min(max_int_part + decimals, DECIMAL_MAX_PRECISION);
++  return MYSQL_MIN(max_int_part + decimals, DECIMAL_MAX_PRECISION);
+ }
+ 
+ 
+@@ -4886,7 +4886,7 @@
+       else
+       {
+ 	if (i < g)
+-	  g = i; // g = min(i, g)
++	  g = i; // g = MYSQL_MIN(i, g)
+ 	f = i;
+ 	while (g >= 0 && pattern[g] == pattern[g + plm1 - f])
+ 	  g--;
+@@ -4905,7 +4905,7 @@
+       else
+       {
+ 	if (i < g)
+-	  g = i; // g = min(i, g)
++	  g = i; // g = MYSQL_MIN(i, g)
+ 	f = i;
+ 	while (g >= 0 &&
+ 	       likeconv(cs, pattern[g]) == likeconv(cs, pattern[g + plm1 - f]))
+@@ -5026,14 +5026,14 @@
+       register const int v = plm1 - i;
+       turboShift = u - v;
+       bcShift    = bmBc[(uint) (uchar) text[i + j]] - plm1 + i;
+-      shift      = max(turboShift, bcShift);
+-      shift      = max(shift, bmGs[i]);
++      shift      = MYSQL_MAX(turboShift, bcShift);
++      shift      = MYSQL_MAX(shift, bmGs[i]);
+       if (shift == bmGs[i])
+-	u = min(pattern_len - shift, v);
++	u = MYSQL_MIN(pattern_len - shift, v);
+       else
+       {
+ 	if (turboShift < bcShift)
+-	  shift = max(shift, u + 1);
++	  shift = MYSQL_MAX(shift, u + 1);
+ 	u = 0;
+       }
+       j+= shift;
+@@ -5057,14 +5057,14 @@
+       register const int v = plm1 - i;
+       turboShift = u - v;
+       bcShift    = bmBc[(uint) likeconv(cs, text[i + j])] - plm1 + i;
+-      shift      = max(turboShift, bcShift);
+-      shift      = max(shift, bmGs[i]);
++      shift      = MYSQL_MAX(turboShift, bcShift);
++      shift      = MYSQL_MAX(shift, bmGs[i]);
+       if (shift == bmGs[i])
+-	u = min(pattern_len - shift, v);
++	u = MYSQL_MIN(pattern_len - shift, v);
+       else
+       {
+ 	if (turboShift < bcShift)
+-	  shift = max(shift, u + 1);
++	  shift = MYSQL_MAX(shift, u + 1);
+ 	u = 0;
+       }
+       j+= shift;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_func.cc mysql/sql/item_func.cc
+--- mysql.orig/sql/item_func.cc	2010-04-06 14:07:01.000000000 +0000
++++ mysql/sql/item_func.cc	2010-04-25 20:07:20.982987686 +0000
+@@ -540,7 +540,7 @@
+     set_if_bigger(max_int_part, args[i]->decimal_int_part());
+     set_if_smaller(unsigned_flag, args[i]->unsigned_flag);
+   }
+-  int precision= min(max_int_part + decimals, DECIMAL_MAX_PRECISION);
++  int precision= MYSQL_MIN(max_int_part + decimals, DECIMAL_MAX_PRECISION);
+   max_length= my_decimal_precision_to_length_no_truncation(precision, decimals,
+                                                            unsigned_flag);
+ }
+@@ -1134,10 +1134,10 @@
+ */
+ void Item_func_additive_op::result_precision()
+ {
+-  decimals= max(args[0]->decimals, args[1]->decimals);
++  decimals= MYSQL_MAX(args[0]->decimals, args[1]->decimals);
+   int arg1_int= args[0]->decimal_precision() - args[0]->decimals;
+   int arg2_int= args[1]->decimal_precision() - args[1]->decimals;
+-  int precision= max(arg1_int, arg2_int) + 1 + decimals;
++  int precision= MYSQL_MAX(arg1_int, arg2_int) + 1 + decimals;
+ 
+   /* Integer operations keep unsigned_flag if one of arguments is unsigned */
+   if (result_type() == INT_RESULT)
+@@ -1247,9 +1247,9 @@
+     unsigned_flag= args[0]->unsigned_flag | args[1]->unsigned_flag;
+   else
+     unsigned_flag= args[0]->unsigned_flag & args[1]->unsigned_flag;
+-  decimals= min(args[0]->decimals + args[1]->decimals, DECIMAL_MAX_SCALE);
++  decimals= MYSQL_MIN(args[0]->decimals + args[1]->decimals, DECIMAL_MAX_SCALE);
+   uint est_prec = args[0]->decimal_precision() + args[1]->decimal_precision();
+-  uint precision= min(est_prec, DECIMAL_MAX_PRECISION);
++  uint precision= MYSQL_MIN(est_prec, DECIMAL_MAX_PRECISION);
+   max_length= my_decimal_precision_to_length_no_truncation(precision, decimals,
+                                                            unsigned_flag);
+ }
+@@ -1297,7 +1297,7 @@
+ 
+ void Item_func_div::result_precision()
+ {
+-  uint precision=min(args[0]->decimal_precision() + 
++  uint precision=MYSQL_MIN(args[0]->decimal_precision() +
+                      args[1]->decimals + prec_increment,
+                      DECIMAL_MAX_PRECISION);
+ 
+@@ -1306,7 +1306,7 @@
+     unsigned_flag= args[0]->unsigned_flag | args[1]->unsigned_flag;
+   else
+     unsigned_flag= args[0]->unsigned_flag & args[1]->unsigned_flag;
+-  decimals= min(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
++  decimals= MYSQL_MIN(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
+   max_length= my_decimal_precision_to_length_no_truncation(precision, decimals,
+                                                            unsigned_flag);
+ }
+@@ -1320,7 +1320,7 @@
+   switch(hybrid_type) {
+   case REAL_RESULT:
+   {
+-    decimals=max(args[0]->decimals,args[1]->decimals)+prec_increment;
++    decimals=MYSQL_MAX(args[0]->decimals,args[1]->decimals)+prec_increment;
+     set_if_smaller(decimals, NOT_FIXED_DEC);
+     max_length=args[0]->max_length - args[0]->decimals + decimals;
+     uint tmp=float_length(decimals);
+@@ -1442,8 +1442,8 @@
+ 
+ void Item_func_mod::result_precision()
+ {
+-  decimals= max(args[0]->decimals, args[1]->decimals);
+-  max_length= max(args[0]->max_length, args[1]->max_length);
++  decimals= MYSQL_MAX(args[0]->decimals, args[1]->decimals);
++  max_length= MYSQL_MAX(args[0]->max_length, args[1]->max_length);
+ }
+ 
+ 
+@@ -1961,7 +1961,7 @@
+ 
+   if (args[0]->decimals == NOT_FIXED_DEC)
+   {
+-    decimals= min(decimals_to_set, NOT_FIXED_DEC);
++    decimals= MYSQL_MIN(decimals_to_set, NOT_FIXED_DEC);
+     max_length= float_length(decimals);
+     hybrid_type= REAL_RESULT;
+     return;
+@@ -1971,7 +1971,7 @@
+   case REAL_RESULT:
+   case STRING_RESULT:
+     hybrid_type= REAL_RESULT;
+-    decimals= min(decimals_to_set, NOT_FIXED_DEC);
++    decimals= MYSQL_MIN(decimals_to_set, NOT_FIXED_DEC);
+     max_length= float_length(decimals);
+     break;
+   case INT_RESULT:
+@@ -1988,13 +1988,13 @@
+   case DECIMAL_RESULT:
+   {
+     hybrid_type= DECIMAL_RESULT;
+-    decimals_to_set= min(DECIMAL_MAX_SCALE, decimals_to_set);
++    decimals_to_set= MYSQL_MIN(DECIMAL_MAX_SCALE, decimals_to_set);
+     int decimals_delta= args[0]->decimals - decimals_to_set;
+     int precision= args[0]->decimal_precision();
+     int length_increase= ((decimals_delta <= 0) || truncate) ? 0:1;
+ 
+     precision-= decimals_delta - length_increase;
+-    decimals= min(decimals_to_set, DECIMAL_MAX_SCALE);
++    decimals= MYSQL_MIN(decimals_to_set, DECIMAL_MAX_SCALE);
+     max_length= my_decimal_precision_to_length_no_truncation(precision,
+                                                              decimals,
+                                                              unsigned_flag);
+@@ -2095,7 +2095,7 @@
+   my_decimal val, *value= args[0]->val_decimal(&val);
+   longlong dec= args[1]->val_int();
+   if (dec >= 0 || args[1]->unsigned_flag)
+-    dec= min((ulonglong) dec, decimals);
++    dec= MYSQL_MIN((ulonglong) dec, decimals);
+   else if (dec < INT_MIN)
+     dec= INT_MIN;
+     
+@@ -2954,7 +2954,7 @@
+       free_udf(u_d);
+       DBUG_RETURN(TRUE);
+     }
+-    func->max_length=min(initid.max_length,MAX_BLOB_WIDTH);
++    func->max_length=MYSQL_MIN(initid.max_length,MAX_BLOB_WIDTH);
+     func->maybe_null=initid.maybe_null;
+     const_item_cache=initid.const_item;
+     /* 
+@@ -2963,7 +2963,7 @@
+     */  
+     if (!const_item_cache && !used_tables_cache)
+       used_tables_cache= RAND_TABLE_BIT;
+-    func->decimals=min(initid.decimals,NOT_FIXED_DEC);
++    func->decimals=MYSQL_MIN(initid.decimals,NOT_FIXED_DEC);
+   }
+   initialized=1;
+   if (error)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_strfunc.cc mysql/sql/item_strfunc.cc
+--- mysql.orig/sql/item_strfunc.cc	2010-04-06 14:07:01.000000000 +0000
++++ mysql/sql/item_strfunc.cc	2010-04-25 20:07:20.982987686 +0000
+@@ -1226,7 +1226,7 @@
+ 
+   length= res->charpos((int) length, (uint32) start);
+   tmp_length= res->length() - start;
+-  length= min(length, tmp_length);
++  length= MYSQL_MIN(length, tmp_length);
+ 
+   if (!start && (longlong) res->length() == length)
+     return res;
+@@ -1246,7 +1246,7 @@
+     if (start < 0)
+       max_length= ((uint)(-start) > max_length) ? 0 : (uint)(-start);
+     else
+-      max_length-= min((uint)(start - 1), max_length);
++      max_length-= MYSQL_MIN((uint)(start - 1), max_length);
+   }
+   if (arg_count == 3 && args[2]->const_item())
+   {
+@@ -1938,7 +1938,7 @@
+   if ((null_value= args[0]->null_value))
+     return 0; /* purecov: inspected */
+ 
+-  if (tmp_value.alloc(max(res->length(), 4 * cs->mbminlen)))
++  if (tmp_value.alloc(MYSQL_MAX(res->length(), 4 * cs->mbminlen)))
+     return str; /* purecov: inspected */
+   char *to= (char *) tmp_value.ptr();
+   char *to_end= to + tmp_value.alloced_length();
+@@ -3069,11 +3069,11 @@
+ 
+ void Item_func_export_set::fix_length_and_dec()
+ {
+-  uint length=max(args[1]->max_length,args[2]->max_length);
++  uint length=MYSQL_MAX(args[1]->max_length,args[2]->max_length);
+   uint sep_length=(arg_count > 3 ? args[3]->max_length : 1);
+   max_length=length*64+sep_length*63;
+ 
+-  if (agg_arg_charsets(collation, args+1, min(4,arg_count)-1,
++  if (agg_arg_charsets(collation, args+1, MYSQL_MIN(4,arg_count)-1,
+                        MY_COLL_ALLOW_CONV, 1))
+     return;
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_sum.cc mysql/sql/item_sum.cc
+--- mysql.orig/sql/item_sum.cc	2010-04-06 14:07:01.000000000 +0000
++++ mysql/sql/item_sum.cc	2010-04-25 20:07:20.982987686 +0000
+@@ -1161,7 +1161,7 @@
+     AVG() will divide val by count. We need to reserve digits
+     after decimal point as the result can be fractional.
+   */
+-  decimals= min(decimals + prec_increment, NOT_FIXED_DEC);
++  decimals= MYSQL_MIN(decimals + prec_increment, NOT_FIXED_DEC);
+ }
+ 
+ 
+@@ -1224,16 +1224,16 @@
+   if (hybrid_type == DECIMAL_RESULT)
+   {
+     int precision= args[0]->decimal_precision() + prec_increment;
+-    decimals= min(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
++    decimals= MYSQL_MIN(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
+     max_length= my_decimal_precision_to_length_no_truncation(precision,
+                                                              decimals,
+                                                              unsigned_flag);
+-    f_precision= min(precision+DECIMAL_LONGLONG_DIGITS, DECIMAL_MAX_PRECISION);
++    f_precision= MYSQL_MIN(precision+DECIMAL_LONGLONG_DIGITS, DECIMAL_MAX_PRECISION);
+     f_scale=  args[0]->decimals;
+     dec_bin_size= my_decimal_get_binary_size(f_precision, f_scale);
+   }
+   else {
+-    decimals= min(args[0]->decimals + prec_increment, NOT_FIXED_DEC);
++    decimals= MYSQL_MIN(args[0]->decimals + prec_increment, NOT_FIXED_DEC);
+     max_length= args[0]->max_length + prec_increment;
+   }
+ }
+@@ -1424,13 +1424,13 @@
+   switch (args[0]->result_type()) {
+   case REAL_RESULT:
+   case STRING_RESULT:
+-    decimals= min(args[0]->decimals + 4, NOT_FIXED_DEC);
++    decimals= MYSQL_MIN(args[0]->decimals + 4, NOT_FIXED_DEC);
+     break;
+   case INT_RESULT:
+   case DECIMAL_RESULT:
+   {
+     int precision= args[0]->decimal_precision()*2 + prec_increment;
+-    decimals= min(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
++    decimals= MYSQL_MIN(args[0]->decimals + prec_increment, DECIMAL_MAX_SCALE);
+     max_length= my_decimal_precision_to_length_no_truncation(precision,
+                                                              decimals,
+                                                              unsigned_flag);
+@@ -3348,7 +3348,7 @@
+       syntax of this function). If there is no ORDER BY clause, we don't
+       create this tree.
+     */
+-    init_tree(tree, (uint) min(thd->variables.max_heap_table_size,
++    init_tree(tree, (uint) MYSQL_MIN(thd->variables.max_heap_table_size,
+                                thd->variables.sortbuff_size/16), 0,
+               tree_key_length, 
+               group_concat_key_cmp_with_order , 0, NULL, (void*) this);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/item_timefunc.cc mysql/sql/item_timefunc.cc
+--- mysql.orig/sql/item_timefunc.cc	2010-04-06 14:07:01.000000000 +0000
++++ mysql/sql/item_timefunc.cc	2010-04-25 20:07:20.986321153 +0000
+@@ -308,14 +308,14 @@
+       switch (*++ptr) {
+ 	/* Year */
+       case 'Y':
+-	tmp= (char*) val + min(4, val_len);
++	tmp= (char*) val + MYSQL_MIN(4, val_len);
+ 	l_time->year= (int) my_strtoll10(val, &tmp, &error);
+         if ((int) (tmp-val) <= 2)
+           l_time->year= year_2000_handling(l_time->year);
+ 	val= tmp;
+ 	break;
+       case 'y':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->year= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+         l_time->year= year_2000_handling(l_time->year);
+@@ -324,7 +324,7 @@
+ 	/* Month */
+       case 'm':
+       case 'c':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->month= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+@@ -341,15 +341,15 @@
+ 	/* Day */
+       case 'd':
+       case 'e':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->day= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+       case 'D':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->day= (int) my_strtoll10(val, &tmp, &error);
+ 	/* Skip 'st, 'nd, 'th .. */
+-	val= tmp + min((int) (val_end-tmp), 2);
++	val= tmp + MYSQL_MIN((int) (val_end-tmp), 2);
+ 	break;
+ 
+ 	/* Hour */
+@@ -360,14 +360,14 @@
+ 	/* fall through */
+       case 'k':
+       case 'H':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->hour= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+ 
+ 	/* Minute */
+       case 'i':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->minute= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+@@ -375,7 +375,7 @@
+ 	/* Second */
+       case 's':
+       case 'S':
+-	tmp= (char*) val + min(2, val_len);
++	tmp= (char*) val + MYSQL_MIN(2, val_len);
+ 	l_time->second= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+@@ -427,7 +427,7 @@
+ 	val= tmp;
+ 	break;
+       case 'j':
+-	tmp= (char*) val + min(val_len, 3);
++	tmp= (char*) val + MYSQL_MIN(val_len, 3);
+ 	yearday= (int) my_strtoll10(val, &tmp, &error);
+ 	val= tmp;
+ 	break;
+@@ -439,7 +439,7 @@
+       case 'u':
+         sunday_first_n_first_week_non_iso= (*ptr=='U' || *ptr== 'V');
+         strict_week_number= (*ptr=='V' || *ptr=='v');
+-	tmp= (char*) val + min(val_len, 2);
++	tmp= (char*) val + MYSQL_MIN(val_len, 2);
+ 	if ((week_number= (int) my_strtoll10(val, &tmp, &error)) < 0 ||
+             (strict_week_number && !week_number) ||
+             week_number > 53)
+@@ -451,7 +451,7 @@
+       case 'X':
+       case 'x':
+         strict_week_number_year_type= (*ptr=='X');
+-        tmp= (char*) val + min(4, val_len);
++        tmp= (char*) val + MYSQL_MIN(4, val_len);
+         strict_week_number_year= (int) my_strtoll10(val, &tmp, &error);
+         val= tmp;
+         break;
+@@ -596,7 +596,7 @@
+ err:
+   {
+     char buff[128];
+-    strmake(buff, val_begin, min(length, sizeof(buff)-1));
++    strmake(buff, val_begin, MYSQL_MIN(length, sizeof(buff)-1));
+     push_warning_printf(current_thd, MYSQL_ERROR::WARN_LEVEL_ERROR,
+                         ER_WRONG_VALUE_FOR_TYPE, ER(ER_WRONG_VALUE_FOR_TYPE),
+                         date_time_type, buff, "str_to_date");
+@@ -1829,7 +1829,7 @@
+   else
+   {
+     fixed_length=0;
+-    max_length=min(arg1->max_length, MAX_BLOB_WIDTH) * 10 *
++    max_length=MYSQL_MIN(arg1->max_length, MAX_BLOB_WIDTH) * 10 *
+                    collation.collation->mbmaxlen;
+     set_if_smaller(max_length,MAX_BLOB_WIDTH);
+   }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/key.cc mysql/sql/key.cc
+--- mysql.orig/sql/key.cc	2010-04-06 14:07:01.000000000 +0000
++++ mysql/sql/key.cc	2010-04-25 20:07:20.986321153 +0000
+@@ -125,13 +125,13 @@
+         key_part->key_part_flag & HA_VAR_LENGTH_PART)
+     {
+       key_length-= HA_KEY_BLOB_LENGTH;
+-      length= min(key_length, key_part->length);
++      length= MYSQL_MIN(key_length, key_part->length);
+       key_part->field->get_key_image(to_key, length, Field::itRAW);
+       to_key+= HA_KEY_BLOB_LENGTH;
+     }
+     else
+     {
+-      length= min(key_length, key_part->length);
++      length= MYSQL_MIN(key_length, key_part->length);
+       Field *field= key_part->field;
+       CHARSET_INFO *cs= field->charset();
+       uint bytes= field->get_key_image(to_key, length, Field::itRAW);
+@@ -215,7 +215,7 @@
+       my_ptrdiff_t ptrdiff= to_record - field->table->record[0];
+       field->move_field_offset(ptrdiff);
+       key_length-= HA_KEY_BLOB_LENGTH;
+-      length= min(key_length, key_part->length);
++      length= MYSQL_MIN(key_length, key_part->length);
+       old_map= dbug_tmp_use_all_columns(field->table, field->table->write_set);
+       field->set_key_image(from_key, length);
+       dbug_tmp_restore_column_map(field->table->write_set, old_map);
+@@ -224,7 +224,7 @@
+     }
+     else
+     {
+-      length= min(key_length, key_part->length);
++      length= MYSQL_MIN(key_length, key_part->length);
+       /* skip the byte with 'uneven' bits, if used */
+       memcpy(to_record + key_part->offset, from_key + used_uneven_bits
+              , (size_t) length - used_uneven_bits);
+@@ -285,7 +285,7 @@
+ 	return 1;
+       continue;
+     }
+-    length= min((uint) (key_end-key), store_length);
++    length= MYSQL_MIN((uint) (key_end-key), store_length);
+     if (!(key_part->key_type & (FIELDFLAG_NUMBER+FIELDFLAG_BINARY+
+                                 FIELDFLAG_PACK)))
+     {
+@@ -351,7 +351,7 @@
+     {
+       field->val_str(&tmp);
+       if (key_part->length < field->pack_length())
+-	tmp.length(min(tmp.length(),key_part->length));
++	tmp.length(MYSQL_MIN(tmp.length(),key_part->length));
+       to->append(tmp);
+     }
+     else
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/log.cc mysql/sql/log.cc
+--- mysql.orig/sql/log.cc	2010-04-06 14:07:02.000000000 +0000
++++ mysql/sql/log.cc	2010-04-25 20:07:20.986321153 +0000
+@@ -597,11 +597,11 @@
+     t.neg= 0;
+ 
+     /* fill in query_time field */
+-    calc_time_from_sec(&t, (long) min(query_time, (longlong) TIME_MAX_VALUE_SECONDS), 0);
++    calc_time_from_sec(&t, (long) MYSQL_MIN(query_time, (longlong) TIME_MAX_VALUE_SECONDS), 0);
+     if (table->field[2]->store_time(&t, MYSQL_TIMESTAMP_TIME))
+       goto err;
+     /* lock_time */
+-    calc_time_from_sec(&t, (long) min(lock_time, (longlong) TIME_MAX_VALUE_SECONDS), 0);
++    calc_time_from_sec(&t, (long) MYSQL_MIN(lock_time, (longlong) TIME_MAX_VALUE_SECONDS), 0);
+     if (table->field[3]->store_time(&t, MYSQL_TIMESTAMP_TIME))
+       goto err;
+     /* rows_sent */
+@@ -2427,7 +2427,7 @@
+   {
+     char *p= fn_ext(log_name);
+     uint length= (uint) (p - log_name);
+-    strmake(buff, log_name, min(length, FN_REFLEN-1));
++    strmake(buff, log_name, MYSQL_MIN(length, FN_REFLEN-1));
+     return (const char*)buff;
+   }
+   return log_name;
+@@ -5106,7 +5106,7 @@
+   DBUG_ENTER("print_buffer_to_nt_eventlog");
+ 
+   /* Add ending CR/LF's to string, overwrite last chars if necessary */
+-  strmov(buffptr+min(length, buffLen-5), "\r\n\r\n");
++  strmov(buffptr+MYSQL_MIN(length, buffLen-5), "\r\n\r\n");
+ 
+   setup_windows_event_source();
+   if ((event= RegisterEventSource(NULL,"MySQL")))
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/log_event.cc mysql/sql/log_event.cc
+--- mysql.orig/sql/log_event.cc	2010-04-06 14:07:02.000000000 +0000
++++ mysql/sql/log_event.cc	2010-04-25 20:07:20.989655096 +0000
+@@ -1070,7 +1070,7 @@
+     of 13 bytes, whereas LOG_EVENT_MINIMAL_HEADER_LEN is 19 bytes (it's
+     "minimal" over the set {MySQL >=4.0}).
+   */
+-  uint header_size= min(description_event->common_header_len,
++  uint header_size= MYSQL_MIN(description_event->common_header_len,
+                         LOG_EVENT_MINIMAL_HEADER_LEN);
+ 
+   LOCK_MUTEX;
+@@ -5483,7 +5483,7 @@
+   char buf[UV_NAME_LEN_SIZE];
+   char buf1[UV_VAL_IS_NULL + UV_VAL_TYPE_SIZE + 
+ 	    UV_CHARSET_NUMBER_SIZE + UV_VAL_LEN_SIZE];
+-  uchar buf2[max(8, DECIMAL_MAX_FIELD_SIZE + 2)], *pos= buf2;
++  uchar buf2[MYSQL_MAX(8, DECIMAL_MAX_FIELD_SIZE + 2)], *pos= buf2;
+   uint buf1_length;
+   ulong event_length;
+ 
+@@ -7207,7 +7207,7 @@
+     trigger false warnings.
+    */
+ #ifndef HAVE_purify
+-  DBUG_DUMP("row_data", row_data, min(length, 32));
++  DBUG_DUMP("row_data", row_data, MYSQL_MIN(length, 32));
+ #endif
+ 
+   DBUG_ASSERT(m_rows_buf <= m_rows_cur);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/mysqld.cc mysql/sql/mysqld.cc
+--- mysql.orig/sql/mysqld.cc	2010-04-06 14:07:02.000000000 +0000
++++ mysql/sql/mysqld.cc	2010-04-25 20:07:20.992988421 +0000
+@@ -3319,7 +3319,7 @@
+       can't get max_connections*5 but still got no less than was
+       requested (value of wanted_files).
+     */
+-    max_open_files= max(max(wanted_files, max_connections*5),
++    max_open_files= MYSQL_MAX(MYSQL_MAX(wanted_files, max_connections*5),
+                         open_files_limit);
+     files= my_set_max_open_files(max_open_files);
+ 
+@@ -3331,15 +3331,15 @@
+           If we have requested too much file handles than we bring
+           max_connections in supported bounds.
+         */
+-        max_connections= (ulong) min(files-10-TABLE_OPEN_CACHE_MIN*2,
++        max_connections= (ulong) MYSQL_MIN(files-10-TABLE_OPEN_CACHE_MIN*2,
+                                      max_connections);
+         /*
+           Decrease table_cache_size according to max_connections, but
+-          not below TABLE_OPEN_CACHE_MIN.  Outer min() ensures that we
++          not below TABLE_OPEN_CACHE_MIN.  Outer MYSQL_MIN() ensures that we
+           never increase table_cache_size automatically (that could
+           happen if max_connections is decreased above).
+         */
+-        table_cache_size= (ulong) min(max((files-10-max_connections)/2,
++        table_cache_size= (ulong) MYSQL_MIN(MYSQL_MAX((files-10-max_connections)/2,
+                                           TABLE_OPEN_CACHE_MIN),
+                                       table_cache_size);
+ 	DBUG_PRINT("warning",
+@@ -5016,7 +5016,7 @@
+ {
+   my_socket sock,new_sock;
+   uint error_count=0;
+-  uint max_used_connection= (uint) (max(ip_sock,unix_sock)+1);
++  uint max_used_connection= (uint) (MYSQL_MAX(ip_sock,unix_sock)+1);
+   fd_set readFDs,clientFDs;
+   THD *thd;
+   struct sockaddr_in cAddr;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/net_serv.cc mysql/sql/net_serv.cc
+--- mysql.orig/sql/net_serv.cc	2010-04-06 14:07:02.000000000 +0000
++++ mysql/sql/net_serv.cc	2010-04-25 20:07:20.992988421 +0000
+@@ -756,7 +756,7 @@
+   {
+     while (remain > 0)
+     {
+-      size_t length= min(remain, net->max_packet);
++      size_t length= MYSQL_MIN(remain, net->max_packet);
+       if (net_safe_read(net, net->buff, length, alarmed))
+ 	DBUG_RETURN(1);
+       update_statistics(thd_increment_bytes_received(length));
+@@ -941,7 +941,7 @@
+ 	len=uint3korr(net->buff+net->where_b);
+ 	if (!len)				/* End of big multi-packet */
+ 	  goto end;
+-	helping = max(len,*complen) + net->where_b;
++	helping = MYSQL_MAX(len,*complen) + net->where_b;
+ 	/* The necessary size of net->buff */
+ 	if (helping >= net->max_packet)
+ 	{
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/opt_range.cc mysql/sql/opt_range.cc
+--- mysql.orig/sql/opt_range.cc	2010-04-06 14:07:02.000000000 +0000
++++ mysql/sql/opt_range.cc	2010-04-25 20:07:20.996321704 +0000
+@@ -2346,7 +2346,7 @@
+     group_trp= get_best_group_min_max(&param, tree);
+     if (group_trp)
+     {
+-      param.table->quick_condition_rows= min(group_trp->records,
++      param.table->quick_condition_rows= MYSQL_MIN(group_trp->records,
+                                              head->file->stats.records);
+       if (group_trp->read_cost < best_read_time)
+       {
+@@ -3822,7 +3822,7 @@
+     {
+       imerge_trp->read_cost= imerge_cost;
+       imerge_trp->records= non_cpk_scan_records + cpk_scan_records;
+-      imerge_trp->records= min(imerge_trp->records,
++      imerge_trp->records= MYSQL_MIN(imerge_trp->records,
+                                param->table->file->stats.records);
+       imerge_trp->range_scans= range_scans;
+       imerge_trp->range_scans_end= range_scans + n_child_scans;
+@@ -7466,7 +7466,7 @@
+       param->table->quick_key_parts[key]=param->max_key_part+1;
+       param->table->quick_n_ranges[key]= param->n_ranges;
+       param->table->quick_condition_rows=
+-        min(param->table->quick_condition_rows, records);
++        MYSQL_MIN(param->table->quick_condition_rows, records);
+     }
+     /*
+       Need to save quick_rows in any case as it is used when calculating
+@@ -7535,7 +7535,7 @@
+   uchar *tmp_min_key, *tmp_max_key;
+   uint8 save_first_null_comp= param->first_null_comp;
+ 
+-  param->max_key_part=max(param->max_key_part,key_tree->part);
++  param->max_key_part=MYSQL_MAX(param->max_key_part,key_tree->part);
+   if (key_tree->left != &null_element)
+   {
+     /*
+@@ -8450,13 +8450,13 @@
+   /* Do not allocate the buffers twice. */
+   if (multi_range_length)
+   {
+-    DBUG_ASSERT(multi_range_length == min(multi_range_count, ranges.elements));
++    DBUG_ASSERT(multi_range_length == MYSQL_MIN(multi_range_count, ranges.elements));
+     DBUG_RETURN(0);
+   }
+ 
+   /* Allocate the ranges array. */
+   DBUG_ASSERT(ranges.elements);
+-  multi_range_length= min(multi_range_count, ranges.elements);
++  multi_range_length= MYSQL_MIN(multi_range_count, ranges.elements);
+   DBUG_ASSERT(multi_range_length > 0);
+   while (multi_range_length && ! (multi_range= (KEY_MULTI_RANGE*)
+                                   my_malloc(multi_range_length *
+@@ -8475,7 +8475,7 @@
+   /* Allocate the handler buffer if necessary.  */
+   if (file->ha_table_flags() & HA_NEED_READ_RANGE_BUFFER)
+   {
+-    mrange_bufsiz= min(multi_range_bufsiz,
++    mrange_bufsiz= MYSQL_MIN(multi_range_bufsiz,
+                        ((uint)QUICK_SELECT_I::records + 1)* head->s->reclength);
+ 
+     while (mrange_bufsiz &&
+@@ -8558,7 +8558,7 @@
+         goto end;
+     }
+ 
+-    uint count= min(multi_range_length, ranges.elements -
++    uint count= MYSQL_MIN(multi_range_length, ranges.elements -
+                     (cur_range - (QUICK_RANGE**) ranges.buffer));
+     if (count == 0)
+     {
+@@ -8671,13 +8671,13 @@
+     last_range= *(cur_range++);
+ 
+     start_key.key=    (const uchar*) last_range->min_key;
+-    start_key.length= min(last_range->min_length, prefix_length);
++    start_key.length= MYSQL_MIN(last_range->min_length, prefix_length);
+     start_key.keypart_map= last_range->min_keypart_map & keypart_map;
+     start_key.flag=   ((last_range->flag & NEAR_MIN) ? HA_READ_AFTER_KEY :
+ 		       (last_range->flag & EQ_RANGE) ?
+ 		       HA_READ_KEY_EXACT : HA_READ_KEY_OR_NEXT);
+     end_key.key=      (const uchar*) last_range->max_key;
+-    end_key.length=   min(last_range->max_length, prefix_length);
++    end_key.length=   MYSQL_MIN(last_range->max_length, prefix_length);
+     end_key.keypart_map= last_range->max_keypart_map & keypart_map;
+     /*
+       We use READ_AFTER_KEY here because if we are reading on a key
+@@ -9286,7 +9286,7 @@
+ 
+   TODO
+   - What happens if the query groups by the MIN/MAX field, and there is no
+-    other field as in: "select min(a) from t1 group by a" ?
++    other field as in: "select MYSQL_MIN(a) from t1 group by a" ?
+   - We assume that the general correctness of the GROUP-BY query was checked
+     before this point. Is this correct, or do we have to check it completely?
+   - Lift the limitation in condition (B3), that is, make this access method 
+@@ -9512,7 +9512,7 @@
+         cur_group_prefix_len+= cur_part->store_length;
+         used_key_parts_map.set_bit(key_part_nr);
+         ++cur_group_key_parts;
+-        max_key_part= max(max_key_part,key_part_nr);
++        max_key_part= MYSQL_MAX(max_key_part,key_part_nr);
+       }
+       /*
+         Check that used key parts forms a prefix of the index.
+@@ -10148,9 +10148,9 @@
+     {
+       double blocks_per_group= (double) num_blocks / (double) num_groups;
+       p_overlap= (blocks_per_group * (keys_per_subgroup - 1)) / keys_per_group;
+-      p_overlap= min(p_overlap, 1.0);
++      p_overlap= MYSQL_MIN(p_overlap, 1.0);
+     }
+-    io_cost= (double) min(num_groups * (1 + p_overlap), num_blocks);
++    io_cost= (double) MYSQL_MIN(num_groups * (1 + p_overlap), num_blocks);
+   }
+   else
+     io_cost= (keys_per_group > keys_per_block) ?
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/protocol.cc mysql/sql/protocol.cc
+--- mysql.orig/sql/protocol.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/protocol.cc	2010-04-25 20:07:20.996321704 +0000
+@@ -167,7 +167,7 @@
+     pos+=2;
+ 
+     /* We can only return up to 65535 warnings in two bytes */
+-    uint tmp= min(total_warn_count, 65535);
++    uint tmp= MYSQL_MIN(total_warn_count, 65535);
+     int2store(pos, tmp);
+     pos+= 2;
+   }
+@@ -262,7 +262,7 @@
+       Don't send warn count during SP execution, as the warn_list
+       is cleared between substatements, and mysqltest gets confused
+     */
+-    uint tmp= min(total_warn_count, 65535);
++    uint tmp= MYSQL_MIN(total_warn_count, 65535);
+     buff[0]= 254;
+     int2store(buff+1, tmp);
+     /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/rpl_record.cc mysql/sql/rpl_record.cc
+--- mysql.orig/sql/rpl_record.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/rpl_record.cc	2010-04-25 20:07:20.999654037 +0000
+@@ -299,7 +299,7 @@
+   /*
+     throw away master's extra fields
+   */
+-  uint max_cols= min(tabledef->size(), cols->n_bits);
++  uint max_cols= MYSQL_MIN(tabledef->size(), cols->n_bits);
+   for (; i < max_cols; i++)
+   {
+     if (bitmap_is_set(cols, i))
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/rpl_rli.cc mysql/sql/rpl_rli.cc
+--- mysql.orig/sql/rpl_rli.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/rpl_rli.cc	2010-04-25 20:07:20.999654037 +0000
+@@ -686,7 +686,7 @@
+   ulong log_name_extension;
+   char log_name_tmp[FN_REFLEN]; //make a char[] from String
+ 
+-  strmake(log_name_tmp, log_name->ptr(), min(log_name->length(), FN_REFLEN-1));
++  strmake(log_name_tmp, log_name->ptr(), MYSQL_MIN(log_name->length(), FN_REFLEN-1));
+ 
+   char *p= fn_ext(log_name_tmp);
+   char *p_end;
+@@ -696,7 +696,7 @@
+     goto err;
+   }
+   // Convert 0-3 to 4
+-  log_pos= max(log_pos, BIN_LOG_HEADER_SIZE);
++  log_pos= MYSQL_MAX(log_pos, BIN_LOG_HEADER_SIZE);
+   /* p points to '.' */
+   log_name_extension= strtoul(++p, &p_end, 10);
+   /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/rpl_utility.cc mysql/sql/rpl_utility.cc
+--- mysql.orig/sql/rpl_utility.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/rpl_utility.cc	2010-04-25 20:07:20.999654037 +0000
+@@ -180,7 +180,7 @@
+   /*
+     We only check the initial columns for the tables.
+   */
+-  uint const cols_to_check= min(table->s->fields, size());
++  uint const cols_to_check= MYSQL_MIN(table->s->fields, size());
+   int error= 0;
+   Relay_log_info const *rli= const_cast<Relay_log_info*>(rli_arg);
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/set_var.cc mysql/sql/set_var.cc
+--- mysql.orig/sql/set_var.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/set_var.cc	2010-04-25 20:07:20.999654037 +0000
+@@ -1868,7 +1868,7 @@
+ 					    &not_used));
+     if (error_len)
+     {
+-      strmake(buff, error, min(sizeof(buff) - 1, error_len));
++      strmake(buff, error, MYSQL_MIN(sizeof(buff) - 1, error_len));
+       goto err;
+     }
+   }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/slave.cc mysql/sql/slave.cc
+--- mysql.orig/sql/slave.cc	2010-04-06 14:07:03.000000000 +0000
++++ mysql/sql/slave.cc	2010-04-25 20:07:21.002988206 +0000
+@@ -1728,7 +1728,7 @@
+         special marker to say "consider we have caught up".
+       */
+       protocol->store((longlong)(mi->rli.last_master_timestamp ?
+-                                 max(0, time_diff) : 0));
++                                 MYSQL_MAX(0, time_diff) : 0));
+     }
+     else
+     {
+@@ -2345,7 +2345,7 @@
+             exec_res= 0;
+             end_trans(thd, ROLLBACK);
+             /* chance for concurrent connection to get more locks */
+-            safe_sleep(thd, min(rli->trans_retries, MAX_SLAVE_RETRY_PAUSE),
++            safe_sleep(thd, MYSQL_MIN(rli->trans_retries, MAX_SLAVE_RETRY_PAUSE),
+                        (CHECK_KILLED_FUNC)sql_slave_killed, (void*)rli);
+             pthread_mutex_lock(&rli->data_lock); // because of SHOW STATUS
+             rli->trans_retries++;
+@@ -4013,7 +4013,7 @@
+     relay_log_pos       Current log pos
+     pending             Number of bytes already processed from the event
+   */
+-  rli->event_relay_log_pos= max(rli->event_relay_log_pos, BIN_LOG_HEADER_SIZE);
++  rli->event_relay_log_pos= MYSQL_MAX(rli->event_relay_log_pos, BIN_LOG_HEADER_SIZE);
+   my_b_seek(cur_log,rli->event_relay_log_pos);
+   DBUG_RETURN(cur_log);
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/spatial.h mysql/sql/spatial.h
+--- mysql.orig/sql/spatial.h	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/spatial.h	2010-04-25 20:07:21.002988206 +0000
+@@ -180,8 +180,8 @@
+     if (d != mbr->dimension() || d <= 0 || contains(mbr) || within(mbr))
+       return 0;
+ 
+-    MBR intersection(max(xmin, mbr->xmin), max(ymin, mbr->ymin),
+-                     min(xmax, mbr->xmax), min(ymax, mbr->ymax));
++    MBR intersection(MYSQL_MAX(xmin, mbr->xmin), MYSQL_MAX(ymin, mbr->ymin),
++                     MYSQL_MIN(xmax, mbr->xmax), MYSQL_MIN(ymax, mbr->ymax));
+ 
+     return (d == intersection.dimension());
+   }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sp_head.cc mysql/sql/sp_head.cc
+--- mysql.orig/sql/sp_head.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sp_head.cc	2010-04-25 20:07:21.002988206 +0000
+@@ -2432,7 +2432,7 @@
+ 
+     Item_empty_string *stmt_fld=
+       new Item_empty_string(col3_caption,
+-                            max(m_defstr.length, 1024));
++                            MYSQL_MAX(m_defstr.length, 1024));
+ 
+     stmt_fld->maybe_null= TRUE;
+ 
+@@ -2633,7 +2633,7 @@
+   field_list.push_back(new Item_uint("Pos", 9));
+   // 1024 is for not to confuse old clients
+   field_list.push_back(new Item_empty_string("Instruction",
+-					     max(buffer.length(), 1024)));
++					     MYSQL_MAX(buffer.length(), 1024)));
+   if (protocol->send_fields(&field_list, Protocol::SEND_NUM_ROWS |
+                                          Protocol::SEND_EOF))
+     DBUG_RETURN(1);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_acl.cc mysql/sql/sql_acl.cc
+--- mysql.orig/sql/sql_acl.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_acl.cc	2010-04-25 20:07:21.006321357 +0000
+@@ -823,7 +823,7 @@
+         chars= 128;                             // Marker that chars existed
+       }
+     }
+-    sort= (sort << 8) + (wild_pos ? min(wild_pos, 127) : chars);
++    sort= (sort << 8) + (wild_pos ? MYSQL_MIN(wild_pos, 127) : chars);
+   }
+   va_end(args);
+   return sort;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_analyse.cc mysql/sql/sql_analyse.cc
+--- mysql.orig/sql/sql_analyse.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_analyse.cc	2010-04-25 20:07:21.006321357 +0000
+@@ -280,16 +280,16 @@
+   {
+     if (((longlong) info->ullval) < 0)
+       return 0; // Impossible to store as a negative number
+-    ev_info->llval =  -(longlong) max((ulonglong) -ev_info->llval, 
++    ev_info->llval =  -(longlong) MYSQL_MAX((ulonglong) -ev_info->llval, 
+ 				      info->ullval);
+-    ev_info->min_dval = (double) -max(-ev_info->min_dval, info->dval);
++    ev_info->min_dval = (double) -MYSQL_MAX(-ev_info->min_dval, info->dval);
+   }
+   else		// ulonglong is as big as bigint in MySQL
+   {
+     if ((check_ulonglong(num, info->integers) == DECIMAL_NUM))
+       return 0;
+-    ev_info->ullval = (ulonglong) max(ev_info->ullval, info->ullval);
+-    ev_info->max_dval =  (double) max(ev_info->max_dval, info->dval);
++    ev_info->ullval = (ulonglong) MYSQL_MAX(ev_info->ullval, info->ullval);
++    ev_info->max_dval =  (double) MYSQL_MAX(ev_info->max_dval, info->dval);
+   }
+   return 1;
+ } // get_ev_num_info
+@@ -1043,7 +1043,7 @@
+   my_decimal_div(E_DEC_FATAL_ERROR, &avg_val, sum+cur_sum, &num, prec_increment);
+   /* TODO remove this after decimal_div returns proper frac */
+   my_decimal_round(E_DEC_FATAL_ERROR, &avg_val,
+-                   min(sum[cur_sum].frac + prec_increment, DECIMAL_MAX_SCALE),
++                   MYSQL_MIN(sum[cur_sum].frac + prec_increment, DECIMAL_MAX_SCALE),
+                    FALSE,&rounded_avg);
+   my_decimal2string(E_DEC_FATAL_ERROR, &rounded_avg, 0, 0, '0', s);
+   return s;
+@@ -1068,7 +1068,7 @@
+   my_decimal_div(E_DEC_FATAL_ERROR, &tmp, &sum2, &num, prec_increment);
+   my_decimal2double(E_DEC_FATAL_ERROR, &tmp, &std_sqr);
+   s->set_real(((double) std_sqr <= 0.0 ? 0.0 : sqrt(std_sqr)),
+-         min(item->decimals + prec_increment, NOT_FIXED_DEC), my_thd_charset);
++         MYSQL_MIN(item->decimals + prec_increment, NOT_FIXED_DEC), my_thd_charset);
+ 
+   return s;
+ }
+@@ -1185,7 +1185,7 @@
+   func_items[8] = new Item_proc_string("Std", 255);
+   func_items[8]->maybe_null = 1;
+   func_items[9] = new Item_proc_string("Optimal_fieldtype",
+-				       max(64, output_str_length));
++				       MYSQL_MAX(64, output_str_length));
+ 
+   for (uint i = 0; i < array_elements(func_items); i++)
+     field_list.push_back(func_items[i]);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_cache.cc mysql/sql/sql_cache.cc
+--- mysql.orig/sql/sql_cache.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_cache.cc	2010-04-25 20:07:21.006321357 +0000
+@@ -1004,7 +1004,7 @@
+     }
+     last_result_block= header->result()->prev;
+     allign_size= ALIGN_SIZE(last_result_block->used);
+-    len= max(query_cache.min_allocation_unit, allign_size);
++    len= MYSQL_MAX(query_cache.min_allocation_unit, allign_size);
+     if (last_result_block->length >= query_cache.min_allocation_unit + len)
+       query_cache.split_block(last_result_block,len);
+ 
+@@ -2373,7 +2373,7 @@
+   DBUG_ENTER("Query_cache::write_block_data");
+   DBUG_PRINT("qcache", ("data: %ld, header: %ld, all header: %ld",
+ 		      data_len, header_len, all_headers_len));
+-  Query_cache_block *block= allocate_block(max(align_len,
++  Query_cache_block *block= allocate_block(MYSQL_MAX(align_len,
+                                            min_allocation_unit),1, 0);
+   if (block != 0)
+   {
+@@ -2428,7 +2428,7 @@
+   ulong append_min = get_min_append_result_data_size();
+   if (last_block_free_space < data_len &&
+       append_next_free_block(last_block,
+-			     max(tail, append_min)))
++			     MYSQL_MAX(tail, append_min)))
+     last_block_free_space = last_block->length - last_block->used;
+   // If no space in last block (even after join) allocate new block
+   if (last_block_free_space < data_len)
+@@ -2456,7 +2456,7 @@
+   // Now finally write data to the last block
+   if (success && last_block_free_space > 0)
+   {
+-    ulong to_copy = min(data_len,last_block_free_space);
++    ulong to_copy = MYSQL_MIN(data_len,last_block_free_space);
+     DBUG_PRINT("qcache", ("use free space %lub at block 0x%lx to copy %lub",
+ 			last_block_free_space, (ulong)last_block, to_copy));
+     memcpy((uchar*) last_block + last_block->used, data, to_copy);
+@@ -2544,8 +2544,8 @@
+   if (queries_in_cache < QUERY_CACHE_MIN_ESTIMATED_QUERIES_NUMBER)
+     return min_result_data_size;
+   ulong avg_result = (query_cache_size - free_memory) / queries_in_cache;
+-  avg_result = min(avg_result, query_cache_limit);
+-  return max(min_result_data_size, avg_result);
++  avg_result = MYSQL_MIN(avg_result, query_cache_limit);
++  return MYSQL_MAX(min_result_data_size, avg_result);
+ }
+ 
+ inline ulong Query_cache::get_min_append_result_data_size()
+@@ -2577,7 +2577,7 @@
+     ulong len= data_len + all_headers_len;
+     ulong align_len= ALIGN_SIZE(len);
+ 
+-    if (!(new_block= allocate_block(max(min_size, align_len),
++    if (!(new_block= allocate_block(MYSQL_MAX(min_size, align_len),
+ 				    min_result_data_size == 0,
+ 				    all_headers_len + min_result_data_size)))
+     {
+@@ -2586,7 +2586,7 @@
+     }
+ 
+     new_block->n_tables = 0;
+-    new_block->used = min(len, new_block->length);
++    new_block->used = MYSQL_MIN(len, new_block->length);
+     new_block->type = Query_cache_block::RES_INCOMPLETE;
+     new_block->next = new_block->prev = new_block;
+     Query_cache_result *header = new_block->result();
+@@ -3009,7 +3009,7 @@
+   DBUG_PRINT("qcache", ("len %lu, not less %d, min %lu",
+              len, not_less,min));
+ 
+-  if (len >= min(query_cache_size, query_cache_limit))
++  if (len >= MYSQL_MIN(query_cache_size, query_cache_limit))
+   {
+     DBUG_PRINT("qcache", ("Query cache hase only %lu memory and limit %lu",
+ 			query_cache_size, query_cache_limit));
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_class.cc mysql/sql/sql_class.cc
+--- mysql.orig/sql/sql_class.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_class.cc	2010-04-25 20:07:21.009654734 +0000
+@@ -383,7 +383,7 @@
+     if (max_query_len < 1)
+       len= thd->query_length();
+     else
+-      len= min(thd->query_length(), max_query_len);
++      len= MYSQL_MIN(thd->query_length(), max_query_len);
+     str.append('\n');
+     str.append(thd->query(), len);
+   }
+@@ -2019,7 +2019,7 @@
+     else
+     {
+       if (fixed_row_size)
+-	used_length=min(res->length(),item->max_length);
++	used_length=MYSQL_MIN(res->length(),item->max_length);
+       else
+ 	used_length=res->length();
+       if ((result_type == STRING_RESULT || is_unsafe_field_sep) &&
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_client.cc mysql/sql/sql_client.cc
+--- mysql.orig/sql/sql_client.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_client.cc	2010-04-25 20:07:21.009654734 +0000
+@@ -34,7 +34,7 @@
+                            (uint)global_system_variables.net_write_timeout);
+ 
+   net->retry_count=  (uint) global_system_variables.net_retry_count;
+-  net->max_packet_size= max(global_system_variables.net_buffer_length,
++  net->max_packet_size= MYSQL_MAX(global_system_variables.net_buffer_length,
+ 			    global_system_variables.max_allowed_packet);
+ #endif
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_connect.cc mysql/sql/sql_connect.cc
+--- mysql.orig/sql/sql_connect.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_connect.cc	2010-04-25 20:07:21.009654734 +0000
+@@ -670,7 +670,7 @@
+       if (thd->main_security_ctx.host)
+       {
+         if (thd->main_security_ctx.host != my_localhost)
+-          thd->main_security_ctx.host[min(strlen(thd->main_security_ctx.host),
++          thd->main_security_ctx.host[MYSQL_MIN(strlen(thd->main_security_ctx.host),
+                                           HOSTNAME_LENGTH)]= 0;
+         thd->main_security_ctx.host_or_ip= thd->main_security_ctx.host;
+       }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_load.cc mysql/sql/sql_load.cc
+--- mysql.orig/sql/sql_load.cc	2010-04-06 14:07:04.000000000 +0000
++++ mysql/sql/sql_load.cc	2010-04-25 20:07:21.009654734 +0000
+@@ -1097,7 +1097,7 @@
+ 
+ 
+   /* Set of a stack for unget if long terminators */
+-  uint length=max(field_term_length,line_term_length)+1;
++  uint length=MYSQL_MAX(field_term_length,line_term_length)+1;
+   set_if_bigger(length,line_start.length());
+   stack=stack_pos=(int*) sql_alloc(sizeof(int)*length);
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_parse.cc mysql/sql/sql_parse.cc
+--- mysql.orig/sql/sql_parse.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_parse.cc	2010-04-25 20:07:21.012987995 +0000
+@@ -5602,7 +5602,7 @@
+     return 1;
+   }
+ #ifndef DBUG_OFF
+-  max_stack_used= max(max_stack_used, stack_used);
++  max_stack_used= MYSQL_MAX(max_stack_used, stack_used);
+ #endif
+   return 0;
+ }
+@@ -7097,7 +7097,7 @@
+     char command[80];
+     Lex_input_stream *lip= & thd->m_parser_state->m_lip;
+     strmake(command, lip->yylval->symbol.str,
+-	    min(lip->yylval->symbol.length, sizeof(command)-1));
++	    MYSQL_MIN(lip->yylval->symbol.length, sizeof(command)-1));
+     my_error(ER_CANT_USE_OPTION_HERE, MYF(0), command);
+     return 1;
+   }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_partition.cc mysql/sql/sql_partition.cc
+--- mysql.orig/sql/sql_partition.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_partition.cc	2010-04-25 20:07:21.012987995 +0000
+@@ -4567,7 +4567,7 @@
+             */
+             start_part= 0;
+             end_part= new_total_partitions - (upper_2n + 1);
+-            end_part= max(lower_2n - 1, end_part);
++            end_part= MYSQL_MAX(lower_2n - 1, end_part);
+           }
+           else if (new_total_partitions <= upper_2n)
+           {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_plugin.cc mysql/sql/sql_plugin.cc
+--- mysql.orig/sql/sql_plugin.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_plugin.cc	2010-04-25 20:07:21.016321728 +0000
+@@ -486,7 +486,7 @@
+     for (i=0;
+          (old=(struct st_mysql_plugin *)(ptr+i*sizeof_st_plugin))->info;
+          i++)
+-      memcpy(cur+i, old, min(sizeof(cur[i]), sizeof_st_plugin));
++      memcpy(cur+i, old, MYSQL_MIN(sizeof(cur[i]), sizeof_st_plugin));
+ 
+     sym= cur;
+   }
+@@ -2086,7 +2086,7 @@
+                      &error, &error_len, &not_used);
+     if (error_len)
+     {
+-      strmake(buff, error, min(sizeof(buff) - 1, error_len));
++      strmake(buff, error, MYSQL_MIN(sizeof(buff) - 1, error_len));
+       strvalue= buff;
+       goto err;
+     }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_prepare.cc mysql/sql/sql_prepare.cc
+--- mysql.orig/sql/sql_prepare.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_prepare.cc	2010-04-25 20:07:21.016321728 +0000
+@@ -249,7 +249,7 @@
+   int2store(buff+5, columns);
+   int2store(buff+7, stmt->param_count);
+   buff[9]= 0;                                   // Guard against a 4.1 client
+-  tmp= min(stmt->thd->total_warn_count, 65535);
++  tmp= MYSQL_MIN(stmt->thd->total_warn_count, 65535);
+   int2store(buff+10, tmp);
+ 
+   /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_repl.cc mysql/sql/sql_repl.cc
+--- mysql.orig/sql/sql_repl.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_repl.cc	2010-04-25 20:07:21.016321728 +0000
+@@ -1253,12 +1253,12 @@
+    {
+      /*
+        Sometimes mi->rli.master_log_pos == 0 (it happens when the SQL thread is
+-       not initialized), so we use a max().
++       not initialized), so we use a MYSQL_MAX().
+        What happens to mi->rli.master_log_pos during the initialization stages
+        of replication is not 100% clear, so we guard against problems using
+        max().
+       */
+-     mi->master_log_pos = max(BIN_LOG_HEADER_SIZE,
++     mi->master_log_pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE,
+ 			      mi->rli.group_master_log_pos);
+      strmake(mi->master_log_name, mi->rli.group_master_log_name,
+              sizeof(mi->master_log_name)-1);
+@@ -1420,7 +1420,7 @@
+     LEX_MASTER_INFO *lex_mi= &thd->lex->mi;
+     SELECT_LEX_UNIT *unit= &thd->lex->unit;
+     ha_rows event_count, limit_start, limit_end;
+-    my_off_t pos = max(BIN_LOG_HEADER_SIZE, lex_mi->pos); // user-friendly
++    my_off_t pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE, lex_mi->pos); // user-friendly
+     char search_file_name[FN_REFLEN], *name;
+     const char *log_file_name = lex_mi->log_file_name;
+     pthread_mutex_t *log_lock = mysql_bin_log.get_log_lock();
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_select.cc mysql/sql/sql_select.cc
+--- mysql.orig/sql/sql_select.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_select.cc	2010-04-25 20:07:21.022988689 +0000
+@@ -2941,7 +2941,7 @@
+       This is can't be to high as otherwise we are likely to use
+       table scan.
+     */
+-    s->worst_seeks= min((double) s->found_records / 10,
++    s->worst_seeks= MYSQL_MIN((double) s->found_records / 10,
+ 			(double) s->read_time*3);
+     if (s->worst_seeks < 2.0)			// Fix for small tables
+       s->worst_seeks=2.0;
+@@ -3856,7 +3856,7 @@
+   uint	and_level,i,found_eq_constant;
+   KEY_FIELD *key_fields, *end, *field;
+   uint sz;
+-  uint m= max(select_lex->max_equal_elems,1);
++  uint m= MYSQL_MAX(select_lex->max_equal_elems,1);
+   
+   /* 
+     We use the same piece of memory to store both  KEY_FIELD 
+@@ -3879,7 +3879,7 @@
+     can be not more than select_lex->max_equal_elems such 
+     substitutions.
+   */ 
+-  sz= max(sizeof(KEY_FIELD),sizeof(SARGABLE_PARAM))*
++  sz= MYSQL_MAX(sizeof(KEY_FIELD),sizeof(SARGABLE_PARAM))*
+       (((thd->lex->current_select->cond_count+1)*2 +
+ 	thd->lex->current_select->between_count)*m+1);
+   if (!(key_fields=(KEY_FIELD*)	thd->alloc(sz)))
+@@ -4038,7 +4038,7 @@
+       if (map == 1)			// Only one table
+       {
+ 	TABLE *tmp_table=join->all_tables[tablenr];
+-	keyuse->ref_table_rows= max(tmp_table->file->stats.records, 100);
++	keyuse->ref_table_rows= MYSQL_MAX(tmp_table->file->stats.records, 100);
+       }
+     }
+     /*
+@@ -4358,7 +4358,7 @@
+               tmp= record_count*(tmp+keys_per_block-1)/keys_per_block;
+             }
+             else
+-              tmp= record_count*min(tmp,s->worst_seeks);
++              tmp= record_count*MYSQL_MIN(tmp,s->worst_seeks);
+           }
+         }
+         else
+@@ -4525,7 +4525,7 @@
+               tmp= record_count*(tmp+keys_per_block-1)/keys_per_block;
+             }
+             else
+-              tmp= record_count*min(tmp,s->worst_seeks);
++              tmp= record_count*MYSQL_MIN(tmp,s->worst_seeks);
+           }
+           else
+             tmp= best_time;                    // Do nothing
+@@ -5475,7 +5475,7 @@
+   {
+     uint blob_length=(uint) (join_tab->table->file->stats.mean_rec_length-
+ 			     (join_tab->table->s->reclength- rec_length));
+-    rec_length+=(uint) max(4,blob_length);
++    rec_length+=(uint) MYSQL_MAX(4,blob_length);
+   }
+   join_tab->used_fields=fields;
+   join_tab->used_fieldlength=rec_length;
+@@ -10342,7 +10342,7 @@
+     share->max_rows= ~(ha_rows) 0;
+   else
+     share->max_rows= (ha_rows) (((share->db_type() == heap_hton) ?
+-                                 min(thd->variables.tmp_table_size,
++                                 MYSQL_MIN(thd->variables.tmp_table_size,
+                                      thd->variables.max_heap_table_size) :
+                                  thd->variables.tmp_table_size) /
+ 			         share->reclength);
+@@ -14147,7 +14147,7 @@
+     count++;
+   if (!sortorder)
+     sortorder= (SORT_FIELD*) sql_alloc(sizeof(SORT_FIELD) *
+-                                       (max(count, *length) + 1));
++                                       (MYSQL_MAX(count, *length) + 1));
+   pos= sort= sortorder;
+ 
+   if (!pos)
+@@ -14269,7 +14269,7 @@
+   cache->length=length+blobs*sizeof(char*);
+   cache->blobs=blobs;
+   *blob_ptr=0;					/* End sequentel */
+-  size=max(thd->variables.join_buff_size, cache->length);
++  size=MYSQL_MAX(thd->variables.join_buff_size, cache->length);
+   if (!(cache->buff=(uchar*) my_malloc(size,MYF(0))))
+     DBUG_RETURN(1);				/* Don't use cache */ /* purecov: inspected */
+   cache->end=cache->buff+size;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_show.cc mysql/sql/sql_show.cc
+--- mysql.orig/sql/sql_show.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_show.cc	2010-04-25 20:07:21.026322542 +0000
+@@ -747,7 +747,7 @@
+   {
+     field_list.push_back(new Item_empty_string("View",NAME_CHAR_LEN));
+     field_list.push_back(new Item_empty_string("Create View",
+-                                               max(buffer.length(),1024)));
++                                               MYSQL_MAX(buffer.length(),1024)));
+     field_list.push_back(new Item_empty_string("character_set_client",
+                                                MY_CS_NAME_SIZE));
+     field_list.push_back(new Item_empty_string("collation_connection",
+@@ -758,7 +758,7 @@
+     field_list.push_back(new Item_empty_string("Table",NAME_CHAR_LEN));
+     // 1024 is for not to confuse old clients
+     field_list.push_back(new Item_empty_string("Create Table",
+-                                               max(buffer.length(),1024)));
++                                               MYSQL_MAX(buffer.length(),1024)));
+   }
+ 
+   if (protocol->send_fields(&field_list,
+@@ -1865,7 +1865,7 @@
+         pthread_mutex_lock(&tmp->LOCK_thd_data);
+         if (tmp->query())
+         {
+-          uint length= min(max_query_length, tmp->query_length());
++          uint length= MYSQL_MIN(max_query_length, tmp->query_length());
+           thd_info->query= (char*) thd->strmake(tmp->query(),length);
+         }
+         pthread_mutex_unlock(&tmp->LOCK_thd_data);
+@@ -1996,7 +1996,7 @@
+       if (tmp->query())
+       {
+         table->field[7]->store(tmp->query(),
+-                               min(PROCESS_LIST_INFO_WIDTH,
++                               MYSQL_MIN(PROCESS_LIST_INFO_WIDTH,
+                                    tmp->query_length()), cs);
+         table->field[7]->set_notnull();
+       }
+@@ -6980,7 +6980,7 @@
+ 
+     Item_empty_string *stmt_fld=
+       new Item_empty_string("SQL Original Statement",
+-                            max(trg_sql_original_stmt.length, 1024));
++                            MYSQL_MAX(trg_sql_original_stmt.length, 1024));
+ 
+     stmt_fld->maybe_null= TRUE;
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_string.cc mysql/sql/sql_string.cc
+--- mysql.orig/sql/sql_string.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_string.cc	2010-04-25 20:07:21.026322542 +0000
+@@ -661,7 +661,7 @@
+ {
+   if (Alloced_length < str_length + space_needed)
+   {
+-    if (realloc(Alloced_length + max(space_needed, grow_by) - 1))
++    if (realloc(Alloced_length + MYSQL_MAX(space_needed, grow_by) - 1))
+       return TRUE;
+   }
+   return FALSE;
+@@ -747,7 +747,7 @@
+ 
+ int stringcmp(const String *s,const String *t)
+ {
+-  uint32 s_len=s->length(),t_len=t->length(),len=min(s_len,t_len);
++  uint32 s_len=s->length(),t_len=t->length(),len=MYSQL_MIN(s_len,t_len);
+   int cmp= memcmp(s->ptr(), t->ptr(), len);
+   return (cmp) ? cmp : (int) (s_len - t_len);
+ }
+@@ -764,7 +764,7 @@
+   }
+   if (to->realloc(from_length))
+     return from;				// Actually an error
+-  if ((to->str_length=min(from->str_length,from_length)))
++  if ((to->str_length=MYSQL_MIN(from->str_length,from_length)))
+     memcpy(to->Ptr,from->Ptr,to->str_length);
+   to->str_charset=from->str_charset;
+   return to;
+@@ -965,7 +965,7 @@
+ 
+     if (to_cs == &my_charset_bin)
+     {
+-      res= min(min(nchars, to_length), from_length);
++      res= MYSQL_MIN(MYSQL_MIN(nchars, to_length), from_length);
+       memmove(to, from, res);
+       *from_end_pos= from + res;
+       *well_formed_error_pos= NULL;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_table.cc mysql/sql/sql_table.cc
+--- mysql.orig/sql/sql_table.cc	2010-04-06 14:07:05.000000000 +0000
++++ mysql/sql/sql_table.cc	2010-04-25 20:07:21.026322542 +0000
+@@ -3233,7 +3233,7 @@
+ 	  if ((length=column->length) > max_key_length ||
+ 	      length > file->max_key_part_length())
+ 	  {
+-	    length=min(max_key_length, file->max_key_part_length());
++	    length=MYSQL_MIN(max_key_length, file->max_key_part_length());
+ 	    if (key->type == Key::MULTIPLE)
+ 	    {
+ 	      /* not a critical problem */
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_yacc.cc mysql/sql/sql_yacc.cc
+--- mysql.orig/sql/sql_yacc.cc	2010-04-06 14:24:52.000000000 +0000
++++ mysql/sql/sql_yacc.cc	2010-04-25 20:07:21.039655378 +0000
+@@ -16222,7 +16222,7 @@
+                from 0" (4 in fact), unspecified means "don't change the position
+                (keep the preceding value)").
+             */
+-            Lex->mi.pos = max(BIN_LOG_HEADER_SIZE, Lex->mi.pos);
++            Lex->mi.pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE, Lex->mi.pos);
+           }
+     break;
+ 
+@@ -16242,7 +16242,7 @@
+     {
+             Lex->mi.relay_log_pos = (yyvsp[(3) - (3)].ulong_num);
+             /* Adjust if < BIN_LOG_HEADER_SIZE (same comment as Lex->mi.pos) */
+-            Lex->mi.relay_log_pos = max(BIN_LOG_HEADER_SIZE, Lex->mi.relay_log_pos);
++            Lex->mi.relay_log_pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE, Lex->mi.relay_log_pos);
+           }
+     break;
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/sql_yacc.yy mysql/sql/sql_yacc.yy
+--- mysql.orig/sql/sql_yacc.yy	2010-04-06 14:07:06.000000000 +0000
++++ mysql/sql/sql_yacc.yy	2010-04-25 20:07:21.042990770 +0000
+@@ -1805,7 +1805,7 @@
+                from 0" (4 in fact), unspecified means "don't change the position
+                (keep the preceding value)").
+             */
+-            Lex->mi.pos = max(BIN_LOG_HEADER_SIZE, Lex->mi.pos);
++            Lex->mi.pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE, Lex->mi.pos);
+           }
+         | RELAY_LOG_FILE_SYM EQ TEXT_STRING_sys
+           {
+@@ -1815,7 +1815,7 @@
+           {
+             Lex->mi.relay_log_pos = $3;
+             /* Adjust if < BIN_LOG_HEADER_SIZE (same comment as Lex->mi.pos) */
+-            Lex->mi.relay_log_pos = max(BIN_LOG_HEADER_SIZE, Lex->mi.relay_log_pos);
++            Lex->mi.relay_log_pos = MYSQL_MAX(BIN_LOG_HEADER_SIZE, Lex->mi.relay_log_pos);
+           }
+         ;
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/thr_malloc.cc mysql/sql/thr_malloc.cc
+--- mysql.orig/sql/thr_malloc.cc	2010-04-06 14:07:06.000000000 +0000
++++ mysql/sql/thr_malloc.cc	2010-04-25 20:07:21.042990770 +0000
+@@ -126,7 +126,7 @@
+   if ((from_cs == &my_charset_bin) || (to_cs == &my_charset_bin))
+   {
+     // Safety if to_cs->mbmaxlen > 0
+-    new_length= min(arg_length, max_res_length);
++    new_length= MYSQL_MIN(arg_length, max_res_length);
+     memcpy(pos, str, new_length);
+   }
+   else
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/tztime.cc mysql/sql/tztime.cc
+--- mysql.orig/sql/tztime.cc	2010-04-06 14:07:06.000000000 +0000
++++ mysql/sql/tztime.cc	2010-04-25 20:07:21.046321948 +0000
+@@ -167,7 +167,7 @@
+       uchar buf[sizeof(struct tzhead) + sizeof(my_time_t) * TZ_MAX_TIMES +
+                 TZ_MAX_TIMES + sizeof(TRAN_TYPE_INFO) * TZ_MAX_TYPES +
+ #ifdef ABBR_ARE_USED
+-               max(TZ_MAX_CHARS + 1, (2 * (MY_TZNAME_MAX + 1))) +
++               MYSQL_MAX(TZ_MAX_CHARS + 1, (2 * (MY_TZNAME_MAX + 1))) +
+ #endif
+                sizeof(LS_INFO) * TZ_MAX_LEAPS];
+     } u;
+@@ -396,7 +396,7 @@
+       Let us choose end_t as point before next time type change or leap
+       second correction.
+     */
+-    end_t= min((next_trans_idx < sp->timecnt) ? sp->ats[next_trans_idx] - 1:
++    end_t= MYSQL_MIN((next_trans_idx < sp->timecnt) ? sp->ats[next_trans_idx] - 1:
+                                                 MY_TIME_T_MAX,
+                (next_leap_idx < sp->leapcnt) ?
+                  sp->lsis[next_leap_idx].ls_trans - 1: MY_TIME_T_MAX);
+@@ -1823,7 +1823,7 @@
+   uchar types[TZ_MAX_TIMES];
+   TRAN_TYPE_INFO ttis[TZ_MAX_TYPES];
+ #ifdef ABBR_ARE_USED
+-  char chars[max(TZ_MAX_CHARS + 1, (2 * (MY_TZNAME_MAX + 1)))];
++  char chars[MYSQL_MAX(TZ_MAX_CHARS + 1, (2 * (MY_TZNAME_MAX + 1)))];
+ #endif
+   /* 
+     Used as a temporary tz_info until we decide that we actually want to
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql/unireg.cc mysql/sql/unireg.cc
+--- mysql.orig/sql/unireg.cc	2010-04-06 14:07:06.000000000 +0000
++++ mysql/sql/unireg.cc	2010-04-25 20:07:21.046321948 +0000
+@@ -490,7 +490,7 @@
+     }
+     cfield->row=(uint8) row;
+     cfield->col=(uint8) (length+1);
+-    cfield->sc_length=(uint8) min(cfield->length,cols-(length+2));
++    cfield->sc_length=(uint8) MYSQL_MIN(cfield->length,cols-(length+2));
+   }
+   length=(uint) (pos-start_screen);
+   int2store(start_screen,length);
+@@ -709,7 +709,7 @@
+     DBUG_RETURN(1);
+   }
+   /* Hack to avoid bugs with small static rows in MySQL */
+-  reclength=max(file->min_record_length(table_options),reclength);
++  reclength=MYSQL_MAX(file->min_record_length(table_options),reclength);
+   if (info_length+(ulong) create_fields.elements*FCOMP+288+
+       n_length+int_length+com_length > 65535L || int_count > 255)
+   {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql-common/client.c mysql/sql-common/client.c
+--- mysql.orig/sql-common/client.c	2010-04-06 14:07:07.000000000 +0000
++++ mysql/sql-common/client.c	2010-04-25 20:07:21.046321948 +0000
+@@ -728,7 +728,7 @@
+       }
+ 
+       (void) strmake(net->last_error,(char*) pos,
+-		     min((uint) len,(uint) sizeof(net->last_error)-1));
++		     MYSQL_MIN((uint) len,(uint) sizeof(net->last_error)-1));
+     }
+     else
+       set_mysql_error(mysql, CR_UNKNOWN_ERROR, unknown_sqlstate);
+@@ -2102,7 +2102,7 @@
+       {
+         IF_DBUG(char ipaddr[18];)
+         memcpy(&sock_addr.sin_addr, hp->h_addr_list[i],
+-               min(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
++               MYSQL_MIN(sizeof(sock_addr.sin_addr), (size_t) hp->h_length));
+         DBUG_PRINT("info",("Trying %s...",
+                           (my_inet_ntoa(sock_addr.sin_addr, ipaddr), ipaddr)));
+         status= my_connect(sock, (struct sockaddr *) &sock_addr,
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/sql-common/my_time.c mysql/sql-common/my_time.c
+--- mysql.orig/sql-common/my_time.c	2010-04-06 14:07:07.000000000 +0000
++++ mysql/sql-common/my_time.c	2010-04-25 20:07:21.046321948 +0000
+@@ -249,7 +249,7 @@
+     2003-03-03 20:00:20 AM
+     20:00:20.000000 AM 03-03-2000
+   */
+-  i= max((uint) format_position[0], (uint) format_position[1]);
++  i= MYSQL_MAX((uint) format_position[0], (uint) format_position[1]);
+   set_if_bigger(i, (uint) format_position[2]);
+   allow_space= ((1 << i) | (1 << format_position[6]));
+   allow_space&= (1 | 2 | 4 | 8);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/csv/ha_tina.cc mysql/storage/csv/ha_tina.cc
+--- mysql.orig/storage/csv/ha_tina.cc	2010-04-06 14:07:07.000000000 +0000
++++ mysql/storage/csv/ha_tina.cc	2010-04-25 20:07:21.046321948 +0000
+@@ -1197,7 +1197,7 @@
+   if (closest_hole == chain_ptr) /* no more chains */
+     *end_pos= file_buff->end();
+   else
+-    *end_pos= min(file_buff->end(),
++    *end_pos= MYSQL_MIN(file_buff->end(),
+                   closest_hole->begin);
+   return (closest_hole != chain_ptr) && (*end_pos == closest_hole->begin);
+ }
+@@ -1433,7 +1433,7 @@
+   /* write repaired file */
+   while (1)
+   {
+-    write_end= min(file_buff->end(), current_position);
++    write_end= MYSQL_MIN(file_buff->end(), current_position);
+     if ((write_end - write_begin) &&
+         (my_write(repair_file, (uchar*)file_buff->ptr(),
+                   (size_t) (write_end - write_begin), MYF_RW)))
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/federated/ha_federated.cc mysql/storage/federated/ha_federated.cc
+--- mysql.orig/storage/federated/ha_federated.cc	2010-04-06 14:07:07.000000000 +0000
++++ mysql/storage/federated/ha_federated.cc	2010-04-25 20:07:21.049654675 +0000
+@@ -546,7 +546,7 @@
+   size_t buf_len;
+   DBUG_ENTER("ha_federated parse_url_error");
+ 
+-  buf_len= min(table->s->connect_string.length,
++  buf_len= MYSQL_MIN(table->s->connect_string.length,
+                FEDERATED_QUERY_BUFFER_SIZE-1);
+   strmake(buf, table->s->connect_string.str, buf_len);
+   my_error(error_num, MYF(0), buf);
+@@ -1294,7 +1294,7 @@
+     {
+       Field *field= key_part->field;
+       uint store_length= key_part->store_length;
+-      uint part_length= min(store_length, length);
++      uint part_length= MYSQL_MIN(store_length, length);
+       needs_quotes= field->str_needs_quotes();
+       DBUG_DUMP("key, start of loop", ptr, length);
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/heap/hp_create.c mysql/storage/heap/hp_create.c
+--- mysql.orig/storage/heap/hp_create.c	2010-04-06 14:07:08.000000000 +0000
++++ mysql/storage/heap/hp_create.c	2010-04-25 20:07:21.049654675 +0000
+@@ -229,7 +229,7 @@
+ {
+   uint i,recbuffer,records_in_block;
+ 
+-  max_records= max(min_records,max_records);
++  max_records= MYSQL_MAX(min_records,max_records);
+   if (!max_records)
+     max_records= 1000;			/* As good as quess as anything */
+   recbuffer= (uint) (reclength + sizeof(uchar**) - 1) & ~(sizeof(uchar**) - 1);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/heap/hp_test2.c mysql/storage/heap/hp_test2.c
+--- mysql.orig/storage/heap/hp_test2.c	2010-04-06 14:07:08.000000000 +0000
++++ mysql/storage/heap/hp_test2.c	2010-04-25 20:07:21.049654675 +0000
+@@ -136,7 +136,7 @@
+ 
+   for (i=0 ; i < recant ; i++)
+   {
+-    n1=rnd(1000); n2=rnd(100); n3=rnd(min(recant*5,MAX_RECORDS));
++    n1=rnd(1000); n2=rnd(100); n3=rnd(MYSQL_MIN(recant*5,MAX_RECORDS));
+     make_record(record,n1,n2,n3,"Pos",write_count);
+ 
+     if (heap_write(file,record))
+@@ -217,7 +217,7 @@
+   printf("- Update\n");
+   for (i=0 ; i < write_count/10 ; i++)
+   {
+-    n1=rnd(1000); n2=rnd(100); n3=rnd(min(recant*2,MAX_RECORDS));
++    n1=rnd(1000); n2=rnd(100); n3=rnd(MYSQL_MIN(recant*2,MAX_RECORDS));
+     make_record(record2, n1, n2, n3, "XXX", update);
+     if (rnd(2) == 1)
+     {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/ha_myisam.cc mysql/storage/myisam/ha_myisam.cc
+--- mysql.orig/storage/myisam/ha_myisam.cc	2010-04-06 14:07:14.000000000 +0000
++++ mysql/storage/myisam/ha_myisam.cc	2010-04-25 20:07:21.049654675 +0000
+@@ -1519,7 +1519,7 @@
+ {
+   DBUG_ENTER("ha_myisam::start_bulk_insert");
+   THD *thd= current_thd;
+-  ulong size= min(thd->variables.read_buff_size,
++  ulong size= MYSQL_MIN(thd->variables.read_buff_size,
+                   (ulong) (table->s->avg_row_length*rows));
+   DBUG_PRINT("info",("start_bulk_insert: rows %lu size %lu",
+                      (ulong) rows, size));
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_cache.c mysql/storage/myisam/mi_cache.c
+--- mysql.orig/storage/myisam/mi_cache.c	2010-04-06 14:07:14.000000000 +0000
++++ mysql/storage/myisam/mi_cache.c	2010-04-25 20:07:21.049654675 +0000
+@@ -61,7 +61,7 @@
+       (my_off_t) (info->read_end - info->request_pos))
+   {
+     in_buff_pos=info->request_pos+(uint) offset;
+-    in_buff_length= min(length, (size_t) (info->read_end-in_buff_pos));
++    in_buff_length= MYSQL_MIN(length, (size_t) (info->read_end-in_buff_pos));
+     memcpy(buff,info->request_pos+(uint) offset,(size_t) in_buff_length);
+     if (!(length-=in_buff_length))
+       DBUG_RETURN(0);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_check.c mysql/storage/myisam/mi_check.c
+--- mysql.orig/storage/myisam/mi_check.c	2010-04-06 14:07:14.000000000 +0000
++++ mysql/storage/myisam/mi_check.c	2010-04-25 20:07:21.052988146 +0000
+@@ -2170,7 +2170,7 @@
+   ulong buff_length;
+   DBUG_ENTER("filecopy");
+ 
+-  buff_length=(ulong) min(param->write_buffer_length,length);
++  buff_length=(ulong) MYSQL_MIN(param->write_buffer_length,length);
+   if (!(buff=my_malloc(buff_length,MYF(0))))
+   {
+     buff=tmp_buff; buff_length=IO_SIZE;
+@@ -2326,7 +2326,7 @@
+   init_alloc_root(&sort_param.wordroot, FTPARSER_MEMROOT_ALLOC_SIZE, 0);
+ 
+   if (share->data_file_type == DYNAMIC_RECORD)
+-    length=max(share->base.min_pack_length+1,share->base.min_block_length);
++    length=MYSQL_MAX(share->base.min_pack_length+1,share->base.min_block_length);
+   else if (share->data_file_type == COMPRESSED_RECORD)
+     length=share->base.min_block_length;
+   else
+@@ -2779,7 +2779,7 @@
+     my_seek(param->read_cache.file,0L,MY_SEEK_END,MYF(0));
+ 
+   if (share->data_file_type == DYNAMIC_RECORD)
+-    rec_length=max(share->base.min_pack_length+1,share->base.min_block_length);
++    rec_length=MYSQL_MAX(share->base.min_pack_length+1,share->base.min_block_length);
+   else if (share->data_file_type == COMPRESSED_RECORD)
+     rec_length=share->base.min_block_length;
+   else
+@@ -4328,7 +4328,7 @@
+ 
+   VOID(mi_close(*org_info));
+   bzero((char*) &create_info,sizeof(create_info));
+-  create_info.max_rows=max(max_records,share.base.records);
++  create_info.max_rows=MYSQL_MAX(max_records,share.base.records);
+   create_info.reloc_rows=share.base.reloc;
+   create_info.old_options=(share.options |
+ 			   (unpack ? HA_OPTION_TEMP_COMPRESS_RECORD : 0));
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_create.c mysql/storage/myisam/mi_create.c
+--- mysql.orig/storage/myisam/mi_create.c	2010-04-06 14:07:14.000000000 +0000
++++ mysql/storage/myisam/mi_create.c	2010-04-25 20:07:21.052988146 +0000
+@@ -439,8 +439,8 @@
+     block_length= (keydef->block_length ? 
+                    my_round_up_to_next_power(keydef->block_length) :
+                    myisam_block_size);
+-    block_length= max(block_length, MI_MIN_KEY_BLOCK_LENGTH);
+-    block_length= min(block_length, MI_MAX_KEY_BLOCK_LENGTH);
++    block_length= MYSQL_MAX(block_length, MI_MIN_KEY_BLOCK_LENGTH);
++    block_length= MYSQL_MIN(block_length, MI_MAX_KEY_BLOCK_LENGTH);
+ 
+     keydef->block_length= (uint16) MI_BLOCK_SIZE(length-real_length_diff,
+                                                  pointer,MI_MAX_KEYPTR_SIZE,
+@@ -529,7 +529,7 @@
+     got from MYI file header (see also myisampack.c:save_state)
+   */
+   share.base.key_reflength=
+-    mi_get_pointer_length(max(ci->key_file_length,tmp),3);
++    mi_get_pointer_length(MYSQL_MAX(ci->key_file_length,tmp),3);
+   share.base.keys= share.state.header.keys= keys;
+   share.state.header.uniques= uniques;
+   share.state.header.fulltext_keys= fulltext_keys;
+@@ -567,7 +567,7 @@
+   share.base.min_block_length=
+     (share.base.pack_reclength+3 < MI_EXTEND_BLOCK_LENGTH &&
+      ! share.base.blobs) ?
+-    max(share.base.pack_reclength,MI_MIN_BLOCK_LENGTH) :
++    MYSQL_MAX(share.base.pack_reclength,MI_MIN_BLOCK_LENGTH) :
+     MI_EXTEND_BLOCK_LENGTH;
+   if (! (flags & HA_DONT_TOUCH_DATA))
+     share.state.create_time= (long) time((time_t*) 0);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_dynrec.c mysql/storage/myisam/mi_dynrec.c
+--- mysql.orig/storage/myisam/mi_dynrec.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_dynrec.c	2010-04-25 20:07:21.052988146 +0000
+@@ -877,7 +877,7 @@
+ 	uint tmp=MY_ALIGN(reclength - length + 3 +
+ 			  test(reclength >= 65520L),MI_DYN_ALIGN_SIZE);
+ 	/* Don't create a block bigger than MI_MAX_BLOCK_LENGTH */
+-	tmp= min(length+tmp, MI_MAX_BLOCK_LENGTH)-length;
++	tmp= MYSQL_MIN(length+tmp, MI_MAX_BLOCK_LENGTH)-length;
+ 	/* Check if we can extend this block */
+ 	if (block_info.filepos + block_info.block_len ==
+ 	    info->state->data_file_length &&
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_extra.c mysql/storage/myisam/mi_extra.c
+--- mysql.orig/storage/myisam/mi_extra.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_extra.c	2010-04-25 20:07:21.052988146 +0000
+@@ -99,7 +99,7 @@
+       cache_size= (extra_arg ? *(ulong*) extra_arg :
+ 		   my_default_record_cache_size);
+       if (!(init_io_cache(&info->rec_cache,info->dfile,
+-			 (uint) min(info->state->data_file_length+1,
++			 (uint) MYSQL_MIN(info->state->data_file_length+1,
+ 				    cache_size),
+ 			  READ_CACHE,0L,(pbool) (info->lock_type != F_UNLCK),
+ 			  MYF(share->write_flag & MY_WAIT_IF_FULL))))
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_open.c mysql/storage/myisam/mi_open.c
+--- mysql.orig/storage/myisam/mi_open.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_open.c	2010-04-25 20:07:21.052988146 +0000
+@@ -328,7 +328,7 @@
+     strmov(share->index_file_name,  index_name);
+     strmov(share->data_file_name,   data_name);
+ 
+-    share->blocksize=min(IO_SIZE,myisam_block_size);
++    share->blocksize=MYSQL_MIN(IO_SIZE,myisam_block_size);
+     {
+       HA_KEYSEG *pos=share->keyparts;
+       uint32 ftkey_nr= 1;
+@@ -501,7 +501,7 @@
+     share->base.margin_key_file_length=(share->base.max_key_file_length -
+ 					(keys ? MI_INDEX_BLOCK_MARGIN *
+ 					 share->blocksize * keys : 0));
+-    share->blocksize=min(IO_SIZE,myisam_block_size);
++    share->blocksize=MYSQL_MIN(IO_SIZE,myisam_block_size);
+     share->data_file_type=STATIC_RECORD;
+     if (share->options & HA_OPTION_COMPRESS_RECORD)
+     {
+@@ -714,10 +714,10 @@
+     if (length == (ulong) -1)
+     {
+       if (info->s->options & HA_OPTION_COMPRESS_RECORD)
+-        length= max(info->s->base.pack_reclength, info->s->max_pack_length);
++        length= MYSQL_MAX(info->s->base.pack_reclength, info->s->max_pack_length);
+       else
+         length= info->s->base.pack_reclength;
+-      length= max(length, info->s->base.max_key_length);
++      length= MYSQL_MAX(length, info->s->base.max_key_length);
+       /* Avoid unnecessary realloc */
+       if (newptr && length == old_length)
+ 	return newptr;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_packrec.c mysql/storage/myisam/mi_packrec.c
+--- mysql.orig/storage/myisam/mi_packrec.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_packrec.c	2010-04-25 20:07:21.052988146 +0000
+@@ -684,7 +684,7 @@
+       return OFFSET_TABLE_SIZE;
+     }
+     length2= find_longest_bitstream(next, end) + 1;
+-    length=max(length,length2);
++    length=MYSQL_MAX(length,length2);
+   }
+   return length;
+ }
+@@ -1399,7 +1399,7 @@
+   info->filepos=filepos+head_length;
+   if (file > 0)
+   {
+-    info->offset=min(info->rec_len, ref_length - head_length);
++    info->offset=MYSQL_MIN(info->rec_len, ref_length - head_length);
+     memcpy(*rec_buff_p, header + head_length, info->offset);
+   }
+   return 0;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_test1.c mysql/storage/myisam/mi_test1.c
+--- mysql.orig/storage/myisam/mi_test1.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_test1.c	2010-04-25 20:07:21.056321316 +0000
+@@ -435,7 +435,7 @@
+     uint tmp;
+     uchar *ptr;;
+     sprintf((char*) blob_record,"... row: %d", rownr);
+-    strappend((char*) blob_record,max(MAX_REC_LENGTH-rownr,10),' ');
++    strappend((char*) blob_record,MYSQL_MAX(MAX_REC_LENGTH-rownr,10),' ');
+     tmp=strlen((char*) blob_record);
+     int4store(pos,tmp);
+     ptr=blob_record;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/mi_test2.c mysql/storage/myisam/mi_test2.c
+--- mysql.orig/storage/myisam/mi_test2.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/mi_test2.c	2010-04-25 20:07:21.056321316 +0000
+@@ -601,7 +601,7 @@
+     goto err;
+ 
+   bmove(read_record2,read_record,reclength);
+-  for (i=min(2,keys) ; i-- > 0 ;)
++  for (i=MYSQL_MIN(2,keys) ; i-- > 0 ;)
+   {
+     if (mi_rsame(file,read_record2,(int) i)) goto err;
+     if (bcmp(read_record,read_record2,reclength) != 0)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/myisamlog.c mysql/storage/myisam/myisamlog.c
+--- mysql.orig/storage/myisam/myisamlog.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/myisamlog.c	2010-04-25 20:07:21.056321316 +0000
+@@ -90,7 +90,7 @@
+   log_filename=myisam_log_filename;
+   get_options(&argc,&argv);
+   /* Number of MyISAM files we can have open at one time */
+-  max_files= (my_set_max_open_files(min(max_files,8))-6)/2;
++  max_files= (my_set_max_open_files(MYSQL_MIN(max_files,8))-6)/2;
+   if (update)
+     printf("Trying to %s MyISAM files according to log '%s'\n",
+ 	   (recover ? "recover" : "update"),log_filename);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/myisampack.c mysql/storage/myisam/myisampack.c
+--- mysql.orig/storage/myisam/myisampack.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/myisampack.c	2010-04-25 20:07:21.056321316 +0000
+@@ -1239,7 +1239,7 @@
+     {
+       if (huff_counts->field_length > 2 &&
+ 	  huff_counts->empty_fields + (records - huff_counts->empty_fields)*
+-	  (1+max_bit(max(huff_counts->max_pre_space,
++	  (1+max_bit(MYSQL_MAX(huff_counts->max_pre_space,
+ 			 huff_counts->max_end_space))) <
+ 	  records * max_bit(huff_counts->field_length))
+       {
+@@ -3001,7 +3001,7 @@
+   if (mrg->src_file_has_indexes_disabled)
+   {
+     isam_file->s->state.state.key_file_length=
+-      max(isam_file->s->state.state.key_file_length, new_length);
++      MYSQL_MAX(isam_file->s->state.state.key_file_length, new_length);
+   }
+   state.dellink= HA_OFFSET_ERROR;
+   state.version=(ulong) time((time_t*) 0);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/rt_mbr.c mysql/storage/myisam/rt_mbr.c
+--- mysql.orig/storage/myisam/rt_mbr.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/rt_mbr.c	2010-04-25 20:07:21.056321316 +0000
+@@ -325,8 +325,8 @@
+   bmin = korr_func(b); \
+   amax = korr_func(a+len); \
+   bmax = korr_func(b+len); \
+-  amin = min(amin, bmin); \
+-  amax = max(amax, bmax); \
++  amin = MYSQL_MIN(amin, bmin); \
++  amax = MYSQL_MAX(amax, bmax); \
+   store_func(c, amin); \
+   store_func(c+len, amax); \
+ }
+@@ -338,8 +338,8 @@
+   get_func(bmin, b); \
+   get_func(amax, a+len); \
+   get_func(bmax, b+len); \
+-  amin = min(amin, bmin); \
+-  amax = max(amax, bmax); \
++  amin = MYSQL_MIN(amin, bmin); \
++  amax = MYSQL_MAX(amax, bmax); \
+   store_func(c, amin); \
+   store_func(c+len, amax); \
+ }
+@@ -417,8 +417,8 @@
+   bmin = korr_func(b); \
+   amax = korr_func(a+len); \
+   bmax = korr_func(b+len); \
+-  amin = max(amin, bmin); \
+-  amax = min(amax, bmax); \
++  amin = MYSQL_MAX(amin, bmin); \
++  amax = MYSQL_MIN(amax, bmax); \
+   if (amin >= amax) \
+     return 0; \
+   res *= amax - amin; \
+@@ -431,8 +431,8 @@
+   get_func(bmin, b); \
+   get_func(amax, a+len); \
+   get_func(bmax, b+len); \
+-  amin = max(amin, bmin); \
+-  amax = min(amax, bmax); \
++  amin = MYSQL_MAX(amin, bmin); \
++  amax = MYSQL_MIN(amax, bmax); \
+   if (amin >= amax)  \
+     return 0; \
+   res *= amax - amin; \
+@@ -508,7 +508,7 @@
+    amax = korr_func(a+len); \
+    bmax = korr_func(b+len); \
+    a_area *= (((double)amax) - ((double)amin)); \
+-   loc_ab_area *= ((double)max(amax, bmax) - (double)min(amin, bmin)); \
++   loc_ab_area *= ((double)MYSQL_MAX(amax, bmax) - (double)MYSQL_MIN(amin, bmin)); \
+ }
+ 
+ #define RT_AREA_INC_GET(type, get_func, len)\
+@@ -519,7 +519,7 @@
+    get_func(amax, a+len); \
+    get_func(bmax, b+len); \
+    a_area *= (((double)amax) - ((double)amin)); \
+-   loc_ab_area *= ((double)max(amax, bmax) - (double)min(amin, bmin)); \
++   loc_ab_area *= ((double)MYSQL_MAX(amax, bmax) - (double)MYSQL_MIN(amin, bmin)); \
+ }
+ 
+ /*
+@@ -604,7 +604,7 @@
+    amax = korr_func(a+len); \
+    bmax = korr_func(b+len); \
+    a_perim+= (((double)amax) - ((double)amin)); \
+-   *ab_perim+= ((double)max(amax, bmax) - (double)min(amin, bmin)); \
++   *ab_perim+= ((double)MYSQL_MAX(amax, bmax) - (double)MYSQL_MIN(amin, bmin)); \
+ }
+ 
+ #define RT_PERIM_INC_GET(type, get_func, len)\
+@@ -615,7 +615,7 @@
+    get_func(amax, a+len); \
+    get_func(bmax, b+len); \
+    a_perim+= (((double)amax) - ((double)amin)); \
+-   *ab_perim+= ((double)max(amax, bmax) - (double)min(amin, bmin)); \
++   *ab_perim+= ((double)MYSQL_MAX(amax, bmax) - (double)MYSQL_MIN(amin, bmin)); \
+ }
+ 
+ /*
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisam/sort.c mysql/storage/myisam/sort.c
+--- mysql.orig/storage/myisam/sort.c	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisam/sort.c	2010-04-25 20:08:50.909665886 +0000
+@@ -129,7 +129,7 @@
+   sort_keys= (uchar **) NULL; error= 1;
+   maxbuffer=1;
+ 
+-  memavl= max(sortbuff_size, MIN_SORT_BUFFER);
++  memavl= MYSQL_MAX(sortbuff_size, MIN_SORT_BUFFER);
+   records=	info->sort_info->max_records;
+   sort_length=	info->key_length;
+   LINT_INIT(keys);
+@@ -346,7 +346,7 @@
+     bzero((char*) &sort_param->unique,  sizeof(sort_param->unique));
+     sort_keys= (uchar **) NULL;
+ 
+-    memavl=       max(sort_param->sortbuff_size, MIN_SORT_BUFFER);
++    memavl=       MYSQL_MAX(sort_param->sortbuff_size, MIN_SORT_BUFFER);
+     idx=          (uint)sort_param->sort_info->max_records;
+     sort_length=  sort_param->key_length;
+     maxbuffer=    1;
+@@ -820,7 +820,7 @@
+   register uint count;
+   uint length;
+ 
+-  if ((count=(uint) min((ha_rows) buffpek->max_keys,buffpek->count)))
++  if ((count=(uint) MYSQL_MIN((ha_rows) buffpek->max_keys,buffpek->count)))
+   {
+     if (my_pread(fromfile->file,(uchar*) buffpek->base,
+                  (length= sort_length*count),buffpek->file_pos,MYF_RW))
+@@ -841,7 +841,7 @@
+   uint idx;
+   uchar *buffp;
+ 
+-  if ((count=(uint) min((ha_rows) buffpek->max_keys,buffpek->count)))
++  if ((count=(uint) MYSQL_MIN((ha_rows) buffpek->max_keys,buffpek->count)))
+   {
+     buffp = buffpek->base;
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/myisammrg/ha_myisammrg.cc mysql/storage/myisammrg/ha_myisammrg.cc
+--- mysql.orig/storage/myisammrg/ha_myisammrg.cc	2010-04-06 14:07:15.000000000 +0000
++++ mysql/storage/myisammrg/ha_myisammrg.cc	2010-04-25 20:07:21.059654704 +0000
+@@ -964,7 +964,7 @@
+       memcpy((char*) table->key_info[0].rec_per_key,
+ 	     (char*) mrg_info.rec_per_key,
+              sizeof(table->key_info[0].rec_per_key[0]) *
+-             min(file->keys, table->s->key_parts));
++             MYSQL_MIN(file->keys, table->s->key_parts));
+     }
+   }
+   if (flag & HA_STATUS_ERRKEY)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/ndb/src/common/portlib/NdbTCP.cpp mysql/storage/ndb/src/common/portlib/NdbTCP.cpp
+--- mysql.orig/storage/ndb/src/common/portlib/NdbTCP.cpp	2010-04-06 14:07:19.000000000 +0000
++++ mysql/storage/ndb/src/common/portlib/NdbTCP.cpp	2010-04-25 20:07:21.059654704 +0000
+@@ -30,7 +30,7 @@
+ 			    &tmp_errno);
+     if (hp)
+     {
+-      memcpy(dst, hp->h_addr, min(sizeof(*dst), (size_t) hp->h_length));
++      memcpy(dst, hp->h_addr, MYSQL_MIN(sizeof(*dst), (size_t) hp->h_length));
+       my_gethostbyname_r_free();
+       return 0; //DBUG_RETURN(0);
+     }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp
+--- mysql.orig/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2010-04-06 14:07:23.000000000 +0000
++++ mysql/storage/ndb/src/kernel/blocks/dbtux/DbtuxDebug.cpp	2010-04-25 20:07:21.059654704 +0000
+@@ -212,7 +212,7 @@
+     }
+   }
+   // return values
+-  par.m_depth = 1 + max(cpar[0].m_depth, cpar[1].m_depth);
++  par.m_depth = 1 + MYSQL_MAX(cpar[0].m_depth, cpar[1].m_depth);
+   par.m_occup = node.getOccup();
+   for (unsigned i = 0; i <= 1; i++) {
+     if (node.getLink(i) == NullTupLoc)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/ndb/src/ndbapi/NdbBlob.cpp mysql/storage/ndb/src/ndbapi/NdbBlob.cpp
+--- mysql.orig/storage/ndb/src/ndbapi/NdbBlob.cpp	2010-04-06 14:07:25.000000000 +0000
++++ mysql/storage/ndb/src/ndbapi/NdbBlob.cpp	2010-04-25 20:07:21.059654704 +0000
+@@ -1523,7 +1523,7 @@
+   }
+   // these buffers are always used
+   theKeyBuf.alloc(theTable->m_keyLenInWords << 2);
+-  thePackKeyBuf.alloc(max(theTable->m_keyLenInWords, theAccessTable->m_keyLenInWords) << 2);
++  thePackKeyBuf.alloc(MYSQL_MAX(theTable->m_keyLenInWords, theAccessTable->m_keyLenInWords) << 2);
+   theHeadInlineBuf.alloc(sizeof(Head) + theInlineSize);
+   theHead = (Head*)theHeadInlineBuf.data;
+   theInlineData = theHeadInlineBuf.data + sizeof(Head);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/ndb/test/ndbapi/testIndexStat.cpp mysql/storage/ndb/test/ndbapi/testIndexStat.cpp
+--- mysql.orig/storage/ndb/test/ndbapi/testIndexStat.cpp	2010-04-06 14:07:27.000000000 +0000
++++ mysql/storage/ndb/test/ndbapi/testIndexStat.cpp	2010-04-25 20:07:21.059654704 +0000
+@@ -30,10 +30,10 @@
+  * 0. baseline with same options as handler
+  */
+ 
+-#undef min
+-#undef max
+-#define min(a, b) ((a) <= (b) ? (a) : (b))
+-#define max(a, b) ((a) >= (b) ? (a) : (b))
++#undef MYSQL_MIN
++#undef MYSQL_MAX
++#define MYSQL_MIN(a, b) ((a) <= (b) ? (a) : (b))
++#define MYSQL_MAX(a, b) ((a) >= (b) ? (a) : (b))
+ 
+ inline NdbOut&
+ NdbOut::operator<<(double x)
+@@ -784,13 +784,13 @@
+ uint
+ Range::minattrs() const
+ {
+-  return min(bnd[0].val.numattrs, bnd[1].val.numattrs);
++  return MYSQL_MIN(bnd[0].val.numattrs, bnd[1].val.numattrs);
+ }
+ 
+ uint
+ Range::maxattrs() const
+ {
+-  return max(bnd[0].val.numattrs, bnd[1].val.numattrs);
++  return MYSQL_MAX(bnd[0].val.numattrs, bnd[1].val.numattrs);
+ }
+ 
+ int
+@@ -856,8 +856,8 @@
+       lim[i] = lo;
+   }
+   // the range
+-  const int lo = max(lim[0], 0);
+-  const int hi = min(lim[1], (int)g_sortcount - 1);
++  const int lo = MYSQL_MAX(lim[0], 0);
++  const int hi = MYSQL_MIN(lim[1], (int)g_sortcount - 1);
+   if (! g_opts.nochecks) {
+     int curr = -1;
+     for (i = 0; i < (int)g_sortcount; i++) {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/storage/ndb/test/src/getarg.c mysql/storage/ndb/test/src/getarg.c
+--- mysql.orig/storage/ndb/test/src/getarg.c	2010-04-06 14:07:28.000000000 +0000
++++ mysql/storage/ndb/test/src/getarg.c	2010-04-25 20:07:21.059654704 +0000
+@@ -65,8 +65,8 @@
+ 
+ #define ISFLAG(X) ((X).type == arg_flag || (X).type == arg_negative_flag)
+ 
+-#ifndef max
+-#define max(a, b) (a) > (b) ? (a) : (b)
++#ifndef MYSQL_MAX
++#define MYSQL_MAX(a, b) (a) > (b) ? (a) : (b)
+ #endif
+ 
+ #ifdef HAVE___PROGNAME
+@@ -306,7 +306,7 @@
+ 	}
+ 	if (args[i].long_name && args[i].short_name)
+ 	    len += 2; /* ", " */
+-	max_len = max(max_len, len);
++	max_len = MYSQL_MAX(max_len, len);
+     }
+     if (extra_string) {
+ 	col = check_column(stderr, col, strlen(extra_string) + 1, columns);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-big5.c mysql/strings/ctype-big5.c
+--- mysql.orig/strings/ctype-big5.c	2010-04-06 14:07:29.000000000 +0000
++++ mysql/strings/ctype-big5.c	2010-04-25 20:07:21.062988678 +0000
+@@ -253,7 +253,7 @@
+                              const uchar *b, size_t b_length,
+                              my_bool b_is_prefix)
+ {
+-  size_t length= min(a_length, b_length);
++  size_t length= MYSQL_MIN(a_length, b_length);
+   int res= my_strnncoll_big5_internal(&a, &b, length);
+   return res ? res : (int)((b_is_prefix ? length : a_length) - b_length);
+ }
+@@ -266,7 +266,7 @@
+ 			       const uchar *b, size_t b_length,
+                                my_bool diff_if_only_endspace_difference)
+ {
+-  size_t length= min(a_length, b_length);
++  size_t length= MYSQL_MIN(a_length, b_length);
+   int res= my_strnncoll_big5_internal(&a, &b, length);
+ 
+ #ifndef VARCHAR_WITH_DIFF_ENDSPACE_ARE_DIFFERENT_FOR_UNIQUE
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-bin.c mysql/strings/ctype-bin.c
+--- mysql.orig/strings/ctype-bin.c	2010-04-06 14:07:29.000000000 +0000
++++ mysql/strings/ctype-bin.c	2010-04-25 20:07:21.062988678 +0000
+@@ -80,7 +80,7 @@
+                                const uchar *t, size_t tlen,
+                                my_bool t_is_prefix)
+ {
+-  size_t len=min(slen,tlen);
++  size_t len=MYSQL_MIN(slen,tlen);
+   int cmp= memcmp(s,t,len);
+   return cmp ? cmp : (int)((t_is_prefix ? len : slen) - tlen);
+ }
+@@ -131,7 +131,7 @@
+                                  const uchar *t, size_t tlen,
+                                  my_bool t_is_prefix)
+ {
+-  size_t len=min(slen,tlen);
++  size_t len=MYSQL_MIN(slen,tlen);
+   int cmp= memcmp(s,t,len);
+   return cmp ? cmp : (int)((t_is_prefix ? len : slen) - tlen);
+ }
+@@ -175,7 +175,7 @@
+   diff_if_only_endspace_difference= 0;
+ #endif
+ 
+-  end= a + (length= min(a_length, b_length));
++  end= a + (length= MYSQL_MIN(a_length, b_length));
+   while (a < end)
+   {
+     if (*a++ != *b++)
+@@ -404,7 +404,7 @@
+                               const uchar *src, size_t srclen)
+ {
+   if (dest != src)
+-    memcpy(dest, src, min(dstlen,srclen));
++    memcpy(dest, src, MYSQL_MIN(dstlen,srclen));
+   if (dstlen > srclen)
+     bfill(dest + srclen, dstlen - srclen, 0);
+   return dstlen;
+@@ -417,7 +417,7 @@
+                             const uchar *src, size_t srclen)
+ {
+   if (dest != src)
+-    memcpy(dest, src, min(dstlen,srclen));
++    memcpy(dest, src, MYSQL_MIN(dstlen,srclen));
+   if (dstlen > srclen)
+     bfill(dest + srclen, dstlen - srclen, ' ');
+   return dstlen;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-gbk.c mysql/strings/ctype-gbk.c
+--- mysql.orig/strings/ctype-gbk.c	2010-04-06 14:07:29.000000000 +0000
++++ mysql/strings/ctype-gbk.c	2010-04-25 20:07:21.066322554 +0000
+@@ -2616,7 +2616,7 @@
+                      const uchar *b, size_t b_length,
+                      my_bool b_is_prefix)
+ {
+-  size_t length= min(a_length, b_length);
++  size_t length= MYSQL_MIN(a_length, b_length);
+   int res= my_strnncoll_gbk_internal(&a, &b, length);
+   return res ? res : (int) ((b_is_prefix ? length : a_length) - b_length);
+ }
+@@ -2627,7 +2627,7 @@
+ 			      const uchar *b, size_t b_length,
+                               my_bool diff_if_only_endspace_difference)
+ {
+-  size_t length= min(a_length, b_length);
++  size_t length= MYSQL_MIN(a_length, b_length);
+   int res= my_strnncoll_gbk_internal(&a, &b, length);
+ 
+ #ifndef VARCHAR_WITH_DIFF_ENDSPACE_ARE_DIFFERENT_FOR_UNIQUE
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-mb.c mysql/strings/ctype-mb.c
+--- mysql.orig/strings/ctype-mb.c	2010-04-06 14:07:29.000000000 +0000
++++ mysql/strings/ctype-mb.c	2010-04-25 20:07:21.066322554 +0000
+@@ -368,7 +368,7 @@
+ 				const uchar *t, size_t tlen,
+                                 my_bool t_is_prefix)
+ {
+-  size_t len=min(slen,tlen);
++  size_t len=MYSQL_MIN(slen,tlen);
+   int cmp= memcmp(s,t,len);
+   return cmp ? cmp : (int) ((t_is_prefix ? len : slen) - tlen);
+ }
+@@ -412,7 +412,7 @@
+   diff_if_only_endspace_difference= 0;
+ #endif
+   
+-  end= a + (length= min(a_length, b_length));
++  end= a + (length= MYSQL_MIN(a_length, b_length));
+   while (a < end)
+   {
+     if (*a++ != *b++)
+@@ -451,7 +451,7 @@
+                                  const uchar *src, size_t srclen)
+ {
+   if (dest != src)
+-    memcpy(dest, src, min(dstlen, srclen));
++    memcpy(dest, src, MYSQL_MIN(dstlen, srclen));
+   if (dstlen > srclen)
+     bfill(dest + srclen, dstlen - srclen, ' ');
+   return dstlen;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-simple.c mysql/strings/ctype-simple.c
+--- mysql.orig/strings/ctype-simple.c	2010-04-06 14:07:29.000000000 +0000
++++ mysql/strings/ctype-simple.c	2010-04-25 20:07:21.066322554 +0000
+@@ -159,7 +159,7 @@
+   diff_if_only_endspace_difference= 0;
+ #endif
+ 
+-  end= a + (length= min(a_length, b_length));
++  end= a + (length= MYSQL_MIN(a_length, b_length));
+   while (a < end)
+   {
+     if (map[*a++] != map[*b++])
+@@ -873,7 +873,7 @@
+     val= new_val;
+   }
+   
+-  len= min(len, (size_t) (e-p));
++  len= MYSQL_MIN(len, (size_t) (e-p));
+   memcpy(dst, p, len);
+   return len+sign;
+ }
+@@ -927,7 +927,7 @@
+     long_val= quo;
+   }
+   
+-  len= min(len, (size_t) (e-p));
++  len= MYSQL_MIN(len, (size_t) (e-p));
+ cnv:
+   memcpy(dst, p, len);
+   return len+sign;
+@@ -1158,7 +1158,7 @@
+ {
+   size_t nbytes= (size_t) (end-start);
+   *error= 0;
+-  return min(nbytes, nchars);
++  return MYSQL_MIN(nbytes, nchars);
+ }
+ 
+ 
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-tis620.c mysql/strings/ctype-tis620.c
+--- mysql.orig/strings/ctype-tis620.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/ctype-tis620.c	2010-04-25 20:07:21.069654767 +0000
+@@ -581,7 +581,7 @@
+   a_length= thai2sortable(a, a_length);
+   b_length= thai2sortable(b, b_length);
+   
+-  end= a + (length= min(a_length, b_length));
++  end= a + (length= MYSQL_MIN(a_length, b_length));
+   while (a < end)
+   {
+     if (*a++ != *b++)
+@@ -638,7 +638,7 @@
+                           const uchar *src, size_t srclen)
+ {
+   size_t dstlen= len;
+-  len= (size_t) (strmake((char*) dest, (char*) src, min(len, srclen)) -
++  len= (size_t) (strmake((char*) dest, (char*) src, MYSQL_MIN(len, srclen)) -
+                  (char*) dest);
+   len= thai2sortable(dest, len);
+   if (dstlen > len)
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-uca.c mysql/strings/ctype-uca.c
+--- mysql.orig/strings/ctype-uca.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/ctype-uca.c	2010-04-25 20:07:21.072987987 +0000
+@@ -7567,7 +7567,7 @@
+ {
+   char tail[30];
+   size_t len= lexem->end - lexem->prev;
+-  strmake (tail, lexem->prev, (size_t) min(len, sizeof(tail)-1));
++  strmake (tail, lexem->prev, (size_t) MYSQL_MIN(len, sizeof(tail)-1));
+   errstr[errsize-1]= '\0';
+   my_snprintf(errstr,errsize-1,"%s at '%s'", txt, tail);
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-ucs2.c mysql/strings/ctype-ucs2.c
+--- mysql.orig/strings/ctype-ucs2.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/ctype-ucs2.c	2010-04-25 20:07:21.072987987 +0000
+@@ -279,7 +279,7 @@
+   se= s + slen;
+   te= t + tlen;
+ 
+-  for (minlen= min(slen, tlen); minlen; minlen-= 2)
++  for (minlen= MYSQL_MIN(slen, tlen); minlen; minlen-= 2)
+   {
+     int s_wc = uni_plane[s[0]] ? (int) uni_plane[s[0]][s[1]].sort :
+                                  (((int) s[0]) << 8) + (int) s[1];
+@@ -1331,7 +1331,7 @@
+   size_t nbytes= ((size_t) (e-b)) & ~(size_t) 1;
+   *error= 0;
+   nchars*= 2;
+-  return min(nbytes, nchars);
++  return MYSQL_MIN(nbytes, nchars);
+ }
+ 
+ 
+@@ -1425,7 +1425,7 @@
+   se= s + slen;
+   te= t + tlen;
+ 
+-  for (minlen= min(slen, tlen); minlen; minlen-= 2)
++  for (minlen= MYSQL_MIN(slen, tlen); minlen; minlen-= 2)
+   {
+     int s_wc= s[0] * 256 + s[1];
+     int t_wc= t[0] * 256 + t[1];
+@@ -1472,7 +1472,7 @@
+                             const uchar *src, size_t srclen)
+ {
+   if (dst != src)
+-    memcpy(dst,src,srclen= min(dstlen,srclen));
++    memcpy(dst,src,srclen= MYSQL_MIN(dstlen,srclen));
+   if (dstlen > srclen)
+     cs->cset->fill(cs, (char*) dst + srclen, dstlen - srclen, ' ');
+   return dstlen;
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/ctype-utf8.c mysql/strings/ctype-utf8.c
+--- mysql.orig/strings/ctype-utf8.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/ctype-utf8.c	2010-04-25 20:07:21.072987987 +0000
+@@ -1937,7 +1937,7 @@
+                          const uchar *t, const uchar *te)
+ {
+   int slen= (int) (se-s), tlen= (int) (te-t);
+-  int len=min(slen,tlen);
++  int len=MYSQL_MIN(slen,tlen);
+   int cmp= memcmp(s,t,len);
+   return cmp ? cmp : slen-tlen;
+ }
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/decimal.c mysql/strings/decimal.c
+--- mysql.orig/strings/decimal.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/decimal.c	2010-04-25 20:07:21.076321713 +0000
+@@ -403,7 +403,7 @@
+     for (; frac>0; frac-=DIG_PER_DEC1)
+     {
+       dec1 x=*buf++;
+-      for (i=min(frac, DIG_PER_DEC1); i; i--)
++      for (i=MYSQL_MIN(frac, DIG_PER_DEC1); i; i--)
+       {
+         dec1 y=x/DIG_MASK;
+         *s1++='0'+(uchar)y;
+@@ -426,7 +426,7 @@
+     for (buf=buf0+ROUND_UP(intg); intg>0; intg-=DIG_PER_DEC1)
+     {
+       dec1 x=*--buf;
+-      for (i=min(intg, DIG_PER_DEC1); i; i--)
++      for (i=MYSQL_MIN(intg, DIG_PER_DEC1); i; i--)
+       {
+         dec1 y=x/10;
+         *--s='0'+(uchar)(x-y*10);
+@@ -1517,8 +1517,8 @@
+ 
+   if (to != from || intg1>intg0)
+   {
+-    dec1 *p0= buf0+intg0+max(frac1, frac0);
+-    dec1 *p1= buf1+intg1+max(frac1, frac0);
++    dec1 *p0= buf0+intg0+MYSQL_MAX(frac1, frac0);
++    dec1 *p1= buf1+intg1+MYSQL_MAX(frac1, frac0);
+ 
+     while (buf0 < p0)
+       *(--p1) = *(--p0);
+@@ -1529,7 +1529,7 @@
+     buf0=to->buf;
+     buf1=to->buf;
+     to->sign=from->sign;
+-    to->intg=min(intg0, len)*DIG_PER_DEC1;
++    to->intg=MYSQL_MIN(intg0, len)*DIG_PER_DEC1;
+   }
+ 
+   if (frac0 > frac1)
+@@ -1631,7 +1631,7 @@
+         scale=frac0*DIG_PER_DEC1;
+         error=E_DEC_TRUNCATED; /* XXX */
+       }
+-      for (buf1=to->buf+intg0+max(frac0,0); buf1 > to->buf; buf1--)
++      for (buf1=to->buf+intg0+MYSQL_MAX(frac0,0); buf1 > to->buf; buf1--)
+       {
+         buf1[0]=buf1[-1];
+       }
+@@ -1650,7 +1650,7 @@
+         /* making 'zero' with the proper scale */
+         dec1 *p0= to->buf + frac0 + 1;
+         to->intg=1;
+-        to->frac= max(scale, 0);
++        to->frac= MYSQL_MAX(scale, 0);
+         to->sign= 0;
+         for (buf1= to->buf; buf1<p0; buf1++)
+           *buf1= 0;
+@@ -1699,11 +1699,11 @@
+ {
+   switch (op) {
+   case '-':
+-    return ROUND_UP(max(from1->intg, from2->intg)) +
+-           ROUND_UP(max(from1->frac, from2->frac));
++    return ROUND_UP(MYSQL_MAX(from1->intg, from2->intg)) +
++           ROUND_UP(MYSQL_MAX(from1->frac, from2->frac));
+   case '+':
+-    return ROUND_UP(max(from1->intg, from2->intg)+1) +
+-           ROUND_UP(max(from1->frac, from2->frac));
++    return ROUND_UP(MYSQL_MAX(from1->intg, from2->intg)+1) +
++           ROUND_UP(MYSQL_MAX(from1->frac, from2->frac));
+   case '*':
+     return ROUND_UP(from1->intg+from2->intg)+
+            ROUND_UP(from1->frac)+ROUND_UP(from2->frac);
+@@ -1718,7 +1718,7 @@
+ {
+   int intg1=ROUND_UP(from1->intg), intg2=ROUND_UP(from2->intg),
+       frac1=ROUND_UP(from1->frac), frac2=ROUND_UP(from2->frac),
+-      frac0=max(frac1, frac2), intg0=max(intg1, intg2), error;
++      frac0=MYSQL_MAX(frac1, frac2), intg0=MYSQL_MAX(intg1, intg2), error;
+   dec1 *buf1, *buf2, *buf0, *stop, *stop2, x, carry;
+ 
+   sanity(to);
+@@ -1743,7 +1743,7 @@
+   buf0=to->buf+intg0+frac0;
+ 
+   to->sign=from1->sign;
+-  to->frac=max(from1->frac, from2->frac);
++  to->frac=MYSQL_MAX(from1->frac, from2->frac);
+   to->intg=intg0*DIG_PER_DEC1;
+   if (unlikely(error))
+   {
+@@ -1772,14 +1772,14 @@
+   while (buf1 > stop)
+     *--buf0=*--buf1;
+ 
+-  /* part 2 - min(frac) ... min(intg) */
++  /* part 2 - MYSQL_MIN(frac) ... MYSQL_MIN(intg) */
+   carry=0;
+   while (buf1 > stop2)
+   {
+     ADD(*--buf0, *--buf1, *--buf2, carry);
+   }
+ 
+-  /* part 3 - min(intg) ... max(intg) */
++  /* part 3 - MYSQL_MIN(intg) ... max(intg) */
+   buf1= intg1 > intg2 ? ((stop=from1->buf)+intg1-intg2) :
+                         ((stop=from2->buf)+intg2-intg1) ;
+   while (buf1 > stop)
+@@ -1800,7 +1800,7 @@
+ {
+   int intg1=ROUND_UP(from1->intg), intg2=ROUND_UP(from2->intg),
+       frac1=ROUND_UP(from1->frac), frac2=ROUND_UP(from2->frac);
+-  int frac0=max(frac1, frac2), error;
++  int frac0=MYSQL_MAX(frac1, frac2), error;
+   dec1 *buf1, *buf2, *buf0, *stop1, *stop2, *start1, *start2, carry=0;
+ 
+   /* let carry:=1 if from2 > from1 */
+@@ -1875,7 +1875,7 @@
+   FIX_INTG_FRAC_ERROR(to->len, intg1, frac0, error);
+   buf0=to->buf+intg1+frac0;
+ 
+-  to->frac=max(from1->frac, from2->frac);
++  to->frac=MYSQL_MAX(from1->frac, from2->frac);
+   to->intg=intg1*DIG_PER_DEC1;
+   if (unlikely(error))
+   {
+@@ -1910,7 +1910,7 @@
+     }
+   }
+ 
+-  /* part 2 - min(frac) ... intg2 */
++  /* part 2 - MYSQL_MIN(frac) ... intg2 */
+   while (buf2 > start2)
+   {
+     SUB(*--buf0, *--buf1, *--buf2, carry);
+@@ -2174,11 +2174,11 @@
+   {
+     /* we're calculating N1 % N2.
+        The result will have
+-         frac=max(frac1, frac2), as for subtraction
++         frac=MYSQL_MAX(frac1, frac2), as for subtraction
+          intg=intg2
+     */
+     to->sign=from1->sign;
+-    to->frac=max(from1->frac, from2->frac);
++    to->frac=MYSQL_MAX(from1->frac, from2->frac);
+     frac0=0;
+   }
+   else
+@@ -2302,7 +2302,7 @@
+     /*
+       now the result is in tmp1, it has
+         intg=prec1-frac1
+-        frac=max(frac1, frac2)=to->frac
++        frac=MYSQL_MAX(frac1, frac2)=to->frac
+     */
+     if (dcarry)
+       *--start1=dcarry;
+@@ -2340,7 +2340,7 @@
+       }
+       DBUG_ASSERT(intg0 <= ROUND_UP(from2->intg));
+       stop1=start1+frac0+intg0;
+-      to->intg=min(intg0*DIG_PER_DEC1, from2->intg);
++      to->intg=MYSQL_MIN(intg0*DIG_PER_DEC1, from2->intg);
+     }
+     if (unlikely(intg0+frac0 > to->len))
+     {
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/my_vsnprintf.c mysql/strings/my_vsnprintf.c
+--- mysql.orig/strings/my_vsnprintf.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/my_vsnprintf.c	2010-04-25 20:07:21.076321713 +0000
+@@ -141,7 +141,7 @@
+       /* If %#d syntax was used, we have to pre-zero/pre-space the string */
+       if (store_start == buff)
+       {
+-	length= min(length, to_length);
++	length= MYSQL_MIN(length, to_length);
+ 	if (res_length < length)
+ 	{
+ 	  size_t diff= (length- res_length);
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/strings/str2int.c mysql/strings/str2int.c
+--- mysql.orig/strings/str2int.c	2010-04-06 14:07:30.000000000 +0000
++++ mysql/strings/str2int.c	2010-04-25 20:07:21.076321713 +0000
+@@ -82,7 +82,7 @@
+       machines all, if +|n| is representable, so is -|n|, but on
+       twos complement machines the converse is not true.  So the
+       "maximum" representable number has a negative representative.
+-      Limit is set to min(-|lower|,-|upper|); this is the "largest"
++      Limit is set to MYSQL_MIN(-|lower|,-|upper|); this is the "largest"
+       number we are concerned with.	*/
+ 
+   /*  Calculate Limit using Scale as a scratch variable  */
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/tests/mysql_client_test.c mysql/tests/mysql_client_test.c
+--- mysql.orig/tests/mysql_client_test.c	2010-04-25 20:05:57.344286576 +0000
++++ mysql/tests/mysql_client_test.c	2010-04-25 20:07:21.079655912 +0000
+@@ -610,7 +610,7 @@
+     return row_count;
+   }
+ 
+-  field_count= min(mysql_num_fields(result), MAX_RES_FIELDS);
++  field_count= MYSQL_MIN(mysql_num_fields(result), MAX_RES_FIELDS);
+ 
+   bzero((char*) buffer, sizeof(buffer));
+   bzero((char*) length, sizeof(length));
+diff -Nuar --exclude '*.orig' --exclude '*.rej' mysql.orig/vio/viosocket.c mysql/vio/viosocket.c
+--- mysql.orig/vio/viosocket.c	2010-04-06 14:07:31.000000000 +0000
++++ mysql/vio/viosocket.c	2010-04-25 20:07:21.079655912 +0000
+@@ -69,7 +69,7 @@
+ 
+   if (vio->read_pos < vio->read_end)
+   {
+-    rc= min((size_t) (vio->read_end - vio->read_pos), size);
++    rc= MYSQL_MIN((size_t) (vio->read_end - vio->read_pos), size);
+     memcpy(buf, vio->read_pos, rc);
+     vio->read_pos+= rc;
+     /*
