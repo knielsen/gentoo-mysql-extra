@@ -1,0 +1,64 @@
+diff -ru mysql-5.0.84_p_orig/innobase/row/row0sel.c mysql-5.0.84/innobase/row/row0sel.c
+--- mysql-5.0.84_p_orig/innobase/row/row0sel.c	2009-07-07 21:54:10.000000000 +0900
++++ mysql-5.0.84/innobase/row/row0sel.c	2009-08-28 09:28:56.000000000 +0900
+@@ -2988,6 +2988,15 @@
+ 	return(SEL_FOUND);
+ }
+ 
++/**********************************************************************
++Returns true if the thread is executing a SELECT statement.
++(Prototype for global functions in ha_innodb.cc) */
++ibool
++thd_is_select(
++/*==========*/
++				/* out: true if thd is executing SELECT */
++	const void*	thd);	/* in: thread handle (THD*) */
++
+ /************************************************************************
+ Searches for rows in the database. This is used in the interface to
+ MySQL. This function opens a cursor, and also implements fetch next
+@@ -3361,20 +3370,12 @@
+ 
+ 	if (trx->isolation_level <= TRX_ISO_READ_COMMITTED
+ 	    && prebuilt->select_lock_type != LOCK_NONE
+-	    && trx->mysql_query_str) {
+-
+-		/* Scan the MySQL query string; check if SELECT is the first
+-	        word there */
+-		ibool	success;
+-
+-		dict_accept(*trx->mysql_query_str, "SELECT", &success);
+-
+-		if (success) {
++	    && trx->mysql_thd != NULL
++	    && thd_is_select(trx->mysql_thd)) {
+ 			/* It is a plain locking SELECT and the isolation
+ 			level is low: do not lock gaps */
+ 
+ 			set_also_gap_locks = FALSE;
+-		}
+ 	}
+ 	
+ 	/* Note that if the search mode was GE or G, then the cursor
+diff -ru mysql-5.0.84_p_orig/sql/ha_innodb.cc mysql-5.0.84/sql/ha_innodb.cc
+--- mysql-5.0.84_p_orig/sql/ha_innodb.cc	2009-08-27 16:06:21.000000000 +0900
++++ mysql-5.0.84/sql/ha_innodb.cc	2009-08-28 09:33:38.000000000 +0900
+@@ -394,6 +394,18 @@
+ 	}
+ }
+ 
++/**********************************************************************
++Returns true if the thread is executing a SELECT statement. */
++extern "C"
++ibool
++thd_is_select(
++/*==========*/
++				/* out: true if thd is executing SELECT */
++	const void*	thd)	/* in: thread handle (THD*) */
++{
++	return(((const THD*) thd)->lex->sql_command == SQLCOM_SELECT);
++}
++
+ /************************************************************************
+ Call this function when mysqld passes control to the client. That is to
+ avoid deadlocks on the adaptive hash S-latch possibly held by thd. For more

@@ -1,0 +1,265 @@
+diff -ruN a/innobase/include/srv0srv.h b/innobase/include/srv0srv.h
+--- a/innobase/include/srv0srv.h	2009-07-06 15:59:52.000000000 +0900
++++ b/innobase/include/srv0srv.h	2009-07-06 16:06:51.000000000 +0900
+@@ -90,6 +90,7 @@
+ extern ulint	srv_mem_pool_size;
+ extern ulint	srv_lock_table_size;
+ 
++extern ibool	srv_use_sys_malloc;
+ extern ibool	srv_thread_concurrency_timer_based;
+ 
+ extern ulint	srv_n_file_io_threads;
+diff -ruN a/innobase/include/ut0mem.h b/innobase/include/ut0mem.h
+--- a/innobase/include/ut0mem.h	2009-07-07 21:54:07.000000000 +0900
++++ b/innobase/include/ut0mem.h	2009-08-03 14:42:17.000000000 +0900
+@@ -30,6 +30,13 @@
+ 
+ 
+ /**************************************************************************
++Initializes the mem block list at database startup. */
++
++void
++ut_mem_block_list_init(void);
++/*========================*/
++
++/**************************************************************************
+ Allocates memory. Sets it also to zero if UNIV_SET_MEM_TO_ZERO is
+ defined and set_to_zero is TRUE. */
+ 
+diff -ruN a/innobase/mem/mem0dbg.c b/innobase/mem/mem0dbg.c
+--- a/innobase/mem/mem0dbg.c	2009-05-08 06:12:10.000000000 +0900
++++ b/innobase/mem/mem0dbg.c	2009-07-06 16:48:17.000000000 +0900
+@@ -134,6 +134,14 @@
+ 	mem_hash_initialized = TRUE;
+ #endif
+ 
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		/* When innodb_use_sys_malloc is set, the
++		mem_comm_pool won't be used for any allocations.  We
++		create a dummy mem_comm_pool, because some statistics
++		and debugging code relies on it being initialized. */
++		size = 1;
++	}
++
+ 	mem_comm_pool = mem_pool_create(size);
+ }
+ 
+diff -ruN a/innobase/mem/mem0pool.c b/innobase/mem/mem0pool.c
+--- a/innobase/mem/mem0pool.c	2009-05-08 06:12:10.000000000 +0900
++++ b/innobase/mem/mem0pool.c	2009-07-06 17:22:09.000000000 +0900
+@@ -11,6 +11,7 @@
+ #include "mem0pool.ic"
+ #endif
+ 
++#include "srv0srv.h"
+ #include "sync0sync.h"
+ #include "ut0mem.h"
+ #include "ut0lst.h"
+@@ -191,8 +192,6 @@
+ 	ulint		i;
+ 	ulint		used;
+ 
+-	ut_a(size > 10000);
+-	
+ 	pool = ut_malloc(sizeof(mem_pool_t));
+ 
+ 	/* We do not set the memory to zero (FALSE) in the pool,
+@@ -330,6 +329,10 @@
+ 	ulint		n;
+ 	ibool		ret;
+ 
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		return(malloc(size));
++	}
++
+ 	n = ut_2_log(ut_max(size + MEM_AREA_EXTRA_SIZE, MEM_AREA_MIN_SIZE));
+ 
+ 	mutex_enter(&(pool->mutex));
+@@ -457,6 +460,11 @@
+ 	ulint		size;
+ 	ulint		n;
+ 	
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		free(ptr);
++		return;
++	}
++
+ 	/* It may be that the area was really allocated from the OS with
+ 	regular malloc: check if ptr points within our memory pool */
+ 
+diff -ruN a/innobase/srv/srv0srv.c b/innobase/srv/srv0srv.c
+--- a/innobase/srv/srv0srv.c	2009-07-06 15:59:52.000000000 +0900
++++ b/innobase/srv/srv0srv.c	2009-07-06 16:08:06.000000000 +0900
+@@ -273,6 +273,7 @@
+ computer. Bigger computers need bigger values. Value 0 will disable the
+ concurrency check. */
+ 
++ibool	srv_use_sys_malloc = TRUE;
+ ibool	srv_thread_concurrency_timer_based = TRUE;
+ ulong	srv_thread_concurrency	= 0;
+ ulong   srv_commit_concurrency  = 0;
+@@ -1012,6 +1013,7 @@
+ srv_general_init(void)
+ /*==================*/
+ {
++	ut_mem_block_list_init();
+ 	os_sync_init();
+ 	sync_init();
+ 	mem_init(srv_mem_pool_size);
+diff -ruN a/innobase/srv/srv0start.c b/innobase/srv/srv0start.c
+--- a/innobase/srv/srv0start.c	2009-07-06 15:59:52.000000000 +0900
++++ b/innobase/srv/srv0start.c	2009-07-06 16:23:38.000000000 +0900
+@@ -1040,6 +1040,11 @@
+ 		return(DB_ERROR);
+ 	}
+ 
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		fprintf(stderr,
++			"InnoDB: The InnoDB memory heap is disabled\n");
++	}
++
+ #ifdef HAVE_ATOMIC_BUILTINS
+ 	fprintf(stderr,
+ 		"InnoDB: use atomic builtins.\n");
+diff -ruN a/innobase/ut/ut0mem.c b/innobase/ut/ut0mem.c
+--- a/innobase/ut/ut0mem.c	2009-05-08 06:12:13.000000000 +0900
++++ b/innobase/ut/ut0mem.c	2009-07-06 16:42:26.000000000 +0900
+@@ -15,6 +15,7 @@
+ #include "mem0mem.h"
+ #include "os0sync.h"
+ #include "os0thread.h"
++#include "srv0srv.h"
+ 
+ /* This struct is placed first in every allocated memory block */
+ typedef struct ut_mem_block_struct ut_mem_block_t;
+@@ -43,7 +44,7 @@
+ 
+ /**************************************************************************
+ Initializes the mem block list at database startup. */
+-static
++
+ void
+ ut_mem_block_list_init(void)
+ /*========================*/
+@@ -70,11 +71,21 @@
+ 	ulint	retry_count	= 0;
+ 	void*	ret;
+ 
+-	ut_ad((sizeof(ut_mem_block_t) % 8) == 0); /* check alignment ok */
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		ret = malloc(n);
++		ut_a(ret || !assert_on_error);
+ 
+-	if (!ut_mem_block_list_inited) {
+-	        ut_mem_block_list_init();
++#ifdef UNIV_SET_MEM_TO_ZERO
++		if (set_to_zero) {
++			memset(ret, '\0', n);
++		}
++#endif
++		return(ret);
+ 	}
++
++	ut_ad((sizeof(ut_mem_block_t) % 8) == 0); /* check alignment ok */
++
++	ut_a(ut_mem_block_list_inited);
+ retry:
+ 	os_fast_mutex_lock(&ut_list_mutex);
+ 
+@@ -223,6 +236,11 @@
+ {
+         ut_mem_block_t* block;
+ 
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		free(ptr);
++		return;
++	}
++
+ 	block = (ut_mem_block_t*)((byte*)ptr - sizeof(ut_mem_block_t));
+ 
+ 	os_fast_mutex_lock(&ut_list_mutex);
+@@ -275,6 +293,10 @@
+ 	ulint		min_size;
+ 	void*		new_ptr;
+ 
++	if (UNIV_LIKELY(srv_use_sys_malloc)) {
++		return(realloc(ptr, size));
++	}
++
+ 	if (ptr == NULL) {
+ 
+ 		return(ut_malloc(size));
+diff -ruN a/patch_info/innodb_use_sys_malloc.info b/patch_info/innodb_use_sys_malloc.info
+--- /dev/null	1970-01-01 09:00:00.000000000 +0900
++++ b/patch_info/innodb_use_sys_malloc.info	2009-07-06 16:04:24.000000000 +0900
+@@ -0,0 +1,6 @@
++File=innodb_use_sys_malloc.patch
++Name=InnoDB uses malloc directly (backport from InnoDB-Plugin)
++Version=1.0
++Author=Percona <info@percona.com>
++License=GPL
++Comment
+diff -ruN a/sql/ha_innodb.cc b/sql/ha_innodb.cc
+--- a/sql/ha_innodb.cc	2009-07-06 15:59:52.000000000 +0900
++++ b/sql/ha_innodb.cc	2009-07-06 16:10:15.000000000 +0900
+@@ -152,6 +152,7 @@
+      innobase_open_files;
+ 
+ long innobase_read_io_threads, innobase_write_io_threads;
++my_bool innobase_use_sys_malloc;
+ my_bool innobase_thread_concurrency_timer_based;
+ long innobase_extra_rsegments;
+ longlong innobase_buffer_pool_size, innobase_log_file_size;
+@@ -1492,6 +1493,8 @@
+ 	srv_n_log_files = (ulint) innobase_log_files_in_group;
+ 	srv_log_file_size = (ulint) innobase_log_file_size;
+ 
++	srv_use_sys_malloc = (ibool) innobase_use_sys_malloc;
++
+ 	srv_thread_concurrency_timer_based =
+ 		(ibool) innobase_thread_concurrency_timer_based;
+ 
+diff -ruN a/sql/ha_innodb.h b/sql/ha_innodb.h
+--- a/sql/ha_innodb.h	2009-07-06 15:59:52.000000000 +0900
++++ b/sql/ha_innodb.h	2009-07-06 16:10:42.000000000 +0900
+@@ -205,6 +205,7 @@
+ extern long innobase_buffer_pool_awe_mem_mb;
+ extern long innobase_file_io_threads, innobase_lock_wait_timeout;
+ extern long innobase_read_io_threads, innobase_write_io_threads;
++extern my_bool innobase_use_sys_malloc;
+ extern my_bool innobase_thread_concurrency_timer_based;
+ extern long innobase_extra_rsegments;
+ extern long innobase_force_recovery;
+diff -ruN a/sql/mysqld.cc b/sql/mysqld.cc
+--- a/sql/mysqld.cc	2009-07-06 15:59:52.000000000 +0900
++++ b/sql/mysqld.cc	2009-07-06 16:16:56.000000000 +0900
+@@ -5102,6 +5102,7 @@
+   OPT_INNODB_ADAPTIVE_CHECKPOINT,
+   OPT_INNODB_READ_IO_THREADS,
+   OPT_INNODB_WRITE_IO_THREADS,
++  OPT_INNODB_USE_SYS_MALLOC,
+   OPT_INNODB_THREAD_CONCURRENCY_TIMER_BASED,
+   OPT_INNODB_EXTRA_RSEGMENTS,
+   OPT_INNODB_DICT_SIZE_LIMIT,
+@@ -5470,6 +5471,10 @@
+    "Number of background write I/O threads in InnoDB.",
+    (gptr*) &innobase_write_io_threads, (gptr*) &innobase_write_io_threads,
+    0, GET_LONG, REQUIRED_ARG, 8, 1, 64, 0, 0, 0},
++  {"innodb_use_sys_malloc", OPT_INNODB_USE_SYS_MALLOC,
++   "Use OS memory allocator instead of InnoDB's internal memory allocator",
++   (gptr*) &innobase_use_sys_malloc, (gptr*) &innobase_use_sys_malloc,
++   0, GET_BOOL, NO_ARG, 1, 0, 0, 0, 0, 0},
+   {"innodb_thread_concurrency_timer_based", OPT_INNODB_THREAD_CONCURRENCY_TIMER_BASED,
+    "Use InnoDB timer based concurrency throttling. ",
+    (gptr*) &innobase_thread_concurrency_timer_based,
+diff -ruN a/sql/set_var.cc b/sql/set_var.cc
+--- a/sql/set_var.cc	2009-07-06 15:59:52.000000000 +0900
++++ b/sql/set_var.cc	2009-07-06 16:22:05.000000000 +0900
+@@ -1093,6 +1093,7 @@
+   {sys_innodb_adaptive_checkpoint.name, (char*) &sys_innodb_adaptive_checkpoint, SHOW_SYS},
+   {"innodb_read_io_threads", (char*) &innobase_read_io_threads, SHOW_LONG},
+   {"innodb_write_io_threads", (char*) &innobase_write_io_threads, SHOW_LONG},
++  {"innodb_use_sys_malloc", (char*) &innobase_use_sys_malloc, SHOW_MY_BOOL},
+   {"innodb_thread_concurrency_timer_based", (char*) &innobase_thread_concurrency_timer_based, SHOW_MY_BOOL},
+   {"innodb_extra_rsegments", (char*) &innobase_extra_rsegments, SHOW_LONG},
+   {sys_innodb_dict_size_limit.name, (char*) &sys_innodb_dict_size_limit, SHOW_SYS},

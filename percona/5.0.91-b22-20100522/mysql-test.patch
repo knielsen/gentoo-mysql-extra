@@ -1,0 +1,140 @@
+--- a/mysql-test/r/information_schema.result	2009-05-07 19:31:26.000000000 +0000
++++ b/mysql-test/r/information_schema.result	2009-05-07 19:32:59.000000000 +0000
+@@ -60,6 +60,7 @@
+ USER_STATISTICS
+ VIEWS
+ INNODB_IO_PATTERN
++INNODB_RSEG
+ columns_priv
+ db
+ func
+@@ -743,7 +744,7 @@
+ CREATE VIEW a1 (t_CRASHME) AS SELECT f1 FROM t_crashme GROUP BY f1;
+ CREATE VIEW a2 AS SELECT t_CRASHME FROM a1;
+ count(*)
+-109
++110
+ drop view a2, a1;
+ drop table t_crashme;
+ select table_schema,table_name, column_name from
+@@ -819,7 +820,7 @@
+ flush privileges;
+ SELECT table_schema, count(*) FROM information_schema.TABLES GROUP BY TABLE_SCHEMA;
+ table_schema	count(*)
+-information_schema	24
++information_schema	25
+ mysql	17
+ create table t1 (i int, j int);
+ create trigger trg1 before insert on t1 for each row
+@@ -1228,6 +1229,7 @@
+ USER_STATISTICS	USER
+ VIEWS	TABLE_SCHEMA
+ INNODB_IO_PATTERN	SPACE
++INNODB_RSEG	RSEG_ID
+ SELECT t.table_name, c1.column_name
+ FROM information_schema.tables t
+ INNER JOIN
+@@ -1267,6 +1269,7 @@
+ USER_STATISTICS	USER
+ VIEWS	TABLE_SCHEMA
+ INNODB_IO_PATTERN	SPACE
++INNODB_RSEG	RSEG_ID
+ SELECT MAX(table_name) FROM information_schema.tables;
+ MAX(table_name)
+ VIEWS
+@@ -1342,6 +1345,7 @@
+ INDEX_STATISTICS	information_schema.INDEX_STATISTICS	1
+ INNODB_BUFFER_POOL_CONTENT	information_schema.INNODB_BUFFER_POOL_CONTENT	1
+ INNODB_IO_PATTERN	information_schema.INNODB_IO_PATTERN	1
++INNODB_RSEG	information_schema.INNODB_RSEG	1
+ KEY_COLUMN_USAGE	information_schema.KEY_COLUMN_USAGE	1
+ PROCESSLIST	information_schema.PROCESSLIST	1
+ PROFILING	information_schema.PROFILING	1
+--- a/mysql-test/r/information_schema_db.result	2009-05-07 19:31:27.000000000 +0000
++++ b/mysql-test/r/information_schema_db.result	2009-05-07 19:35:01.000000000 +0000
+@@ -29,6 +29,7 @@
+ USER_STATISTICS
+ VIEWS
+ INNODB_IO_PATTERN
++INNODB_RSEG
+ show tables from INFORMATION_SCHEMA like 'T%';
+ Tables_in_information_schema (T%)
+ TABLES
+--- a/mysql-test/r/mysqlshow.result	2009-05-07 19:31:26.000000000 +0000
++++ b/mysql-test/r/mysqlshow.result	2009-05-07 19:36:32.000000000 +0000
+@@ -103,6 +103,7 @@
+ | USER_STATISTICS                       |
+ | VIEWS                                 |
+ | INNODB_IO_PATTERN                     |
++| INNODB_RSEG                           |
+ +---------------------------------------+
+ Database: INFORMATION_SCHEMA
+ +---------------------------------------+
+@@ -132,6 +133,7 @@
+ | USER_STATISTICS                       |
+ | VIEWS                                 |
+ | INNODB_IO_PATTERN                     |
++| INNODB_RSEG                           |
+ +---------------------------------------+
+ Wildcard: inf_rmation_schema
+ +--------------------+
+--- a/mysql-test/r/profiling.result	2009-05-28 19:39:42.000000000 +0000
++++ b/mysql-test/r/profiling.result	2009-05-28 19:40:14.000000000 +0000
+@@ -6,6 +6,8 @@
+ Variable_name	Value
+ profiling	OFF
+ profiling_history_size	15
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ select @@profiling;
+ @@profiling
+ 0
+@@ -16,12 +18,16 @@
+ Variable_name	Value
+ profiling	OFF
+ profiling_history_size	100
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ set session profiling = ON;
+ set session profiling_history_size=30;
+ show session variables like 'profil%';
+ Variable_name	Value
+ profiling	ON
+ profiling_history_size	30
++profiling_server	OFF
++profiling_use_getrusage	OFF
+ select @@profiling;
+ @@profiling
+ 1
+--- a/mysql-test/r/mysql.result 2010-02-19 23:59:36.000000000 -0500
++++ b/mysql-test/r/mysql.result 2010-02-19 23:58:50.000000000 -0500
+@@ -162,8 +162,8 @@
+ ERROR 1049 (42000) at line 1: Unknown database 'invalid'
+ Test connect with dbname + hostname
+ Test connect with dbname + _invalid_ hostname
+-ERROR 2005 (HY000) at line 1: Unknown MySQL server host 'invalid_hostname' (errno)
+-ERROR 2005 (HY000) at line 1: Unknown MySQL server host 'invalid_hostname' (errno)
++ERROR 2003 (HY000) at line 1: Can't connect to MySQL server on 'invalid_hostname' (errno)
++ERROR 2003 (HY000) at line 1: Can't connect to MySQL server on 'invalid_hostname' (errno)
+ The commands reported in the bug report
+ ERROR 2005 (HY000) at line 1: Unknown MySQL server host 'cyril has found a bug :)XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' (errno)
+ Too long dbname
+@@ -198,6 +198,6 @@
+ 1
+ COUNT (*)
+ 1
+-ERROR 2005 (HY000) at line 1: Unknown MySQL server host 'invalid_hostname' (errno)
++ERROR 2003 (HY000) at line 1: Can't connect to MySQL server on 'invalid_hostname' (errno)
+ <TABLE BORDER=1><TR><TH>&lt;</TH></TR><TR><TD>&lt; &amp; &gt;</TD></TR></TABLE>
+ End of 5.0 tests
+--- a/mysql-test/r/mysql_upgrade.result 2010-02-19 23:58:16.000000000 -0500
++++ b/mysql-test/r/mysql_upgrade.result 2010-02-20 00:01:34.000000000 -0500
+@@ -58,7 +58,7 @@
+ mysql.user                                         OK
+ DROP USER mysqltest1@'%';
+ Run mysql_upgrade with a non existing server socket
+-mysqlcheck: Got error: 2005: Unknown MySQL server host 'not_existing_host' (errno) when trying to connect
++mysqlcheck: Got error: 2003: Can't connect to MySQL server on 'not_existing_host' (errno) when trying to connect
+ FATAL ERROR: Upgrade failed
+ set GLOBAL sql_mode='STRICT_ALL_TABLES,ANSI_QUOTES,NO_ZERO_DATE';
+ mysql.columns_priv                                 OK
