@@ -24,12 +24,3 @@ diff -Nuar mysql/sql/ha_innodb.cc mysql/sql/ha_innodb.cc
  
  
  	size = buf_pool->curr_size;
-@@ -6790,7 +6797,7 @@
- 				table->field[10]->store(index->name, strlen(index->name), system_charset_info);
- 				// fprintf(stderr, " index %s, table %s", index->name, index->table_name);
- 
--				if((p = strchr(index->table_name, '/')))
-+				if((p = strchr((char *)(index->table_name), '/')))
- 				{
- 					strncpy(db_name_raw, index->table_name, p-index->table_name);
- 					db_name_raw[p-index->table_name] = 0;
