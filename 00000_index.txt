@@ -637,6 +637,11 @@
 @pn mysql
 @@ Compile fix for bug introduced by upstream in 5.0.91
 
+@patch 07310_all_mysql_gcc45-diable-abicheck.patch
+@ver 5.01.00.00 to 5.01.49.99
+@pn mysql
+@@ GCC4.5 fails on the ABI-check block
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
