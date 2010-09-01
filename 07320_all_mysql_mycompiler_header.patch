@@ -1,0 +1,28 @@
+
+X-Gentoo-Bug: 333923
+X-Upstream-Bug: 55846
+X-Gentoo-Bug-URL: http://bugs.gentoo.org/show_bug.cgi?id=333923
+X-Upstream-Bug-URL: http://bugs.mysql.com/bug.php?id=55846
+X-Upstream-Patch-URL: http://lists.mysql.com/commits/116644?f=plain
+
+diff -Naur mysql-5.1.50.orig/include/Makefile.am mysql-5.1.50/include/Makefile.am
+--- mysql-5.1.50.orig/include/Makefile.am	2010-08-03 18:24:29.000000000 +0100
++++ mysql-5.1.50/include/Makefile.am	2010-08-24 11:57:01.000000000 +0100
+@@ -23,7 +23,7 @@
+ pkginclude_HEADERS =	$(HEADERS_ABI) my_dbug.h m_string.h my_sys.h \
+ 			my_xml.h mysql_embed.h \
+ 		  	my_pthread.h my_no_pthread.h \
+-			decimal.h errmsg.h my_global.h my_net.h \
++			decimal.h errmsg.h my_compiler.h my_global.h my_net.h \
+ 			my_getopt.h sslopt-longopts.h my_dir.h \
+ 			sslopt-vars.h sslopt-case.h sql_common.h keycache.h \
+ 			m_ctype.h my_attribute.h $(HEADERS_GEN_CONFIGURE) \
+@@ -37,7 +37,7 @@
+ 			my_aes.h my_tree.h my_trie.h hash.h thr_alarm.h \
+ 			thr_lock.h t_ctype.h violite.h my_md5.h base64.h \
+ 			my_handler.h my_time.h my_vle.h my_user.h \
+-			my_libwrap.h my_stacktrace.h my_compiler.h
++			my_libwrap.h my_stacktrace.h
+ 
+ EXTRA_DIST =        mysql.h.pp mysql/plugin.h.pp
+ 

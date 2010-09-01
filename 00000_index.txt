@@ -643,8 +643,13 @@
 @pn mysql
 @@ Compile fix for bug introduced by upstream in 5.0.91
 
-@patch 07310_all_mysql_gcc45-diable-abicheck.patch
+@patch 07310_all_mysql_gcc45-disable-abicheck.patch
 @ver 5.01.00.00 to 5.01.49.99
+@pn mysql
+@@ GCC4.5 fails on the ABI-check block
+
+@patch 07320_all_mysql_mycompiler_header.patch
+@ver 5.01.50.00 to 5.01.99.99
 @pn mysql
 @@ GCC4.5 fails on the ABI-check block
 
