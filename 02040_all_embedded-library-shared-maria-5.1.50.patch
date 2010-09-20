@@ -1,0 +1,1982 @@
+=== modified file 'client/Makefile.am'
+--- client/Makefile.am	2010-08-27 14:12:44 +0000
++++ client/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -75,7 +75,8 @@
+ mysqlimport_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
+ 				@CLIENT_EXTRA_LDFLAGS@ \
+ 				$(LIBMYSQLCLIENT_LA) \
+-				$(top_builddir)/mysys/libmysys.a
++				$(top_builddir)/mysys/libmysys.la \
++				$(top_builddir)/strings/libmystrings.la
+ 
+ mysqlshow_SOURCES=		mysqlshow.c
+ 
+@@ -84,15 +85,17 @@
+ mysqlslap_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
+ 				@CLIENT_EXTRA_LDFLAGS@ \
+ 				$(LIBMYSQLCLIENT_LA) \
+-				$(top_builddir)/mysys/libmysys.a
++				$(top_builddir)/mysys/libmysys.la \
++				$(top_builddir)/strings/libmystrings.la
+ 
+ mysqltest_SOURCES=		mysqltest.cc
+ mysqltest_CXXFLAGS=		-DTHREAD -UMYSQL_CLIENT_NO_THREADS
+ mysqltest_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
+ 				@CLIENT_EXTRA_LDFLAGS@ \
+ 				$(LIBMYSQLCLIENT_LA) \
+-				$(top_builddir)/mysys/libmysys.a \
+-				$(top_builddir)/regex/libregex.a \
++				$(top_builddir)/mysys/libmysys.la \
++				$(top_builddir)/regex/libregex.la \
++				$(top_builddir)/strings/libmystrings.la \
+ 				$(CLIENT_THREAD_LIBS)
+ 
+ mysql_upgrade_SOURCES=          mysql_upgrade.c \
+
+=== modified file 'config/ac-macros/plugins.m4'
+--- config/ac-macros/plugins.m4	2009-12-22 10:33:20 +0000
++++ config/ac-macros/plugins.m4	2010-09-16 12:49:35 +0000
+@@ -115,18 +115,32 @@
+ dnl Macro: MYSQL_PLUGIN_STATIC
+ dnl
+ dnl SYNOPSIS
+-dnl   MYSQL_PLUGIN_STATIC([name],[libmyplugin.a])
++dnl   MYSQL_PLUGIN_STATIC([name],[libmyplugin.a],[libmyplugin_embedded.a])
+ dnl
+ dnl DESCRIPTION
+-dnl   Declare the name for the static library 
++dnl   Declare the name for the static library
++dnl
++dnl   Third argument is optional, only needed for special plugins that depend
++dnl   on server internals and have source files that must be compiled specially
++dnl   with -DEMBEDDED_LIBRARY for embedded server. If specified, the third
++dnl   argument is used to link embedded server instead of the second.
+ dnl
+ dnl ---------------------------------------------------------------------------
+ 
+ AC_DEFUN([MYSQL_PLUGIN_STATIC],[
+  MYSQL_REQUIRE_PLUGIN([$1])
+  m4_define([MYSQL_PLUGIN_STATIC_]AS_TR_CPP([$1]), [$2])
++ ifelse($#, 3, [
++   m4_define([MYSQL_PLUGIN_EMBEDDED_]AS_TR_CPP([$1]), [$3])
++ ])
+ ])
+ 
++dnl ---------------------------------------------------------------------------
++dnl Substitution variable to use to compile source files specially for
++dnl embedded server.
++dnl To be used by plugins that have sources that depend on server internals.
++dnl ---------------------------------------------------------------------------
++AC_SUBST([plugin_embedded_defs], ["-DEMBEDDED_LIBRARY -DMYSQL_SERVER"])
+ 
+ dnl ---------------------------------------------------------------------------
+ dnl Macro: MYSQL_PLUGIN_DYNAMIC
+@@ -254,28 +268,6 @@
+ ])
+ 
+ dnl ---------------------------------------------------------------------------
+-dnl Macro: MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS
+-dnl
+-dnl SYNOPSIS
+-dnl   MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS([name],[file name])
+-dnl
+-dnl DESCRIPTION
+-dnl   Some modules in plugins keep dependance on structures
+-dnl   declared in sql/ (THD class usually)
+-dnl   That has to be fixed in the future, but until then
+-dnl   we have to recompile these modules when we want to
+-dnl   to compile server parts with the different #defines
+-dnl   Normally it happens when we compile the embedded server
+-dnl   Thus one should mark such files in his handler using this macro
+-dnl
+-dnl ---------------------------------------------------------------------------
+-
+-AC_DEFUN([MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS],[
+- MYSQL_REQUIRE_PLUGIN([$1])
+- m4_define([MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS_]AS_TR_CPP([$1]), [$2])
+-])
+-
+-dnl ---------------------------------------------------------------------------
+ dnl Macro: MYSQL_CONFIGURE_PLUGINS
+ dnl
+ dnl SYNOPSIS
+@@ -335,11 +327,25 @@
+   [MYSQL_PLUGIN_DYNAMIC_]AS_TR_CPP([$1]),
+   [MYSQL_PLUGIN_MANDATORY_]AS_TR_CPP([$1]),
+   [MYSQL_PLUGIN_DISABLED_]AS_TR_CPP([$1]),
+-  [MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS_]AS_TR_CPP([$1]),
++  [MYSQL_PLUGIN_EMBEDDED_]AS_TR_CPP([$1]),
+   [MYSQL_PLUGIN_ACTIONS_]AS_TR_CPP([$1])
+  )
+ ])
+ 
++# __MYSQL_EMIT_CHECK_PLUGIN arguments:
++#
++#  1 - plugin identifying name
++#  2 - plugin identifying name, with `-' replaced by `_'
++#  3 - plugin long name
++#  4 - plugin description
++#  5 - mysql_plugin_define (eg. WITH_xxx_STORAGE_ENGINE)
++#  6 - directory
++#  7 - static target (if supports static build)
++#  8 - dynamic target (if supports dynamic build)
++#  9 - mandatory flag
++# 10 - disabled flag
++# 11 - static target for libmysqld (if different from mysqld)
++# 12 - actions
+ AC_DEFUN([__MYSQL_EMIT_CHECK_PLUGIN],[
+  m4_ifdef([$5],[
+   AH_TEMPLATE($5, [Include ]$4[ into mysqld])
+@@ -406,6 +412,7 @@
+        ])
+        AC_SUBST([plugin_]$2[_shared_target], "$8")
+        AC_SUBST([plugin_]$2[_static_target], [""])
++       AC_SUBST([plugin_]$2[_embedded_static_target], [""])
+        [with_plugin_]$2=yes
+        AC_MSG_RESULT([plugin])
+        m4_ifdef([$6],[
+@@ -420,32 +427,47 @@
+       ])
+     else
+       m4_ifdef([$7],[
+-       ifelse(m4_bregexp($7, [^lib[^.]+\.a$]), -2, [
+-dnl change above "-2" to "0" to enable this section
+-dnl Although this is "pretty", it breaks libmysqld build
+-        m4_ifdef([$6],[
+-         mysql_use_plugin_dir="$6"
+-         mysql_plugin_libs="$mysql_plugin_libs -L[\$(top_builddir)]/$6"
+-        ])
+-        mysql_plugin_libs="$mysql_plugin_libs dnl
+-[-l]m4_bregexp($7, [^lib\([^.]+\)], [\1])"
+-       ], m4_bregexp($7, [^\\\$]), 0, [
++       ifelse(m4_bregexp($7, [^\\\$]), 0, [
+         m4_ifdef([$6],[
+          mysql_use_plugin_dir="$6"
+         ])
+         mysql_plugin_libs="$mysql_plugin_libs $7"
++        m4_ifdef([$11],[
++          mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs $11"
++        ],[
++          mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs $7"
++        ])
+        ], [
+         m4_ifdef([$6],[
+          mysql_use_plugin_dir="$6"
+          mysql_plugin_libs="$mysql_plugin_libs \$(top_builddir)/$6/$7"
++         m4_ifdef([$11],[
++           mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs \$(top_builddir)/$6/$11"
++         ],[
++           mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs \$(top_builddir)/$6/$7"
++         ])
+         ],[
+          mysql_plugin_libs="$mysql_plugin_libs $7"
++         m4_ifdef([$11],[
++           mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs $11"
++         ],[
++           mysql_embedded_plugin_libs="$mysql_embedded_plugin_libs $7"
++         ])
+         ])
+        ])
+        m4_ifdef([$5],[
+         AC_DEFINE($5)
+        ])
+        AC_SUBST([plugin_]$2[_static_target], "$7")
++       m4_ifdef([$11], [
++         if test "$with_embedded_server" = "yes"; then
++           AC_SUBST([plugin_]$2[_embedded_static_target], "$11")
++         else
++           AC_SUBST([plugin_]$2[_embedded_static_target], [""])
++         fi
++       ], [
++         AC_SUBST([plugin_]$2[_embedded_static_target], [""])
++       ])
+        AC_SUBST([plugin_]$2[_shared_target], [""])
+       ],[
+        m4_ifdef([$6],[
+@@ -462,14 +484,6 @@
+       mysql_plugin_defs="$mysql_plugin_defs, [builtin_]$2[_plugin]"
+       [with_plugin_]$2=yes
+       AC_MSG_RESULT([yes])
+-      m4_ifdef([$11], [
+-        m4_foreach([plugin], [$11], [
+-           condition_dependent_plugin_modules="$condition_dependent_plugin_modules m4_bregexp(plugin, [[^/]+$], [\&])"
+-           condition_dependent_plugin_objects="$condition_dependent_plugin_objects m4_bregexp(plugin, [[^/]+\.], [\&o])"
+-           condition_dependent_plugin_links="$condition_dependent_plugin_links $6/plugin"
+-           condition_dependent_plugin_includes="$condition_dependent_plugin_includes -I[\$(top_srcdir)]/$6/m4_bregexp(plugin, [^.+[/$]], [\&])"
+-        ])
+-      ])
+     fi
+   fi
+ 
+@@ -517,6 +531,14 @@
+  ])
+ ])
+ 
++dnl If not building libmysqld embedded server, then there is no need to build
++dnl shared object versions of static plugins.
++if test "$with_embedded_server" = "yes"; then
++  AC_SUBST([plugin_static_if_no_embedded], "")
++else
++  AC_SUBST([plugin_static_if_no_embedded], "-static")
++fi
++
+ AC_DEFUN([_MYSQL_EMIT_PLUGIN_ACTIONS],[
+  ifelse($#, 0, [], $#, 1, [
+   _MYSQL_EMIT_PLUGIN_ACTION([$1])
+
+=== modified file 'configure.in'
+--- configure.in	2010-08-27 14:12:44 +0000
++++ configure.in	2010-09-16 12:49:35 +0000
+@@ -2521,17 +2521,14 @@
+ MYSQL_STORAGE_ENGINE(myisam,no, [MyISAM Storage Engine],
+         [Traditional non-transactional MySQL tables])
+ MYSQL_PLUGIN_DIRECTORY(myisam,  [storage/myisam])
+-MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.a])
++MYSQL_PLUGIN_STATIC(myisam,     [libmyisam_s.la], [libmyisam_embedded.la])
+ MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
+ 
+ MYSQL_STORAGE_ENGINE(partition, partition, [Partition Support],
+         [MySQL Partitioning Support], [max,max-no-ndb])
+ 
+ dnl -- ndbcluster requires partition to be enabled
+ 
+-MYSQL_CONFIGURE_PLUGINS([default])
+-
+ # Only build client code?
+ AC_ARG_WITH(server,
+     [  --without-server        Only build the client.],
+@@ -2545,6 +2542,8 @@
+     [with_embedded_server=no]
+ )
+ 
++MYSQL_CONFIGURE_PLUGINS([default])
++
+ AC_ARG_WITH(query_cache,
+     [  --without-query-cache   Do not build query cache.],
+     [with_query_cache=$withval],
+@@ -2846,9 +2845,6 @@
+ then
+   AC_DEFINE([THREAD], [1],
+             [Define if you want to have threaded code. This may be undef on client code])
+-  # Avoid _PROGRAMS names
+-  THREAD_LOBJECTS="thr_alarm.o thr_lock.o thr_mutex.o thr_rwlock.o my_pthread.o my_thr_init.o mf_keycache.o mf_keycaches.o waiting_threads.o"
+-  AC_SUBST(THREAD_LOBJECTS)
+ fi
+ AM_CONDITIONAL(NEED_THREAD, test "$with_server" != "no" -o "$THREAD_SAFE_CLIENT" != "no")
+ 
+@@ -2877,6 +2873,7 @@
+ 
+ AC_SUBST(mysql_plugin_dirs)
+ AC_SUBST(mysql_plugin_libs)
++AC_SUBST(mysql_embedded_plugin_libs)
+ AC_SUBST(mysql_plugin_defs)
+ 
+ 
+
+=== modified file 'dbug/Makefile.am'
+--- dbug/Makefile.am	2010-08-27 14:12:44 +0000
++++ dbug/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -16,10 +16,10 @@
+ # MA 02111-1307, USA
+ 
+ INCLUDES =              -I$(top_builddir)/include -I$(top_srcdir)/include
+-LDADD =                 libdbug.a ../mysys/libmysys.a ../strings/libmystrings.a
+-pkglib_LIBRARIES =      libdbug.a
++LDADD =                 libdbug.la ../mysys/libmysys.la ../strings/libmystrings.la $(ZLIB_LIBS)
++pkglib_LTLIBRARIES =	libdbug.la
+ noinst_HEADERS =        dbug_long.h
+-libdbug_a_SOURCES =     dbug.c sanity.c
++libdbug_la_SOURCES =	dbug.c sanity.c
+ EXTRA_DIST =            CMakeLists.txt example1.c example2.c example3.c \
+                         user.r monty.doc dbug_add_tags.pl \
+                         my_main.c main.c factorial.c dbug_analyze.c \
+
+=== modified file 'extra/Makefile.am'
+--- extra/Makefile.am	2010-08-27 14:12:44 +0000
++++ extra/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -15,8 +15,8 @@
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
+ 			-I$(top_srcdir)/sql
+-LDADD =			@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.a \
+-			../dbug/libdbug.a ../strings/libmystrings.a \
++LDADD =			@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.la \
++			../dbug/libdbug.la ../strings/libmystrings.la \
+ 			$(ZLIB_LIBS)
+ BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
+                         $(top_builddir)/include/sql_state.h \
+
+=== modified file 'libmysqld/Makefile.am'
+--- libmysqld/Makefile.am	2010-08-27 14:12:44 +0000
++++ libmysqld/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -36,8 +36,7 @@
+ 			$(openssl_includes) @ZLIB_INCLUDES@ \
+ 			@condition_dependent_plugin_includes@
+ 
+-noinst_LIBRARIES =	libmysqld_int.a
+-pkglib_LIBRARIES =	libmysqld.a
++pkglib_LTLIBRARIES =	libmysqld.la
+ SUBDIRS =		. examples
+ libmysqld_sources=	libmysqld.c lib_sql.cc emb_qcache.cc
+ libmysqlsources =	errmsg.c get_password.c libmysql.c client.c pack.c \
+@@ -79,34 +78,29 @@
+ 	rpl_injector.cc my_user.c partition_info.cc \
+ 	sql_servers.cc event_parse_data.cc opt_table_elimination.cc
+ 
+-libmysqld_int_a_SOURCES= $(libmysqld_sources)
+-nodist_libmysqld_int_a_SOURCES= $(libmysqlsources) $(sqlsources)
+-libmysqld_a_SOURCES=
+-
+-sqlstoragesources =	$(EXTRA_libmysqld_a_SOURCES)
+-storagesources = @condition_dependent_plugin_modules@
+-storageobjects = @condition_dependent_plugin_objects@
+-storagesourceslinks = @condition_dependent_plugin_links@
+-
+ # automake misses these
+ sql_yacc.cc sql_yacc.h: $(top_srcdir)/sql/sql_yacc.yy
+ 
+ # The following libraries should be included in libmysqld.a
+-INC_LIB=	$(top_builddir)/regex/libregex.a \
+-		$(top_builddir)/mysys/libmysys.a \
+-		$(top_builddir)/strings/libmystrings.a \
+-		$(top_builddir)/dbug/libdbug.a \
+-		$(top_builddir)/vio/libvio.a \
++INC_LIB=	$(top_builddir)/regex/libregex.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/vio/libvio.la \
+                 @NDB_SCI_LIBS@ \
+-		@mysql_plugin_libs@ \
++		@mysql_embedded_plugin_libs@ \
+ 		$(libevent_inc_libs) \
+ 		$(yassl_inc_libs)
+ 
+ if HAVE_YASSL
+-yassl_inc_libs=	$(top_builddir)/extra/yassl/src/.libs/libyassl.a \
+-		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.a
++yassl_inc_libs=	$(top_builddir)/extra/yassl/src/libyassl.la \
++		$(top_builddir)/extra/yassl/taocrypt/src/libtaocrypt.la
+ endif
+ 
++libmysqld_la_SOURCES= $(libmysqld_sources)
++nodist_libmysqld_la_SOURCES= $(libmysqlsources) $(sqlsources)
++libmysqld_la_LIBADD =	$(INC_LIB)
++
+ # Storage engine specific compilation options
+ ha_ndbcluster.o:ha_ndbcluster.cc
+ 		$(CXXCOMPILE) @ndbcluster_includes@ $(LM_CFLAGS) -c $<
+@@ -140,51 +134,13 @@
+ ha_myisammrg.o:ha_myisammrg.cc
+ 		$(CXXCOMPILE) $(LM_CFLAGS) -c $<
+ 
+-#
+-# To make it easy for the end user to use the embedded library we
+-# generate a total libmysqld.a from all library files,
+-
+-# note - InnoDB libraries have circular dependencies, so in INC_LIB
+-# few libraries are present two times. Metrowerks linker doesn't like
+-# it at all. Traditional ar has no problems with it, but still there's no
+-# need to add the same file twice to the library, so 'sort -u' save us
+-# some time and spares unnecessary work.
+-
+-libmysqld.a:	libmysqld_int.a $(INC_LIB) $(libmysqld_a_DEPENDENCIES) $(storageobjects)
+-if DARWIN_MWCC
+-	mwld -lib -o $@ libmysqld_int.a `echo $(INC_LIB) | sort -u` $(storageobjects)
+-else
+-		-rm -f libmysqld.a
+-		if test "$(host_os)" = "netware" ; \
+-		then \
+-		  $(libmysqld_a_AR) libmysqld.a $(INC_LIB) libmysqld_int.a $(storageobjects); \
+-		else \
+-		  current_dir=`pwd`; \
+-		  rm -rf tmp; mkdir tmp; \
+-		  (for arc in $(INC_LIB) ./libmysqld_int.a; do \
+-		    arpath=`echo $$arc|sed 's|[^/]*$$||'|sed 's|\.libs/$$||'`; \
+-		    artmp=`echo $$arc|sed 's|^.*/|tmp/lib-|'`; \
+-		    for F in `$(AR) t $$arc | grep -v SYMDEF`; do \
+-		      if test -e "$$arpath/$$F" ; then echo "$$arpath/$$F"; else \
+-		      mkdir $$artmp; cd $$artmp > /dev/null; \
+-		      $(AR) x ../../$$arc; \
+-		      cd $$current_dir > /dev/null; \
+-		      ls $$artmp/* | grep -v SYMDEF; \
+-		      continue 2; fi; done; \
+-		  done; echo $(libmysqld_a_DEPENDENCIES) ) | sort -u | xargs $(AR) cq libmysqld.a ; \
+-		  $(AR) r libmysqld.a $(storageobjects); \
+-		  $(RANLIB) libmysqld.a	; \
+-		  rm -rf tmp; \
+-		fi
+-endif
+-
+ ## XXX: any time the client interface changes, we'll need to bump
+ ## the version info for libmysqld; however, it's possible for the
+ ## libmysqld interface to change without affecting the standard
+ ## libmysqlclient interface.  Should we make a separate version
+ ## string for the two?
+ #libmysqld_la_LDFLAGS = -version-info @SHARED_LIB_VERSION@
+-#CLEANFILES =		$(libmysqld_la_LIBADD) libmysqld.la
++#CLEANFILES =		libmysqld.la
+ 
+ BUILT_SOURCES = link_sources
+ 
+@@ -209,20 +165,6 @@
+ 	      @LN_CP_F@ $(top_builddir)/libmysql/$$f $$f; \
+ 	    fi ; \
+ 	  done; \
+-	  if test -n "$(sqlstoragesources)" ; \
+-	  then \
+-	    for f in "$(sqlstoragesources)"; do \
+-	      rm -f "$$f"; \
+-	      @LN_CP_F@ `find $(srcdir)/../sql -name "$$f"` "$$f"; \
+-	    done; \
+-	  fi; \
+-	  if test -n "$(storagesources)" ; \
+-	  then \
+-	    rm -f $(storagesources); \
+-	    for f in $(storagesourceslinks); do \
+-	      @LN_CP_F@ $(top_srcdir)/$$f . ; \
+-	    done; \
+-	  fi; \
+ 	  rm -f client_settings.h; \
+ 	  @LN_CP_F@ $(top_srcdir)/libmysql/client_settings.h \
+                                           client_settings.h; \
+@@ -230,5 +172,5 @@
+ 
+ 
+ clean-local:
+-	rm -f `echo $(sqlsources) $(libmysqlsources) $(sqlstoragesources) $(storagesources) | sed "s;\.lo;.c;g"`; \
++	rm -f `echo $(sqlsources) $(libmysqlsources) | sed "s;\.lo;.c;g"`; \
+ 	rm -f client_settings.h
+
+=== modified file 'libmysqld/examples/Makefile.am'
+--- libmysqld/examples/Makefile.am	2010-07-16 07:15:22 +0000
++++ libmysqld/examples/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -37,12 +37,16 @@
+ 		-I$(top_srcdir) -I$(top_srcdir)/client -I$(top_srcdir)/regex \
+ 		$(openssl_includes)
+ LIBS =		@LIBS@ @WRAPLIBS@ @CLIENT_LIBS@ $(yassl_libs)
+-LDADD =		@CLIENT_EXTRA_LDFLAGS@ ../libmysqld.a @LIBDL@ $(CXXLDFLAGS) \
+-                @NDB_SCI_LIBS@
++LDADD =		@CLIENT_EXTRA_LDFLAGS@ ../libmysqld.la @LIBDL@ $(CXXLDFLAGS) \
++                @NDB_SCI_LIBS@ \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(ZLIB_LIBS)
+ 
+ mysqltest_embedded_LINK = $(CXXLINK)
+ nodist_mysqltest_embedded_SOURCES =	mysqltest.cc
+-mysqltest_embedded_LDADD =	$(LDADD) $(top_builddir)/regex/libregex.a \
++mysqltest_embedded_LDADD =	$(LDADD) $(top_builddir)/regex/libregex.la \
+ 				@MYSQLD_EXTRA_LDFLAGS@
+ 
+ nodist_mysql_SOURCES = mysql.cc readline.cc completion_hash.cc \
+
+=== modified file 'mysys/Makefile.am'
+--- mysys/Makefile.am	2010-08-27 14:12:44 +0000
++++ mysys/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -18,11 +18,11 @@
+ MYSQLBASEdir=		$(prefix)
+ INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
+ 			-I$(top_srcdir)/include -I$(srcdir)
+-pkglib_LIBRARIES =	libmysys.a
+-LDADD =			libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
++pkglib_LTLIBRARIES =	libmysys.la
++LDADD =			libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
+ noinst_HEADERS =	mysys_priv.h my_static.h my_handler_errors.h \
+ 			my_safehash.h
+-libmysys_a_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
++libmysys_la_SOURCES =	my_init.c my_getwd.c mf_getdate.c my_mmap.c \
+ 			mf_path.c mf_loadpath.c my_file.c \
+ 			my_open.c my_create.c my_dup.c my_seek.c my_read.c \
+ 			my_pread.c my_write.c my_getpagesize.c \
+@@ -62,18 +62,19 @@
+ # mf_keycache is used only in the server, so it is safe to leave the file
+ # out of the non-threaded library.
+ # In fact, it will currently not compile without thread support.
+-libmysys_a_SOURCES +=   mf_keycache.c mf_keycaches.c
++libmysys_la_SOURCES +=	thr_alarm.c thr_lock.c thr_mutex.c thr_rwlock.c \
++			my_pthread.c my_thr_init.c waiting_threads.c \
++			mf_keycache.c mf_keycaches.c
+ endif
+ 
+ EXTRA_DIST =		thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
+ 			thr_mutex.c thr_rwlock.c waiting_threads.c \
+ 			CMakeLists.txt mf_soundex.c \
+ 			my_conio.c my_wincond.c my_winthread.c
+-libmysys_a_LIBADD =	@THREAD_LOBJECTS@
+-# test_dir_DEPENDENCIES=	$(LIBRARIES)
+-# testhash_DEPENDENCIES=	$(LIBRARIES)
+-# test_charset_DEPENDENCIES=	$(LIBRARIES)
+-# charset2html_DEPENDENCIES=	$(LIBRARIES)
++# test_dir_DEPENDENCIES=	$(LTLIBRARIES)
++# testhash_DEPENDENCIES=	$(LTLIBRARIES)
++# test_charset_DEPENDENCIES=	$(LTLIBRARIES)
++# charset2html_DEPENDENCIES=	$(LTLIBRARIES)
+ DEFS =			-DDEFAULT_BASEDIR=\"$(prefix)\" \
+ 			-DMYSQL_DATADIR="\"$(MYSQLDATAdir)\"" \
+ 			-DDEFAULT_CHARSET_HOME="\"$(MYSQLBASEdir)\"" \
+@@ -83,8 +84,6 @@
+ 			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
+                         @DEFS@
+ 
+-libmysys_a_DEPENDENCIES= @THREAD_LOBJECTS@
+-
+ # I hope this always does the right thing. Otherwise this is only test programs
+ FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
+ 
+@@ -100,50 +99,50 @@
+ # which automaticly removes the object files you use to compile a final program
+ #
+ 
+-test_bitmap$(EXEEXT): my_bitmap.c $(LIBRARIES)
++test_bitmap$(EXEEXT): my_bitmap.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN  ./my_bitmap.c $(LDADD) $(LIBS)
+ 
+-test_priority_queue$(EXEEXT): queues.c $(LIBRARIES)
++test_priority_queue$(EXEEXT): queues.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN  ./queues.c $(LDADD) $(LIBS)
+ 
+-test_thr_alarm$(EXEEXT): thr_alarm.c $(LIBRARIES)
++test_thr_alarm$(EXEEXT): thr_alarm.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/thr_alarm.c ./test_thr_alarm.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_thr_alarm.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_thr_alarm.c
+ 
+-test_thr_lock$(EXEEXT): thr_lock.c $(LIBRARIES)
++test_thr_lock$(EXEEXT): thr_lock.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/thr_lock.c test_thr_lock.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_thr_lock.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_thr_lock.c
+ 
+-test_vsnprintf$(EXEEXT): my_vsnprintf.c $(LIBRARIES)
++test_vsnprintf$(EXEEXT): my_vsnprintf.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/my_vsnprintf.c test_vsnprintf.c
+ 	$(LINK) $(FLAGS) -DMAIN ./test_vsnprintf.c $(LDADD) $(LIBS)
+ 	$(RM) -f test_vsnprintf.c
+ 
+-test_io_cache$(EXEEXT): mf_iocache.c $(LIBRARIES)
++test_io_cache$(EXEEXT): mf_iocache.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/mf_iocache.c test_io_cache.c
+ 	$(LINK) $(FLAGS) -DMAIN ./test_io_cache.c $(LDADD) $(LIBS)
+ 	$(RM) -f test_io_cache.c
+ 
+-test_dir$(EXEEXT): test_dir.c $(LIBRARIES)
++test_dir$(EXEEXT): test_dir.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/test_dir.c $(LDADD) $(LIBS)
+ 
+-test_charset$(EXEEXT): test_charset.c $(LIBRARIES)
++test_charset$(EXEEXT): test_charset.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/test_charset.c $(LDADD) $(LIBS)
+ 
+-testhash$(EXEEXT): testhash.c $(LIBRARIES)
++testhash$(EXEEXT): testhash.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) -DMAIN $(srcdir)/testhash.c $(LDADD) $(LIBS)
+ 
+-test_gethwaddr$(EXEEXT): my_gethwaddr.c $(LIBRARIES)
++test_gethwaddr$(EXEEXT): my_gethwaddr.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/my_gethwaddr.c ./test_gethwaddr.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_gethwaddr.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_gethwaddr.c
+ 
+-test_base64$(EXEEXT): base64.c $(LIBRARIES)
++test_base64$(EXEEXT): base64.c $(LTLIBRARIES)
+ 	$(CP) $(srcdir)/base64.c ./test_base64.c
+ 	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
+ 	$(RM) -f ./test_base64.c
+ 
+-test_thr_mutex$(EXEEXT): test_thr_mutex.c $(LIBRARIES)
++test_thr_mutex$(EXEEXT): test_thr_mutex.c $(LTLIBRARIES)
+ 	$(LINK) $(FLAGS) $(srcdir)/test_thr_mutex.c $(LDADD) $(LIBS)
+
+=== modified file 'regex/Makefile.am'
+--- regex/Makefile.am	2010-08-27 14:12:44 +0000
++++ regex/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -16,10 +16,10 @@
+ # MA 02111-1307, USA
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
+-noinst_LIBRARIES =	libregex.a
+-LDADD=			libregex.a $(top_builddir)/strings/libmystrings.a
++noinst_LTLIBRARIES =	libregex.la
++LDADD=			libregex.la $(top_builddir)/strings/libmystrings.la
+ noinst_HEADERS =	cclass.h cname.h regex2.h utils.h engine.c my_regex.h
+-libregex_a_SOURCES =	regerror.c regcomp.c regexec.c regfree.c reginit.c
++libregex_la_SOURCES =	regerror.c regcomp.c regexec.c regfree.c reginit.c
+ noinst_PROGRAMS =	re
+ re_SOURCES =		split.c debug.c main.c
+ re_LDFLAGS= @NOINST_LDFLAGS@
+
+=== modified file 'server-tools/instance-manager/Makefile.am'
+--- server-tools/instance-manager/Makefile.am	2007-02-18 12:45:28 +0000
++++ server-tools/instance-manager/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -87,10 +87,10 @@
+ mysqlmanager_LDADD=	@CLIENT_EXTRA_LDFLAGS@ \
+ 			liboptions.la \
+ 			libnet.a \
+-			$(top_builddir)/vio/libvio.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/strings/libmystrings.a \
+-			$(top_builddir)/dbug/libdbug.a \
++			$(top_builddir)/vio/libvio.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/strings/libmystrings.la \
++			$(top_builddir)/dbug/libdbug.la \
+ 			@openssl_libs@ @yassl_libs@ @ZLIB_LIBS@
+ 
+ EXTRA_DIST =		WindowsService.cpp WindowsService.h IMService.cpp \
+
+=== modified file 'sql/Makefile.am'
+--- sql/Makefile.am	2010-08-27 14:12:44 +0000
++++ sql/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -33,13 +33,13 @@
+ noinst_LTLIBRARIES=	libndb.la \
+ 			udf_example.la
+ 
+-SUPPORTING_LIBS =	$(top_builddir)/vio/libvio.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/regex/libregex.a \
+-			$(top_builddir)/strings/libmystrings.a
++SUPPORTING_LIBS =	$(top_builddir)/vio/libvio.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/regex/libregex.la \
++			$(top_builddir)/strings/libmystrings.la
+ mysqld_DEPENDENCIES=	@mysql_plugin_libs@ $(SUPPORTING_LIBS) libndb.la
+-LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@
++LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@ $(openssl_libs) $(yassl_libs)
+ mysqld_LDADD =		libndb.la \
+ 			@MYSQLD_EXTRA_LDFLAGS@ \
+ 			@pstack_libs@ $(libevent_libs) \
+
+=== modified file 'storage/archive/Makefile.am'
+--- storage/archive/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/archive/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -33,7 +33,7 @@
+ noinst_HEADERS =	ha_archive.h azlib.h
+ noinst_PROGRAMS	=	archive_test archive_reader
+ 
+-EXTRA_LTLIBRARIES =	ha_archive.la
++EXTRA_LTLIBRARIES =	libarchive.la ha_archive.la
+ pkgplugin_LTLIBRARIES =	@plugin_archive_shared_target@
+ ha_archive_la_LDFLAGS =	-module -rpath $(pkgplugindir)
+ ha_archive_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+@@ -41,26 +41,25 @@
+ ha_archive_la_SOURCES =	ha_archive.cc azio.c
+ 
+ 
+-EXTRA_LIBRARIES =	libarchive.a
+-noinst_LIBRARIES =	@plugin_archive_static_target@
+-libarchive_a_CXXFLAGS =	$(AM_CXXFLAGS)
+-libarchive_a_CFLAGS =	$(AM_CFLAGS)
+-libarchive_a_SOURCES =	ha_archive.cc azio.c
++noinst_LTLIBRARIES =	@plugin_archive_static_target@
++libarchive_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libarchive_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libarchive_la_SOURCES =	ha_archive.cc azio.c
+ 
+ 
+ archive_test_SOURCES =	archive_test.c azio.c
+ archive_test_CFLAGS =	$(AM_CFLAGS)
+-archive_test_LDADD =	$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a \
++archive_test_LDADD =	$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la \
+ 			@ZLIB_LIBS@
+ archive_test_LDFLAGS = @NOINST_LDFLAGS@
+ 
+ archive_reader_SOURCES = archive_reader.c azio.c
+ archive_reader_CFLAGS =	$(AM_CFLAGS)
+-archive_reader_LDADD =	$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a \
++archive_reader_LDADD =	$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la \
+ 			@ZLIB_LIBS@
+ archive_reader_LDFLAGS = @NOINST_LDFLAGS@
+ 
+
+=== modified file 'storage/archive/plug.in'
+--- storage/archive/plug.in	2006-05-06 11:43:18 +0000
++++ storage/archive/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,4 +1,4 @@
+ MYSQL_STORAGE_ENGINE(archive,,  [Archive Storage Engine],
+         [Archive Storage Engine], [max,max-no-ndb])
+-MYSQL_PLUGIN_STATIC(archive,    [libarchive.a])
++MYSQL_PLUGIN_STATIC(archive,    [libarchive.la])
+ MYSQL_PLUGIN_DYNAMIC(archive,   [ha_archive.la])
+
+=== modified file 'storage/blackhole/Makefile.am'
+--- storage/blackhole/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/blackhole/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -32,7 +32,7 @@
+ 
+ noinst_HEADERS =	ha_blackhole.h
+ 
+-EXTRA_LTLIBRARIES =	ha_blackhole.la
++EXTRA_LTLIBRARIES =	libblackhole.la ha_blackhole.la
+ pkgplugin_LTLIBRARIES =	@plugin_blackhole_shared_target@
+ ha_blackhole_la_LDFLAGS=-module -rpath $(pkgplugindir)
+ ha_blackhole_la_CXXFLAGS=$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+@@ -40,11 +40,10 @@
+ ha_blackhole_la_SOURCES=ha_blackhole.cc
+ 
+ 
+-EXTRA_LIBRARIES =	libblackhole.a
+-noinst_LIBRARIES =	@plugin_blackhole_static_target@
+-libblackhole_a_CXXFLAGS=$(AM_CXXFLAGS)
+-libblackhole_a_CFLAGS =	$(AM_CFLAGS)
+-libblackhole_a_SOURCES=	ha_blackhole.cc
++noinst_LTLIBRARIES =	@plugin_blackhole_static_target@
++libblackhole_la_CXXFLAGS=$(AM_CXXFLAGS)  @plugin_static_if_no_embedded@
++libblackhole_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libblackhole_la_SOURCES=	ha_blackhole.cc
+ 
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+
+=== modified file 'storage/blackhole/plug.in'
+--- storage/blackhole/plug.in	2006-08-19 04:19:19 +0000
++++ storage/blackhole/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,6 +1,6 @@
+ MYSQL_STORAGE_ENGINE(blackhole,,[Blackhole Storage Engine],
+         [Basic Write-only Read-never tables], [max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(blackhole, [storage/blackhole])
+-MYSQL_PLUGIN_STATIC(blackhole,  [libblackhole.a])
++MYSQL_PLUGIN_STATIC(blackhole,  [libblackhole.la])
+ MYSQL_PLUGIN_DYNAMIC(blackhole, [ha_blackhole.la])
+ 
+
+=== modified file 'storage/csv/Makefile.am'
+--- storage/csv/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/csv/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -29,16 +29,15 @@
+ DEFS =	@DEFS@
+ noinst_HEADERS	  =	ha_tina.h transparent_file.h
+ 
+-EXTRA_LTLIBRARIES =	ha_csv.la
++EXTRA_LTLIBRARIES =	libcsv.la ha_csv.la
+ pkglib_LTLIBRARIES =	@plugin_csv_shared_target@
+ ha_csv_la_LDFLAGS =	-module -rpath $(MYSQLLIBdir)
+ ha_csv_la_CXXFLAGS =	$(AM_CXXFLAGS) -DMYSQL_PLUGIN
+ ha_csv_la_SOURCES =	transparent_file.cc ha_tina.cc 
+ 
+-EXTRA_LIBRARIES =	libcsv.a
+-noinst_LIBRARIES =	@plugin_csv_static_target@
+-libcsv_a_CXXFLAGS =	$(AM_CXXFLAGS)
+-libcsv_a_SOURCES =	transparent_file.cc ha_tina.cc
++noinst_LTLIBRARIES =	@plugin_csv_static_target@
++libcsv_la_CXXFLAGS =	$(AM_CXXFLAGS)  @plugin_static_if_no_embedded@
++libcsv_la_SOURCES =	transparent_file.cc ha_tina.cc
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+ # Don't update the files from bitkeeper
+
+=== modified file 'storage/csv/plug.in'
+--- storage/csv/plug.in	2006-08-19 04:19:19 +0000
++++ storage/csv/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,5 +1,5 @@
+ MYSQL_STORAGE_ENGINE(csv,,      [CSV Storage Engine],
+         [Stores tables in text CSV format])
+ MYSQL_PLUGIN_DIRECTORY(csv,     [storage/csv])
+-MYSQL_PLUGIN_STATIC(csv,        [libcsv.a])
++MYSQL_PLUGIN_STATIC(csv,        [libcsv.la])
+ MYSQL_PLUGIN_MANDATORY(csv)     dnl Used for logging
+
+=== modified file 'storage/example/Makefile.am'
+--- storage/example/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/example/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -32,7 +32,7 @@
+ 
+ noinst_HEADERS =	ha_example.h
+ 
+-EXTRA_LTLIBRARIES =	ha_example.la
++EXTRA_LTLIBRARIES =	libexample.la ha_example.la
+ pkgplugin_LTLIBRARIES =	@plugin_example_shared_target@
+ ha_example_la_LDFLAGS =	-module -rpath $(pkgplugindir)
+ ha_example_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+@@ -40,11 +40,10 @@
+ ha_example_la_SOURCES =	ha_example.cc
+ 
+ 
+-EXTRA_LIBRARIES =	libexample.a
+-noinst_LIBRARIES =	@plugin_example_static_target@
+-libexample_a_CXXFLAGS =	$(AM_CXXFLAGS)
+-libexample_a_CFLAGS =	$(AM_CFLAGS)
+-libexample_a_SOURCES=	ha_example.cc
++noinst_LTLIBRARIES =	@plugin_example_static_target@
++libexample_la_CXXFLAGS =	$(AM_CXXFLAGS)  @plugin_static_if_no_embedded@
++libexample_la_CFLAGS =	$(AM_CFLAGS)  @plugin_static_if_no_embedded@
++libexample_la_SOURCES=	ha_example.cc
+ 
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+
+=== modified file 'storage/federated/Makefile.am'
+--- storage/federated/Makefile.am	2010-08-27 14:12:44 +0000
++++ storage/federated/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -30,7 +30,7 @@
+ 
+ noinst_HEADERS =	ha_federated.h
+ 
+-EXTRA_LTLIBRARIES =	ha_federated.la
++EXTRA_LTLIBRARIES =	libfederated.la libfederated_embedded.la ha_federated.la
+ pkgplugin_LTLIBRARIES =	@plugin_federated_shared_target@
+ ha_federated_la_LDFLAGS =	-module -rpath $(pkgplugindir)
+ ha_federated_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+@@ -38,11 +38,14 @@
+ ha_federated_la_SOURCES =	ha_federated.cc $(top_srcdir)/mysys/string.c
+ 
+ 
+-EXTRA_LIBRARIES =	libfederated.a
+-noinst_LIBRARIES =	@plugin_federated_static_target@
+-libfederated_a_CXXFLAGS =	$(AM_CXXFLAGS)
+-libfederated_a_CFLAGS =	$(AM_CFLAGS)
+-libfederated_a_SOURCES=	ha_federated.cc
++noinst_LTLIBRARIES =	@plugin_federated_static_target@ @plugin_federated_embedded_static_target@
++libfederated_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libfederated_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederated_la_SOURCES=	ha_federated.cc
++
++libfederated_embedded_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_embedded_defs@
++libfederated_embedded_la_CFLAGS =	$(AM_CFLAGS) @plugin_embedded_defs@
++libfederated_embedded_la_SOURCES=	ha_federated.cc
+ 
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+
+=== modified file 'storage/federated/plug.in'
+--- storage/federated/plug.in	2010-06-09 21:29:18 +0000
++++ storage/federated/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,5 +1,4 @@
+ MYSQL_STORAGE_ENGINE(federated,,[Federated Storage Engine],
+         [Connects to tables on remote MySQL servers], [])
+-MYSQL_PLUGIN_STATIC(federated,    [libfederated.a])
++MYSQL_PLUGIN_STATIC(federated,    [libfederated.la], [libfederated_embedded.la])
+ MYSQL_PLUGIN_DYNAMIC(federated,   [ha_federated.la])
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(federated, [ha_federated.cc])
+
+=== modified file 'storage/federatedx/Makefile.am'
+--- storage/federatedx/Makefile.am	2010-06-09 21:29:18 +0000
++++ storage/federatedx/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -17,21 +17,31 @@
+ 
+ noinst_HEADERS =	ha_federatedx.h federatedx_probes.h
+ 
+-EXTRA_LTLIBRARIES =	ha_federatedx.la
++EXTRA_LTLIBRARIES =	libfederatedx.la libfederatedx_common.la libfederatedx_embedded.la ha_federatedx.la
+ pkgplugin_LTLIBRARIES =	@plugin_federatedx_shared_target@
+ ha_federatedx_la_LDFLAGS =	-module -rpath $(pkgplugindir)
+ ha_federatedx_la_CXXFLAGS=	$(AM_CFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+ ha_federatedx_la_CFLAGS =	$(AM_CFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+ 
+ 
+-EXTRA_LIBRARIES =	libfederatedx.a
+-noinst_LIBRARIES =	@plugin_federatedx_static_target@
+-libfederatedx_a_CXXFLAGS =	$(AM_CFLAGS)
+-libfederatedx_a_CFLAGS =	$(AM_CFLAGS)
+-libfederatedx_a_SOURCES=	ha_federatedx.cc federatedx_txn.cc \
++noinst_LTLIBRARIES =	@plugin_federatedx_static_target@ @plugin_federatedx_embedded_static_target@
++libfederatedx_common_la_CXXFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederatedx_common_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederatedx_common_la_SOURCES=	federatedx_txn.cc \
+ 			        federatedx_io.cc federatedx_io_null.cc \
+ 			        federatedx_io_mysql.cc
+ 
++libfederatedx_la_CXXFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederatedx_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederatedx_la_LIBADD =	libfederatedx_common.la
++libfederatedx_la_SOURCES=	ha_federatedx.cc
++
++libfederatedx_embedded_la_CXXFLAGS =	$(AM_CFLAGS) @plugin_embedded_defs@
++libfederatedx_embedded_la_CFLAGS =	$(AM_CFLAGS) @plugin_embedded_defs@
++libfederatedx_embedded_la_LDFLAGS =	$(AM_LDFLAGS) @plugin_static_if_no_embedded@
++libfederatedx_embedded_la_LIBADD =	libfederatedx_common.la
++libfederatedx_embedded_la_SOURCES=	ha_federatedx.cc
++
+ EXTRA_DIST =		CMakeLists.txt plug.in ha_federatedx.h \
+ 			federatedx_probes.h
+ 
+
+=== modified file 'storage/federatedx/plug.in'
+--- storage/federatedx/plug.in	2010-06-09 21:29:18 +0000
++++ storage/federatedx/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,5 +1,4 @@
+ MYSQL_STORAGE_ENGINE(federatedx,,[FederatedX Storage Engine],
+         [FederatedX Storage Engine], [max,max-no-ndb])
+ MYSQL_PLUGIN_DYNAMIC(federatedx,   [ha_federatedx.la])
+-MYSQL_PLUGIN_STATIC(federatedx,    [libfederatedx.a])
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(federatedx, [ha_federatedx.cc])
++MYSQL_PLUGIN_STATIC(federatedx,    [libfederatedx.la], [libfederatedx_embedded.la])
+
+=== modified file 'storage/heap/Makefile.am'
+--- storage/heap/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/heap/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -26,27 +26,41 @@
+ LDADD =
+ 
+ DEFS =                  @DEFS@
+-pkglib_LIBRARIES =	libheap.a
++pkglib_LTLIBRARIES =	libheap.la
++noinst_LTLIBRARIES =	libheap_s.la libheap_common.la \
++			@plugin_heap_embedded_static_target@
++EXTRA_LTLIBRARIES =	libheap_embedded.la
++
+ noinst_PROGRAMS	=	hp_test1 hp_test2
+-noinst_LIBRARIES =	libheap.a
+ hp_test1_LDFLAGS = @NOINST_LDFLAGS@
+-hp_test1_LDADD =	libheap.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a
++hp_test1_LDADD =	libheap.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la
+ hp_test2_LDFLAGS = @NOINST_LDFLAGS@
+-hp_test2_LDADD =	libheap.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a
++hp_test2_LDADD =	libheap.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la
+ noinst_HEADERS =	heapdef.h ha_heap.h
+-libheap_a_SOURCES =	hp_open.c hp_extra.c hp_close.c hp_panic.c hp_info.c \
++libheap_common_la_SOURCES =	hp_open.c hp_extra.c hp_close.c hp_panic.c hp_info.c \
+ 			hp_rrnd.c hp_scan.c hp_update.c hp_write.c hp_delete.c \
+ 			hp_rsame.c hp_create.c hp_rename.c hp_rfirst.c \
+ 			hp_rnext.c hp_rlast.c hp_rprev.c hp_clear.c \
+ 			hp_rkey.c hp_block.c \
+-			ha_heap.cc \
+ 			hp_hash.c _check.c _rectest.c hp_static.c
++libheap_common_la_CFLAGS =	$(AM_LDFLAGS) @plugin_static_if_no_embedded@
++
++libheap_s_la_SOURCES =	ha_heap.cc
++libheap_s_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libheap_s_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libheap_s_la_LIBADD =	libheap_common.la
++libheap_embedded_la_SOURCES =	ha_heap.cc
++libheap_embedded_la_LIBADD =	libheap_common.la
++libheap_embedded_la_CXXFLAGS =	@plugin_embedded_defs@
++libheap_la_SOURCES =	
++libheap_la_LIBADD =	libheap_s.la
++libheap_la_LDFLAGS =	-static
+ 
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+
+=== modified file 'storage/heap/plug.in'
+--- storage/heap/plug.in	2006-10-18 12:03:37 +0000
++++ storage/heap/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,7 +1,6 @@
+ MYSQL_STORAGE_ENGINE(heap,no,   [Memory Storage Engine],
+         [Volatile memory based tables])
+ MYSQL_PLUGIN_DIRECTORY(heap,    [storage/heap])
+-MYSQL_PLUGIN_STATIC(heap,       [libheap.a])
++MYSQL_PLUGIN_STATIC(heap,       [libheap_s.la], [libheap_embedded.la])
+ MYSQL_PLUGIN_MANDATORY(heap)    dnl Memory tables
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(heap, [ha_heap.cc])
+ 
+
+=== modified file 'storage/innobase/Makefile.am'
+--- storage/innobase/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/innobase/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -122,9 +122,8 @@
+ 			include/ut0list.ic include/ut0wqueue.h		\
+ 			include/ha_prototypes.h handler/ha_innodb.h
+ 
+-EXTRA_LIBRARIES=	libinnobase.a
+-noinst_LIBRARIES=	@plugin_innobase_static_target@
+-libinnobase_a_SOURCES=	btr/btr0btr.c btr/btr0cur.c btr/btr0pcur.c	\
++noinst_LTLIBRARIES=	@plugin_innobase_static_target@
++libinnobase_la_SOURCES=	btr/btr0btr.c btr/btr0cur.c btr/btr0pcur.c	\
+ 			btr/btr0sea.c buf/buf0buf.c buf/buf0flu.c	\
+ 			buf/buf0lru.c buf/buf0rea.c data/data0data.c	\
+ 			data/data0type.c dict/dict0boot.c		\
+@@ -156,10 +155,10 @@
+ 			ut/ut0ut.c ut/ut0vec.c ut/ut0wqueue.c		\
+ 			handler/ha_innodb.cc
+ 
+-libinnobase_a_CXXFLAGS=	$(AM_CXXFLAGS)
+-libinnobase_a_CFLAGS=	$(AM_CFLAGS)
++libinnobase_la_CXXFLAGS=	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libinnobase_la_CFLAGS=	$(AM_CFLAGS) @plugin_static_if_no_embedded@
+ 
+-EXTRA_LTLIBRARIES=	ha_innodb.la
++EXTRA_LTLIBRARIES=	libinnobase.la ha_innodb.la
+ pkgplugin_LTLIBRARIES=	@plugin_innobase_shared_target@
+ 
+ ha_innodb_la_LDFLAGS=	-module -rpath $(pkgplugindir)
+
+=== modified file 'storage/innobase/plug.in.disabled'
+--- storage/innobase/plug.in.disabled	2010-05-26 18:55:40 +0000
++++ storage/innobase/plug.in.disabled	2010-09-16 12:49:35 +0000
+@@ -1,7 +1,7 @@
+ MYSQL_STORAGE_ENGINE(innobase, innodb, [InnoDB Storage Engine],
+         [Transactional Tables using InnoDB], [max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(innobase, [storage/innobase])
+-MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.a])
++MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.la])
+ MYSQL_PLUGIN_DYNAMIC(innobase,  [ha_innodb.la])
+ MYSQL_PLUGIN_ACTIONS(innobase,  [
+   AC_CHECK_LIB(rt, aio_read, [innodb_system_libs="-lrt"])
+
+=== modified file 'storage/innodb_plugin/Makefile.am'
+--- storage/innodb_plugin/Makefile.am	2010-07-09 11:37:51 +0000
++++ storage/innodb_plugin/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -228,9 +228,8 @@
+ 			include/ut0wqueue.h	\
+ 			mem/mem0dbg.c
+ 
+-EXTRA_LIBRARIES=	libinnobase.a
+-noinst_LIBRARIES=	@plugin_innodb_plugin_static_target@
+-libinnobase_a_SOURCES=	\
++noinst_LTLIBRARIES=	@plugin_innodb_plugin_static_target@
++libinnobase_la_SOURCES=	\
+ 			btr/btr0btr.c			\
+ 			btr/btr0cur.c			\
+ 			btr/btr0pcur.c			\
+@@ -325,16 +324,16 @@
+ 			ut/ut0vec.c			\
+ 			ut/ut0wqueue.c
+ 
+-libinnobase_a_CXXFLAGS=	$(AM_CXXFLAGS)
+-libinnobase_a_CFLAGS=	$(AM_CFLAGS)
++libinnobase_la_CXXFLAGS=	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libinnobase_la_CFLAGS=	$(AM_CFLAGS) @plugin_static_if_no_embedded@
+ 
+-EXTRA_LTLIBRARIES=	ha_innodb_plugin.la
++EXTRA_LTLIBRARIES=	libinnobase.la ha_innodb_plugin.la
+ pkgplugin_LTLIBRARIES=	@plugin_innodb_plugin_shared_target@
+ 
+ ha_innodb_plugin_la_LDFLAGS=	-module -rpath $(pkgplugindir)
+ ha_innodb_plugin_la_CXXFLAGS=	$(AM_CXXFLAGS) $(INNODB_DYNAMIC_CFLAGS)
+ ha_innodb_plugin_la_CFLAGS=	$(AM_CFLAGS) $(INNODB_DYNAMIC_CFLAGS)
+-ha_innodb_plugin_la_SOURCES=	$(libinnobase_a_SOURCES)
++ha_innodb_plugin_la_SOURCES=	$(libinnobase_la_SOURCES)
+ 
+ EXTRA_DIST=		CMakeLists.txt plug.in \
+ 			pars/make_bison.sh pars/make_flex.sh \
+
+=== modified file 'storage/maria/Makefile.am'
+--- storage/maria/Makefile.am	2009-10-23 16:48:54 +0000
++++ storage/maria/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -33,36 +33,39 @@
+ EXTRA_DIST =		ma_test_all.sh ma_test_all.res ma_test_big.sh \
+ 			ma_ft_stem.c CMakeLists.txt plug.in ma_test_recovery
+ pkgdata_DATA =		
+-pkglib_LIBRARIES =	libmaria.a
++pkglib_LTLIBRARIES =	libmaria.la
++noinst_LTLIBRARIES =	libmaria_common.la libmaria_s.la \
++			@plugin_maria_embedded_static_target@
++EXTRA_LTLIBRARIES =	libmaria_embedded.la
+ bin_PROGRAMS =		maria_chk maria_pack maria_ftdump maria_read_log \
+ 			maria_dump_log
+-maria_chk_DEPENDENCIES=	$(LIBRARIES)
+-# Only reason to link with libmyisam.a here is that it's where some fulltext
++maria_chk_DEPENDENCIES=	$(LTLIBRARIES)
++# Only reason to link with libmyisam.la here is that it's where some fulltext
+ # pieces are (but soon we'll remove fulltext dependencies from Maria).
+ # For now, it imposes that storage/myisam be built before storage/maria.
+-maria_chk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-maria_pack_DEPENDENCIES=$(LIBRARIES)
+-maria_pack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-maria_read_log_DEPENDENCIES=$(LIBRARIES)
+-maria_read_log_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-maria_dump_log_DEPENDENCIES=$(LIBRARIES) ma_loghandler.c
+-maria_dump_log_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-                        $(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
++maria_chk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++maria_pack_DEPENDENCIES=$(LTLIBRARIES)
++maria_pack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++maria_read_log_DEPENDENCIES=$(LTLIBRARIES)
++maria_read_log_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++maria_dump_log_DEPENDENCIES=$(LTLIBRARIES) ma_loghandler.c
++maria_dump_log_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++                        $(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
+ maria_dump_log_SOURCES= ma_loghandler.c unittest/ma_loghandler_examples.c
+ maria_dump_log_CPPFLAGS= -DMARIA_DUMP_LOG
+ noinst_PROGRAMS =	ma_test1 ma_test2 ma_test3 ma_rt_test ma_sp_test
+@@ -74,45 +77,45 @@
+ 			ma_checkpoint.h ma_recovery.h ma_commit.h ma_state.h \
+ 			trnman_public.h ma_check_standalone.h \
+ 			ma_key_recover.h ma_recovery_util.h
+-ma_test1_DEPENDENCIES=	$(LIBRARIES)
+-ma_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-ma_test2_DEPENDENCIES=	$(LIBRARIES)
+-ma_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-ma_test3_DEPENDENCIES=	$(LIBRARIES)
+-ma_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-#ma_ft_test1_DEPENDENCIES=	$(LIBRARIES)
+-#ma_ft_eval_DEPENDENCIES=	$(LIBRARIES)
+-maria_ftdump_DEPENDENCIES=	$(LIBRARIES)
+-maria_ftdump_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-ma_rt_test_DEPENDENCIES=	$(LIBRARIES)
+-ma_rt_test_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-ma_sp_test_DEPENDENCIES=	$(LIBRARIES)
+-ma_sp_test_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-libmaria_a_SOURCES =	ma_init.c ma_open.c ma_extra.c ma_info.c ma_rkey.c \
++ma_test1_DEPENDENCIES=	$(LTLIBRARIES)
++ma_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++ma_test2_DEPENDENCIES=	$(LTLIBRARIES)
++ma_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++ma_test3_DEPENDENCIES=	$(LTLIBRARIES)
++ma_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++#ma_ft_test1_DEPENDENCIES=	$(LTLIBRARIES)
++#ma_ft_eval_DEPENDENCIES=	$(LTLIBRARIES)
++maria_ftdump_DEPENDENCIES=	$(LTLIBRARIES)
++maria_ftdump_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++ma_rt_test_DEPENDENCIES=	$(LTLIBRARIES)
++ma_rt_test_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++ma_sp_test_DEPENDENCIES=	$(LTLIBRARIES)
++ma_sp_test_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++libmaria_common_la_SOURCES =	ma_init.c ma_open.c ma_extra.c ma_info.c ma_rkey.c \
+ 			ma_rnext.c ma_rnext_same.c \
+ 			ma_search.c ma_page.c ma_key_recover.c ma_key.c \
+ 			ma_locking.c ma_state.c \
+@@ -134,8 +137,22 @@
+ 			ma_sp_key.c ma_control_file.c ma_loghandler.c \
+ 			ma_pagecache.c ma_pagecaches.c \
+ 			ma_checkpoint.c ma_recovery.c ma_commit.c \
+-			ma_pagecrc.c ma_recovery_util.c \
+-			ha_maria.cc
++			ma_pagecrc.c ma_recovery_util.c
++libmaria_common_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++
++libmaria_s_la_SOURCES =	ha_maria.cc
++libmaria_s_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libmaria_s_la_LIBADD =	libmaria_common.la
++libmaria_embedded_la_SOURCES =	ha_maria.cc
++libmaria_embedded_la_LIBADD =	libmaria_common.la
++libmaria_embedded_la_CXXFLAGS =	@plugin_embedded_defs@
++
++# Static-only library for installation and linking into binaries.
++# (Dynamic does not work well due to unresolved references into mysqld)
++libmaria_la_LDFLAGS =	-static
++libmaria_la_SOURCES =	
++libmaria_la_LIBADD =	libmaria_s.la
++
+ CLEANFILES =		test?.MA? FT?.MA? isam.log ma_test_all ma_rt_test.MA? sp_test.MA? maria_log_control maria_log.0000*
+ 
+ SUFFIXES = .sh
+
+=== modified file 'storage/maria/plug.in'
+--- storage/maria/plug.in	2009-05-12 06:44:01 +0000
++++ storage/maria/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,10 +1,9 @@
+ MYSQL_STORAGE_ENGINE(maria,, [Maria Storage Engine],
+         [Crash-safe tables with MyISAM heritage], [default,max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(maria,  [storage/maria])
+-MYSQL_PLUGIN_STATIC(maria,     [libmaria.a])
++MYSQL_PLUGIN_STATIC(maria,     [libmaria_s.la], [libmaria_embedded.la])
+ # Maria will probably go first into max builds, not all builds,
+ # so we don't declare it mandatory.
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(maria, [ha_maria.cc])
+ 
+ MYSQL_PLUGIN_ACTIONS(maria,  [
+ # AC_CONFIG_FILES(storage/maria/unittest/Makefile)
+
+=== modified file 'storage/maria/unittest/Makefile.am'
+--- storage/maria/unittest/Makefile.am	2008-10-16 19:44:12 +0000
++++ storage/maria/unittest/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -19,14 +19,14 @@
+                   -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
+ EXTRA_DIST=	ma_test_all-t CMakeLists.txt \
+ 		ma_test_recovery.pl ma_test_recovery.expected
+-# Only reason to link with libmyisam.a here is that it's where some fulltext
++# Only reason to link with libmyisam.la here is that it's where some fulltext
+ # pieces are (but soon we'll remove fulltext dependencies from Maria).
+ LDADD=			$(top_builddir)/unittest/mytap/libmytap.a \
+-			$(top_builddir)/storage/maria/libmaria.a \
+-                        $(top_builddir)/storage/myisam/libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
++			$(top_builddir)/storage/maria/libmaria.la \
++                        $(top_builddir)/storage/myisam/libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
+ noinst_PROGRAMS =	ma_control_file-t trnman-t \
+ 			ma_pagecache_single_1k-t ma_pagecache_single_8k-t \
+ 			ma_pagecache_single_64k-t \
+
+=== modified file 'storage/myisam/Makefile.am'
+--- storage/myisam/Makefile.am	2009-10-23 16:48:54 +0000
++++ storage/myisam/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -30,60 +30,65 @@
+ EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
+ pkgdata_DATA =		
+ 
+-pkglib_LIBRARIES =	libmyisam.a
++pkglib_LTLIBRARIES =	libmyisam.la
++noinst_LTLIBRARIES =	libmyisam_common.la libmyisam_s.la \
++			@plugin_myisam_embedded_static_target@
++EXTRA_LTLIBRARIES =	libmyisam_embedded.la
++
+ bin_PROGRAMS =		myisamchk myisamlog myisampack myisam_ftdump
+-myisamchk_DEPENDENCIES=	$(LIBRARIES)
+-myisamchk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-myisamlog_DEPENDENCIES=	$(LIBRARIES)
+-myisamlog_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-myisampack_DEPENDENCIES=$(LIBRARIES)
+-myisampack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
++myisamchk_DEPENDENCIES=	$(LTLIBRARIES)
++myisamchk_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++myisamlog_DEPENDENCIES=	$(LTLIBRARIES)
++myisamlog_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++myisampack_DEPENDENCIES=$(LTLIBRARIES)
++myisampack_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
+ noinst_PROGRAMS =	mi_test1 mi_test2 mi_test3 rt_test sp_test #ft_test1 ft_eval
+ noinst_HEADERS =	myisamdef.h rt_index.h rt_key.h rt_mbr.h sp_defs.h \
+ 			fulltext.h ftdefs.h ft_test1.h ft_eval.h \
+ 			ha_myisam.h
+-mi_test1_DEPENDENCIES=	$(LIBRARIES)
+-mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-mi_test2_DEPENDENCIES=	$(LIBRARIES)
+-mi_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-mi_test3_DEPENDENCIES=	$(LIBRARIES)
+-mi_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-#ft_test1_DEPENDENCIES=	$(LIBRARIES)
+-#ft_eval_DEPENDENCIES=	$(LIBRARIES)
+-myisam_ftdump_DEPENDENCIES=	$(LIBRARIES)
+-myisam_ftdump_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-rt_test_DEPENDENCIES=	$(LIBRARIES)
+-rt_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-sp_test_DEPENDENCIES=	$(LIBRARIES)
+-sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
+-			$(top_builddir)/mysys/libmysys.a \
+-			$(top_builddir)/dbug/libdbug.a \
+-			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
+-libmyisam_a_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
++mi_test1_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++mi_test2_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test2_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++mi_test3_DEPENDENCIES=	$(LTLIBRARIES)
++mi_test3_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++#ft_test1_DEPENDENCIES=	$(LTLIBRARIES)
++#ft_eval_DEPENDENCIES=	$(LTLIBRARIES)
++myisam_ftdump_DEPENDENCIES=	$(LTLIBRARIES)
++myisam_ftdump_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++rt_test_DEPENDENCIES=	$(LTLIBRARIES)
++rt_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++sp_test_DEPENDENCIES=	$(LTLIBRARIES)
++sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
++
++libmyisam_common_la_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
+ 			mi_rnext.c mi_rnext_same.c \
+ 			mi_search.c mi_page.c mi_key.c mi_locking.c \
+ 			mi_rrnd.c mi_scan.c mi_cache.c \
+@@ -98,8 +103,24 @@
+ 			mi_keycache.c mi_preload.c \
+ 			ft_parser.c ft_stopwords.c ft_static.c \
+ 			ft_update.c ft_boolean_search.c ft_nlq_search.c \
+-			sort.c ha_myisam.cc ft_myisam.c \
++			sort.c ft_myisam.c \
+ 			rt_index.c rt_key.c rt_mbr.c rt_split.c sp_key.c
++libmyisam_common_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
++libmyisam_s_la_SOURCES =	ha_myisam.cc
++libmyisam_s_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libmyisam_s_la_LIBADD =	libmyisam_common.la
++libmyisam_embedded_la_SOURCES =	ha_myisam.cc
++libmyisam_embedded_la_LIBADD =	libmyisam_common.la
++libmyisam_embedded_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_embedded_defs@
++# libmyisam  references symbols inside mysqld.
++# This means we cannot use it as shared library, as these references causes
++# undefined symbol errors at load time.
++# But a static library works (as long as those parts that references
++# problematic symbols are not linked).
++libmyisam_la_LDFLAGS =	-static
++libmyisam_la_SOURCES =	
++libmyisam_la_LIBADD =	libmyisam_s.la
++
+ CLEANFILES =		test?.MY? FT?.MY? isam.log mi_test_all rt_test.MY? sp_test.MY?
+ 
+ # Move to automake rules ?
+
+=== modified file 'storage/myisam/plug.in'
+--- storage/myisam/plug.in	2008-10-10 15:28:41 +0000
++++ storage/myisam/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,7 +1,6 @@
+ dnl MYSQL_STORAGE_ENGINE(myisam,no, [MyISAM Storage Engine],
+ dnl         [Traditional non-transactional MySQL tables])
+ dnl MYSQL_PLUGIN_DIRECTORY(myisam,  [storage/myisam])
+-dnl MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.a])
++dnl MYSQL_PLUGIN_STATIC(myisam,     [libmyisam_s.la], [libmyisam_embedded.la])
+ dnl MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
+-dnl MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
+ 
+
+=== modified file 'storage/myisammrg/Makefile.am'
+--- storage/myisammrg/Makefile.am	2008-04-25 21:45:58 +0000
++++ storage/myisammrg/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -26,16 +26,29 @@
+ LDADD =
+ 
+ DEFS =                  @DEFS@
+-pkglib_LIBRARIES =	libmyisammrg.a
++pkglib_LTLIBRARIES =	libmyisammrg.la
++noinst_LTLIBRARIES =	libmyisammrg_s.la libmyisammrg_common.la \
++			@plugin_myisammrg_embedded_static_target@
++EXTRA_LTLIBRARIES =	libmyisammrg_embedded.la
+ noinst_HEADERS =	myrg_def.h ha_myisammrg.h
+-noinst_LIBRARIES =	libmyisammrg.a
+-libmyisammrg_a_SOURCES = myrg_open.c myrg_extra.c myrg_info.c myrg_locking.c \
++libmyisammrg_common_la_SOURCES = myrg_open.c myrg_extra.c myrg_info.c myrg_locking.c \
+ 			myrg_rrnd.c myrg_update.c myrg_delete.c myrg_rsame.c \
+ 			myrg_panic.c myrg_close.c myrg_create.c myrg_static.c \
+ 			myrg_rkey.c myrg_rfirst.c myrg_rlast.c myrg_rnext.c \
+ 			myrg_rprev.c myrg_queue.c myrg_write.c myrg_range.c \
+-			ha_myisammrg.cc \
+ 			myrg_rnext_same.c myrg_records.c
++libmyisammrg_common_la_CFLAGS = $(AM_CFLAGS) @plugin_static_if_no_embedded@
++libmyisammrg_s_la_SOURCES = ha_myisammrg.cc
++libmyisammrg_s_la_CXXFLAGS = $(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libmyisammrg_s_la_LIBADD = libmyisammrg_common.la
++libmyisammrg_embedded_la_SOURCES = ha_myisammrg.cc
++libmyisammrg_embedded_la_CFLAGS = $(AM_CFLAGS) @plugin_embedded_defs@
++libmyisammrg_embedded_la_LIBADD = libmyisammrg_common.la
++libmyisammrg_embedded_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_embedded_defs@
++libmyisammrg_la_SOURCES =	
++libmyisammrg_la_LIBADD =	libmyisammrg_s.la
++libmyisammrg_la_LDFLAGS =	-static
++
+ 
+ 
+ EXTRA_DIST =		CMakeLists.txt plug.in
+
+=== modified file 'storage/myisammrg/plug.in'
+--- storage/myisammrg/plug.in	2006-10-18 12:03:37 +0000
++++ storage/myisammrg/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,6 +1,5 @@
+ MYSQL_STORAGE_ENGINE(myisammrg,no,[MyISAM MERGE Engine],
+         [Merge multiple MySQL tables into one])
+ MYSQL_PLUGIN_DIRECTORY(myisammrg,[storage/myisammrg])
+-MYSQL_PLUGIN_STATIC(myisammrg,  [libmyisammrg.a])
++MYSQL_PLUGIN_STATIC(myisammrg,  [libmyisammrg_s.la], [libmyisammrg_embedded.la])
+ MYSQL_PLUGIN_MANDATORY(myisammrg)
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisammrg, [ha_myisammrg.cc])
+
+=== modified file 'storage/ndb/src/common/util/Makefile.am'
+--- storage/ndb/src/common/util/Makefile.am	2010-04-01 11:19:15 +0000
++++ storage/ndb/src/common/util/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -31,9 +31,9 @@
+ testBitmask_SOURCES =  testBitmask.cpp
+ testBitmask_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ testBitmask.cpp : Bitmask.cpp
+ 	rm -f testBitmask.cpp
+
+=== modified file 'storage/ndb/src/cw/cpcd/Makefile.am'
+--- storage/ndb/src/cw/cpcd/Makefile.am	2007-02-13 01:38:54 +0000
++++ storage/ndb/src/cw/cpcd/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -19,9 +19,9 @@
+ 
+ LDADD_LOC = \
+             $(top_builddir)/storage/ndb/src/libndbclient.la      \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ include $(top_srcdir)/storage/ndb/config/common.mk.am
+ include $(top_srcdir)/storage/ndb/config/type_util.mk.am
+
+=== modified file 'storage/ndb/src/kernel/Makefile.am'
+--- storage/ndb/src/kernel/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -53,9 +53,9 @@
+               $(top_builddir)/storage/ndb/src/mgmapi/libmgmapi.la \
+               $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la      \
+               $(top_builddir)/storage/ndb/src/common/util/libgeneral.la  \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ windoze-dsp: ndbd.dsp
+ 
+
+=== modified file 'storage/ndb/src/kernel/blocks/Makefile.am'
+--- storage/ndb/src/kernel/blocks/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/blocks/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -57,9 +57,9 @@
+ ndb_print_file_SOURCES = print_file.cpp diskpage.cpp dbtup/tuppage.cpp
+ ndb_print_file_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ include $(top_srcdir)/storage/ndb/config/common.mk.am
+ include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
+
+=== modified file 'storage/ndb/src/kernel/blocks/backup/Makefile.am'
+--- storage/ndb/src/kernel/blocks/backup/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -17,9 +17,9 @@
+ ndb_print_backup_file_SOURCES = read.cpp
+ ndb_print_backup_file_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ include $(top_srcdir)/storage/ndb/config/common.mk.am
+ include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
+
+=== modified file 'storage/ndb/src/kernel/blocks/dbdict/Makefile.am'
+--- storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -19,17 +19,17 @@
+ LDADD +=  \
+          $(top_builddir)/storage/ndb/src/common/util/libgeneral.la \
+          $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ ndbtools_PROGRAMS = ndb_print_schema_file
+ ndb_print_schema_file_SOURCES = printSchemaFile.cpp
+ ndb_print_schema_file_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+
+=== modified file 'storage/ndb/src/kernel/blocks/dbdih/Makefile.am'
+--- storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -17,9 +17,9 @@
+ ndb_print_sys_file_SOURCES = printSysfile.cpp
+ ndb_print_sys_file_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ 
+ include $(top_srcdir)/storage/ndb/config/common.mk.am
+
+=== modified file 'storage/ndb/src/kernel/blocks/dblqh/Makefile.am'
+--- storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2007-05-29 21:39:57 +0000
++++ storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -23,9 +23,9 @@
+ 
+ ndbd_redo_log_reader_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+
+=== modified file 'storage/ndb/src/kernel/blocks/dbtup/Makefile.am'
+--- storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -20,9 +20,9 @@
+ test_varpage_SOURCES = test_varpage.cpp tuppage.cpp
+ test_varpage_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-  $(top_builddir)/mysys/libmysys.a \
+-  $(top_builddir)/dbug/libdbug.a \
+-  $(top_builddir)/strings/libmystrings.a
++  $(top_builddir)/mysys/libmysys.la \
++  $(top_builddir)/dbug/libdbug.la \
++  $(top_builddir)/strings/libmystrings.la
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+
+=== modified file 'storage/ndb/src/kernel/vm/Makefile.am'
+--- storage/ndb/src/kernel/vm/Makefile.am	2006-12-31 00:32:21 +0000
++++ storage/ndb/src/kernel/vm/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -65,24 +65,24 @@
+ ndbd_malloc_impl_test_SOURCES = ndbd_malloc_impl.cpp
+ ndbd_malloc_impl_test_LDFLAGS = @ndb_bin_am_ldflags@ \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-  $(top_builddir)/mysys/libmysys.a \
+-  $(top_builddir)/dbug/libdbug.a \
+-  $(top_builddir)/strings/libmystrings.a
++  $(top_builddir)/mysys/libmysys.la \
++  $(top_builddir)/dbug/libdbug.la \
++  $(top_builddir)/strings/libmystrings.la
+ 
+ bench_pool_SOURCES = bench_pool.cpp
+ bench_pool_LDFLAGS = @ndb_bin_am_ldflags@\
+   libkernel.a ../error/liberror.a \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-  $(top_builddir)/mysys/libmysys.a \
+-  $(top_builddir)/dbug/libdbug.a \
+-  $(top_builddir)/strings/libmystrings.a
++  $(top_builddir)/mysys/libmysys.la \
++  $(top_builddir)/dbug/libdbug.la \
++  $(top_builddir)/strings/libmystrings.la
+ 
+ testDynArr256_CXXFLAGS = -DUNIT_TEST
+ testDynArr256_SOURCES = DynArr256.cpp
+ testDynArr256_LDFLAGS = @ndb_bin_am_ldflags@ \
+   libkernel.a ../error/liberror.a \
+   $(top_builddir)/storage/ndb/src/libndbclient.la \
+-  $(top_builddir)/mysys/libmysys.a \
+-  $(top_builddir)/dbug/libdbug.a \
+-  $(top_builddir)/strings/libmystrings.a
++  $(top_builddir)/mysys/libmysys.la \
++  $(top_builddir)/dbug/libdbug.la \
++  $(top_builddir)/strings/libmystrings.la
+ 
+
+=== modified file 'storage/ndb/src/mgmclient/Makefile.am'
+--- storage/ndb/src/mgmclient/Makefile.am	2007-08-01 07:24:01 +0000
++++ storage/ndb/src/mgmclient/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -37,9 +37,9 @@
+ 	    ../common/portlib/libportlib.la \
+             @readline_link@ \
+             $(top_builddir)/storage/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a \
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la \
+             @TERMCAP_LIB@ @NDB_SCI_LIBS@
+ 
+ ndb_mgm_LDFLAGS = @ndb_bin_am_ldflags@
+
+=== modified file 'storage/ndb/src/mgmsrv/Makefile.am'
+--- storage/ndb/src/mgmsrv/Makefile.am	2009-07-31 19:28:15 +0000
++++ storage/ndb/src/mgmsrv/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -40,9 +40,9 @@
+ 
+ LDADD_LOC = $(top_builddir)/storage/ndb/src/mgmclient/CommandInterpreter.lo \
+             $(top_builddir)/storage/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a \
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la \
+             @readline_link@ \
+             @NDB_SCI_LIBS@ \
+ 	    @TERMCAP_LIB@
+
+=== modified file 'storage/ndb/src/ndbapi/Makefile.am'
+--- storage/ndb/src/ndbapi/Makefile.am	2007-04-11 13:51:09 +0000
++++ storage/ndb/src/ndbapi/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -67,9 +67,9 @@
+ include $(top_srcdir)/storage/ndb/config/type_ndbapi.mk.am
+ 
+ ndberror_check_LDFLAGS = \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a
++         $(top_builddir)/dbug/libdbug.la \
++         $(top_builddir)/mysys/libmysys.la \
++         $(top_builddir)/strings/libmystrings.la
+ 
+ # Don't update the files from bitkeeper
+ %::SCCS/s.%
+
+=== modified file 'storage/ndb/test/run-test/Makefile.am'
+--- storage/ndb/test/run-test/Makefile.am	2009-10-13 18:21:42 +0000
++++ storage/ndb/test/run-test/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -34,9 +34,9 @@
+ INCLUDES_LOC = -I$(top_srcdir)/storage/ndb/test/include
+ LDADD_LOC = $(top_builddir)/storage/ndb/test/src/libNDBT.a \
+ 	    $(top_builddir)/storage/ndb/src/libndbclient.la \
+-            $(top_builddir)/dbug/libdbug.a \
+-            $(top_builddir)/mysys/libmysys.a \
+-            $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++            $(top_builddir)/dbug/libdbug.la \
++            $(top_builddir)/mysys/libmysys.la \
++            $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
+ 
+ atrt_CXXFLAGS = -I$(top_srcdir)/ndb/src/mgmapi \
+                       -I$(top_srcdir)/ndb/src/mgmsrv \
+
+=== modified file 'storage/pbxt/plug.in'
+--- storage/pbxt/plug.in	2009-12-09 21:39:23 +0000
++++ storage/pbxt/plug.in	2010-09-16 12:49:35 +0000
+@@ -1,8 +1,7 @@
+ MYSQL_STORAGE_ENGINE(pbxt,no,  [PBXT Storage Engine],
+         [MVCC-based transactional engine], [max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(pbxt, [storage/pbxt])
+-MYSQL_PLUGIN_STATIC(pbxt,    [src/libpbxt.a])
++MYSQL_PLUGIN_STATIC(pbxt,    [src/libpbxt_s.la], [src/libpbxt_s_embedded.la])
+ MYSQL_PLUGIN_ACTIONS(pbxt,  [
+ #               AC_CONFIG_FILES(storage/pbxt/src/Makefile)
+                ])
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(pbxt, [[src/ha_pbxt.cc],[src/myxt_xt.cc],[src/discover_xt.cc]])
+
+=== modified file 'storage/pbxt/src/Makefile.am'
+--- storage/pbxt/src/Makefile.am	2009-12-22 10:33:20 +0000
++++ storage/pbxt/src/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -26,25 +26,33 @@
+ 						pbms.h xt_config.h xt_defs.h xt_errno.h locklist_xt.h
+ EXTRA_LTLIBRARIES =	libpbxt.la
+ 
+-libpbxt_la_SOURCES =	bsearch_xt.cc cache_xt.cc ccutils_xt.cc database_xt.cc \
++non_mysql_internal_sources =	bsearch_xt.cc cache_xt.cc ccutils_xt.cc database_xt.cc \
+ 						datadic_xt.cc datalog_xt.cc filesys_xt.cc hashtab_xt.cc \
+-						ha_pbxt.cc heap_xt.cc index_xt.cc linklist_xt.cc \
+-						memory_xt.cc myxt_xt.cc pthread_xt.cc restart_xt.cc \
++						heap_xt.cc index_xt.cc linklist_xt.cc \
++						memory_xt.cc pthread_xt.cc restart_xt.cc \
+ 						sortedlist_xt.cc strutil_xt.cc \
+ 						tabcache_xt.cc table_xt.cc trace_xt.cc thread_xt.cc \
+-						systab_xt.cc ha_xtsys.cc discover_xt.cc backup_xt.cc \
++						systab_xt.cc ha_xtsys.cc backup_xt.cc \
+ 						util_xt.cc xaction_xt.cc xactlog_xt.cc lock_xt.cc locklist_xt.cc
+-
+-libpbxt_la_LDFLAGS =	-module
++mysql_internal_sources =	ha_pbxt.cc myxt_xt.cc discover_xt.cc
++libpbxt_la_SOURCES =	$(non_mysql_internal_sources) $(mysql_internal_sources)
+ 
+ # These are the warning Drizzle uses:
+ # DRIZZLE_WARNINGS =		-W -Wall -Wextra -pedantic -Wundef -Wredundant-decls -Wno-strict-aliasing -Wno-long-long -Wno-unused-parameter
+ 
+ libpbxt_la_CXXFLAGS =	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+ libpbxt_la_CFLAGS =		$(AM_CFLAGS) -DMYSQL_DYNAMIC_PLUGIN -std=c99
+-
+-EXTRA_LIBRARIES =		libpbxt.a
+-noinst_LIBRARIES = 		libpbxt.a
+-libpbxt_a_SOURCES =		$(libpbxt_la_SOURCES)
++libpbxt_la_LDFLAGS =		-module 
++
++noinst_LTLIBRARIES = 		libpbxt_s.la libpbxt_s_embedded.la libpbxt_s_common.la
++
++libpbxt_s_common_la_SOURCES =	$(non_mysql_internal_sources)
++libpbxt_s_common_la_CXXFLAGS =	@plugin_static_if_no_embedded@
++libpbxt_s_la_SOURCES =		$(mysql_internal_sources)
++libpbxt_s_la_CXXFLAGS =		@plugin_static_if_no_embedded@
++libpbxt_s_la_LIBADD =		libpbxt_s_common.la
++libpbxt_s_embedded_la_SOURCES =	$(mysql_internal_sources)
++libpbxt_s_embedded_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_embedded_defs@
++libpbxt_s_embedded_la_LIBADD =	libpbxt_s_common.la
+ 
+ EXTRA_DIST =			pbms_enabled.cc win_inttypes.h
+
+=== modified file 'storage/xtradb/Makefile.am'
+--- storage/xtradb/Makefile.am	2010-08-04 08:39:53 +0000
++++ storage/xtradb/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -229,9 +229,8 @@
+ 			handler/innodb_patch_info.h	\
+ 			mem/mem0dbg.c
+ 
+-EXTRA_LIBRARIES=	libxtradb.a
+-noinst_LIBRARIES=	@plugin_xtradb_static_target@
+-libxtradb_a_SOURCES=	\
++noinst_LTLIBRARIES=	@plugin_xtradb_static_target@
++libxtradb_la_SOURCES=	\
+ 			btr/btr0btr.c			\
+ 			btr/btr0cur.c			\
+ 			btr/btr0pcur.c			\
+@@ -326,14 +325,14 @@
+ 			ut/ut0vec.c			\
+ 			ut/ut0wqueue.c
+ 
+-libxtradb_a_CXXFLAGS=	$(AM_CFLAGS)
+-libxtradb_a_CFLAGS=	$(AM_CFLAGS)
++libxtradb_la_CXXFLAGS=	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libxtradb_la_CFLAGS=	$(AM_CFLAGS) @plugin_static_if_no_embedded@
+ 
+-EXTRA_LTLIBRARIES=	ha_xtradb.la
++EXTRA_LTLIBRARIES=	libxtradb.la ha_xtradb.la
+ pkgplugin_LTLIBRARIES=	@plugin_xtradb_shared_target@
+ 
+ ha_xtradb_la_LDFLAGS=	-module -rpath $(pkgplugindir)
+-ha_xtradb_la_CXXFLAGS=	$(AM_CFLAGS) $(INNODB_DYNAMIC_CFLAGS)
++ha_xtradb_la_CXXFLAGS=	$(AM_CXXFLAGS) $(INNODB_DYNAMIC_CFLAGS)
+ ha_xtradb_la_CFLAGS=	$(AM_CFLAGS) $(INNODB_DYNAMIC_CFLAGS)
+ ha_xtradb_la_SOURCES=	$(libxtradb_a_SOURCES)
+ 
+
+=== modified file 'storage/xtradb/plug.in'
+--- storage/xtradb/plug.in	2010-08-04 08:39:53 +0000
++++ storage/xtradb/plug.in	2010-09-16 12:49:35 +0000
+@@ -17,7 +17,7 @@
+ MYSQL_STORAGE_ENGINE(xtradb,  xtradb, [XtraDB Storage Engine],
+         [XtraDB - a drop-in replacement for InnoDB], [max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(xtradb, [storage/xtradb])
+-MYSQL_PLUGIN_STATIC(xtradb,   [libxtradb.a])
++MYSQL_PLUGIN_STATIC(xtradb,   [libxtradb.la])
+ MYSQL_PLUGIN_DYNAMIC(xtradb,  [ha_xtradb.la])
+ MYSQL_PLUGIN_ACTIONS(xtradb,  [
+   with_plugin_innobase=$with_plugin_xtradb # for legacy code in configure.in
+
+=== modified file 'strings/Makefile.am'
+--- strings/Makefile.am	2010-08-27 14:12:44 +0000
++++ strings/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -16,7 +16,7 @@
+ # This file is public domain and comes with NO WARRANTY of any kind
+ 
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
+-pkglib_LIBRARIES =	libmystrings.a
++pkglib_LTLIBRARIES =	libmystrings.la
+ 
+ # Exact one of ASSEMBLER_X
+ if ASSEMBLER_x86
+@@ -37,7 +37,7 @@
+ endif
+ endif
+ 
+-libmystrings_a_SOURCES = $(ASRCS) $(CSRCS)
++libmystrings_la_SOURCES = $(ASRCS) $(CSRCS)
+ noinst_PROGRAMS = conf_to_src
+ CLEANFILES = str_test uctypedump test_decimal
+ # Default charset definitions
+@@ -56,9 +56,10 @@
+ 			t_ctype.h my_strchr.c CMakeLists.txt \
+ 			CHARSET_INFO.txt strmov_overlapp.c
+ 
+-libmystrings_a_LIBADD=
+-conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
+-conf_to_src_LDADD=
++libmystrings_la_LIBADD=
++conf_to_src_SOURCES =	conf_to_src.c
++conf_to_src_LDADD =	libmystrings.la
++
+ #force static linking of conf_to_src - essential when linking against
+ #custom installation of libc
+ conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
+@@ -69,13 +70,13 @@
+ 
+ FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
+ 
+-str_test: str_test.c $(pkglib_LIBRARIES)
+-	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LIBRARIES)
++str_test: str_test.c $(pkglib_LTLIBRARIES)
++	$(LINK) $(FLAGS) -DMAIN $(INCLUDES) $(srcdir)/str_test.c $(LDADD) $(pkglib_LTLIBRARIES)
+ 
+ uctypedump: uctypedump.c
+ 	$(LINK) $(INCLUDES) $(srcdir)/uctypedump.c
+ 
+ test_decimal$(EXEEXT): decimal.c $(pkglib_LIBRARIES)
+ 	$(CP) $(srcdir)/decimal.c ./test_decimal.c
+-	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LIBRARIES)
++	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LTLIBRARIES)
+ 	$(RM) -f ./test_decimal.c
+
+=== modified file 'unittest/mysys/Makefile.am'
+--- unittest/mysys/Makefile.am	2010-08-27 14:12:44 +0000
++++ unittest/mysys/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -19,9 +19,10 @@
+ noinst_HEADERS = thr_template.c
+ 
+ LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
+-		  $(top_builddir)/mysys/libmysys.a \
+-		  $(top_builddir)/dbug/libdbug.a \
+-		  $(top_builddir)/strings/libmystrings.a
++		  $(top_builddir)/mysys/libmysys.la \
++		  $(top_builddir)/dbug/libdbug.la \
++		  $(top_builddir)/strings/libmystrings.la \
++		  $(ZLIB_LIBS)
+ 
+ EXTRA_DIST       = CMakeLists.txt 
+ noinst_PROGRAMS  = bitmap-t base64-t my_atomic-t lf-t waiting_threads-t
+
+=== modified file 'unittest/strings/Makefile.am'
+--- unittest/strings/Makefile.am	2010-07-26 05:06:18 +0000
++++ unittest/strings/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -17,9 +17,10 @@
+ AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
+ 
+ LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
+-		  $(top_builddir)/mysys/libmysys.a \
+-		  $(top_builddir)/dbug/libdbug.a \
+-		  $(top_builddir)/strings/libmystrings.a
++		  $(top_builddir)/mysys/libmysys.la \
++		  $(top_builddir)/dbug/libdbug.la \
++		  $(top_builddir)/strings/libmystrings.la \
++		  $(ZLIB_LIBS)
+ 
+ noinst_PROGRAMS  = strings-t
+ 
+
+=== modified file 'vio/Makefile.am'
+--- vio/Makefile.am	2010-08-27 14:12:44 +0000
++++ vio/Makefile.am	2010-09-16 12:49:35 +0000
+@@ -16,10 +16,10 @@
+ INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
+ 			$(openssl_includes)
+ LDADD =			@CLIENT_EXTRA_LDFLAGS@ $(openssl_libs) $(yassl_libs)
+-pkglib_LIBRARIES =	libvio.a
++pkglib_LTLIBRARIES =	libvio.la
+ 
+ noinst_HEADERS =	vio_priv.h
+ 
+-libvio_a_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
++libvio_la_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
+ 
+ EXTRA_DIST=		CMakeLists.txt
+

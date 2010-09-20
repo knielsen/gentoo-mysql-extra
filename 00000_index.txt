@@ -281,11 +281,10 @@
 @pn mysql
 @@ Take libmysqld to be a proper shared library.
 
-# Disable the patch for now
-#@patch 02040_all_embedded-library-shared-5.1.39.patch
-#@ver 5.1.39.00 to 5.1.99.99
-#@pn mysql
-#@@ Take libmysqld to be a proper shared library.
+@patch 02040_all_embedded-library-shared-maria-5.1.50.patch
+@ver 5.1.50.00 to 5.1.99.99
+@pn maria
+@@ Take libmysqld to be a proper shared library.
 
 @patch 04000_all_mysqld-safe-sh-4.0.27.patch
 @ver 4.00.00.00 to 4.00.99.99
