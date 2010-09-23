@@ -985,49 +985,6 @@
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(heap, [ha_heap.cc])
  
 
-=== modified file 'storage/innobase/Makefile.am'
---- storage/innobase/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/innobase/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -122,9 +122,8 @@
- 			include/ut0list.ic include/ut0wqueue.h		\
- 			include/ha_prototypes.h handler/ha_innodb.h
- 
--EXTRA_LIBRARIES=	libinnobase.a
--noinst_LIBRARIES=	@plugin_innobase_static_target@
--libinnobase_a_SOURCES=	btr/btr0btr.c btr/btr0cur.c btr/btr0pcur.c	\
-+noinst_LTLIBRARIES=	@plugin_innobase_static_target@
-+libinnobase_la_SOURCES=	btr/btr0btr.c btr/btr0cur.c btr/btr0pcur.c	\
- 			btr/btr0sea.c buf/buf0buf.c buf/buf0flu.c	\
- 			buf/buf0lru.c buf/buf0rea.c data/data0data.c	\
- 			data/data0type.c dict/dict0boot.c		\
-@@ -156,10 +155,10 @@
- 			ut/ut0ut.c ut/ut0vec.c ut/ut0wqueue.c		\
- 			handler/ha_innodb.cc
- 
--libinnobase_a_CXXFLAGS=	$(AM_CXXFLAGS)
--libinnobase_a_CFLAGS=	$(AM_CFLAGS)
-+libinnobase_la_CXXFLAGS=	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
-+libinnobase_la_CFLAGS=	$(AM_CFLAGS) @plugin_static_if_no_embedded@
- 
--EXTRA_LTLIBRARIES=	ha_innodb.la
-+EXTRA_LTLIBRARIES=	libinnobase.la ha_innodb.la
- pkgplugin_LTLIBRARIES=	@plugin_innobase_shared_target@
- 
- ha_innodb_la_LDFLAGS=	-module -rpath $(pkgplugindir)
-
-=== modified file 'storage/innobase/plug.in.disabled'
---- storage/innobase/plug.in.disabled	2010-05-26 18:55:40 +0000
-+++ storage/innobase/plug.in.disabled	2010-09-16 12:49:35 +0000
-@@ -1,7 +1,7 @@
- MYSQL_STORAGE_ENGINE(innobase, innodb, [InnoDB Storage Engine],
-         [Transactional Tables using InnoDB], [max,max-no-ndb])
- MYSQL_PLUGIN_DIRECTORY(innobase, [storage/innobase])
--MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.a])
-+MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.la])
- MYSQL_PLUGIN_DYNAMIC(innobase,  [ha_innodb.la])
- MYSQL_PLUGIN_ACTIONS(innobase,  [
-   AC_CHECK_LIB(rt, aio_read, [innodb_system_libs="-lrt"])
-
 === modified file 'storage/innodb_plugin/Makefile.am'
 --- storage/innodb_plugin/Makefile.am	2010-07-09 11:37:51 +0000
 +++ storage/innodb_plugin/Makefile.am	2010-09-16 12:49:35 +0000
