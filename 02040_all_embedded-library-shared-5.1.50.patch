@@ -366,7 +366,7 @@
  # Storage engine specific compilation options
  ha_ndbcluster.o:ha_ndbcluster.cc
  		$(CXXCOMPILE) @ndbcluster_includes@ $(LM_CFLAGS) -c $<
-@@ -140,51 +134,13 @@
+@@ -139,51 +133,13 @@
  ha_myisammrg.o:ha_myisammrg.cc
  		$(CXXCOMPILE) $(LM_CFLAGS) -c $<
  
@@ -419,7 +419,7 @@
  
  BUILT_SOURCES = link_sources
  
-@@ -209,20 +165,6 @@
+@@ -208,20 +164,6 @@
  	      @LN_CP_F@ $(top_builddir)/libmysql/$$f $$f; \
  	    fi ; \
  	  done; \
@@ -440,7 +440,7 @@
  	  rm -f client_settings.h; \
  	  @LN_CP_F@ $(top_srcdir)/libmysql/client_settings.h \
                                            client_settings.h; \
-@@ -230,5 +172,5 @@
+@@ -229,5 +171,5 @@
  
  
  clean-local:
@@ -516,7 +516,7 @@
  DEFS =			-DDEFAULT_BASEDIR=\"$(prefix)\" \
  			-DMYSQL_DATADIR="\"$(MYSQLDATAdir)\"" \
  			-DDEFAULT_CHARSET_HOME="\"$(MYSQLBASEdir)\"" \
-@@ -83,8 +84,6 @@
+@@ -78,8 +79,6 @@
  			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
                          @DEFS@
  
@@ -525,7 +525,7 @@
  # I hope this always does the right thing. Otherwise this is only test programs
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
  
-@@ -100,50 +99,50 @@
+@@ -98,50 +97,50 @@
  # which automaticly removes the object files you use to compile a final program
  #
  
