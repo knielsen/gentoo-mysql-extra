@@ -311,16 +311,16 @@
 @@ -79,34 +78,29 @@
  	rpl_injector.cc my_user.c partition_info.cc \
  	sql_servers.cc event_parse_data.cc
- 
+
 -libmysqld_int_a_SOURCES= $(libmysqld_sources)
 -nodist_libmysqld_int_a_SOURCES= $(libmysqlsources) $(sqlsources)
 -libmysqld_a_SOURCES=
 -
--sqlstoragesources =	$(EXTRA_libmysqld_a_SOURCES)
+-sqlstoragesources = $(EXTRA_libmysqld_a_SOURCES)
 -storagesources = @condition_dependent_plugin_modules@
 -storageobjects = @condition_dependent_plugin_objects@
 -storagesourceslinks = @condition_dependent_plugin_links@
--
+
  # automake misses these
  sql_yacc.cc sql_yacc.h: $(top_srcdir)/sql/sql_yacc.yy
  
@@ -336,9 +336,8 @@
 +		$(top_builddir)/dbug/libdbug.la \
 +		$(top_builddir)/vio/libvio.la \
                  @NDB_SCI_LIBS@ \
--		@mysql_plugin_libs@ \
+- 		@mysql_plugin_libs@ \
 +		@mysql_embedded_plugin_libs@ \
- 		$(libevent_inc_libs) \
  		$(yassl_inc_libs)
  
  if HAVE_YASSL
