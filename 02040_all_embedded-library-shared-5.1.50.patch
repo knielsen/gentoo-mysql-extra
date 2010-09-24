@@ -825,7 +825,7 @@
 +libfederated_embedded_la_SOURCES=  ha_federated.cc
  
  
- EXTRA_DIST =       CMakeLists.txt plug.in
+ EXTRA_DIST =		CMakeLists.txt plug.in
 === modified file 'storage/federated/plug.in'
 --- storage/federated/plug.in	2010-06-09 21:29:18 +0000
 +++ storage/federated/plug.in	2010-09-16 12:49:35 +0000
