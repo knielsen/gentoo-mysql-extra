@@ -308,7 +308,7 @@
  SUBDIRS =		. examples
  libmysqld_sources=	libmysqld.c lib_sql.cc emb_qcache.cc
  libmysqlsources =	errmsg.c get_password.c libmysql.c client.c pack.c \
-@@ -79,34 +78,29 @@
+@@ -79,33 +78,29 @@
  	rpl_injector.cc my_user.c partition_info.cc \
  	sql_servers.cc event_parse_data.cc
 
