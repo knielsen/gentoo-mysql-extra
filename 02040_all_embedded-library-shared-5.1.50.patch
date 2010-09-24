@@ -799,15 +799,15 @@
 +++ storage/federated/Makefile.am	2010-09-16 12:49:35 +0000
 @@ -32,7 +32,7 @@
  
- noinst_HEADERS =   ha_federated.h
+ noinst_HEADERS =	ha_federated.h
  
 -EXTRA_LTLIBRARIES =	ha_federated.la
 +EXTRA_LTLIBRARIES =	libfederated.la libfederated_embedded.la ha_federated.la
- pkgplugin_LTLIBRARIES =    @plugin_federated_shared_target@
- ha_federated_la_LDFLAGS =  -module -rpath $(pkgplugindir)
- ha_federated_la_CXXFLAGS=  $(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+ pkgplugin_LTLIBRARIES =	@plugin_federated_shared_target@
+ ha_federated_la_LDFLAGS =	-module -rpath $(pkgplugindir)
+ ha_federated_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
 @@ -40,11 +40,14 @@
- ha_federated_la_SOURCES =  ha_federated.cc
+ ha_federated_la_SOURCES =	ha_federated.cc
  
  
 -EXTRA_LIBRARIES =	libfederated.a
