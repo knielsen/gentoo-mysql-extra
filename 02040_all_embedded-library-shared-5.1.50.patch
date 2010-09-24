@@ -245,7 +245,7 @@
  # Only build client code?
  AC_ARG_WITH(server,
      [  --without-server        Only build the client.],
-@@ -2545,6 +2542,8 @@
+@@ -2498,6 +2485,8 @@
      [with_embedded_server=no]
  )
  
@@ -264,7 +264,7 @@
  fi
  AM_CONDITIONAL(NEED_THREAD, test "$with_server" != "no" -o "$THREAD_SAFE_CLIENT" != "no")
  
-@@ -2877,6 +2873,7 @@
+@@ -2833,6 +2829,7 @@
  
  AC_SUBST(mysql_plugin_dirs)
  AC_SUBST(mysql_plugin_libs)
