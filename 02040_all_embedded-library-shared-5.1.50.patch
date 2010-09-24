@@ -198,7 +198,7 @@
        mysql_plugin_defs="$mysql_plugin_defs, [builtin_]$2[_plugin]"
        [with_plugin_]$2=yes
        AC_MSG_RESULT([yes])
--      m4_ifdef([$11], [
+-      m4_ifdef([$11],[
 -         condition_dependent_plugin_modules="$condition_dependent_plugin_modules m4_bregexp($11, [[^/]+$], [\&])"
 -         condition_dependent_plugin_objects="$condition_dependent_plugin_objects m4_bregexp($11, [[^/]+\.], [\&o])"
 -         condition_dependent_plugin_links="$condition_dependent_plugin_links $6/$11"
@@ -629,7 +629,7 @@
 === modified file 'sql/Makefile.am'
 --- sql/Makefile.am	2010-08-27 14:12:44 +0000
 +++ sql/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -33,13 +33,13 @@
+@@ -32,13 +32,13 @@
  noinst_LTLIBRARIES=	libndb.la \
  			udf_example.la
  
@@ -648,8 +648,8 @@
 +LDADD = $(SUPPORTING_LIBS) @ZLIB_LIBS@ @NDB_SCI_LIBS@ $(openssl_libs) $(yassl_libs)
  mysqld_LDADD =		libndb.la \
  			@MYSQLD_EXTRA_LDFLAGS@ \
- 			@pstack_libs@ $(libevent_libs) \
-
+ 			@pstack_libs@ \
+ 			@mysql_plugin_libs@ \
 === modified file 'storage/archive/Makefile.am'
 --- storage/archive/Makefile.am	2010-07-09 11:37:51 +0000
 +++ storage/archive/Makefile.am	2010-09-16 12:49:35 +0000
@@ -819,7 +819,7 @@
 === modified file 'storage/federated/Makefile.am'
 --- storage/federated/Makefile.am	2010-08-27 14:12:44 +0000
 +++ storage/federated/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -30,7 +30,7 @@
+@@ -32,7 +32,7 @@
  
  noinst_HEADERS =	ha_federated.h
  
@@ -828,7 +828,7 @@
  pkgplugin_LTLIBRARIES =	@plugin_federated_shared_target@
  ha_federated_la_LDFLAGS =	-module -rpath $(pkgplugindir)
  ha_federated_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-@@ -38,11 +38,14 @@
+@@ -40,11 +40,14 @@
  ha_federated_la_SOURCES =	ha_federated.cc $(top_srcdir)/mysys/string.c
  
  
@@ -848,7 +848,7 @@
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-
+ # Don't update the files from bitkeeper
 === modified file 'storage/federated/plug.in'
 --- storage/federated/plug.in	2010-06-09 21:29:18 +0000
 +++ storage/federated/plug.in	2010-09-16 12:49:35 +0000
