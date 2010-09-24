@@ -348,7 +348,7 @@
  endif
 
  # Storage engine specific compilation options
-@@ -139,51 +133,13 @@
+@@ -139,44 +129,6 @@
  ha_myisammrg.o:ha_myisammrg.cc
  		$(CXXCOMPILE) $(LM_CFLAGS) -c $<
  
@@ -393,14 +393,15 @@
  ## XXX: any time the client interface changes, we'll need to bump
  ## the version info for libmysqld; however, it's possible for the
  ## libmysqld interface to change without affecting the standard
- ## libmysqlclient interface.  Should we make a separate version
- ## string for the two?
- #libmysqld_la_LDFLAGS = -version-info @SHARED_LIB_VERSION@
--#CLEANFILES =		$(libmysqld_la_LIBADD) libmysqld.la
-+#CLEANFILES =		libmysqld.la
+@@ -187,7 +139,7 @@
  
  BUILT_SOURCES = link_sources
  
+-CLEANFILES = $(BUILT_SOURCES)
++CLEANFILES = libmysqld.la
+ 
+ link_sources:
+      for f in $(sqlsources); do \
 @@ -208,20 +164,6 @@
  	      @LN_CP_F@ $(top_builddir)/libmysql/$$f $$f; \
  	    fi ; \
