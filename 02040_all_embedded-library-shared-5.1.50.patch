@@ -308,45 +308,45 @@
  SUBDIRS =		. examples
  libmysqld_sources=	libmysqld.c lib_sql.cc emb_qcache.cc
  libmysqlsources =	errmsg.c get_password.c libmysql.c client.c pack.c \
-@@ -79,31 +79,22 @@
-    rpl_injector.cc my_user.c partition_info.cc \
-    sql_servers.cc event_parse_data.cc
-
+@@ -79,31 +78,22 @@
+ 	rpl_injector.cc my_user.c partition_info.cc \
+ 	sql_servers.cc event_parse_data.cc
+ 
 -libmysqld_int_a_SOURCES= $(libmysqld_sources)
 -nodist_libmysqld_int_a_SOURCES= $(libmysqlsources) $(sqlsources)
 -libmysqld_a_SOURCES=
 -
--sqlstoragesources =    $(EXTRA_libmysqld_a_SOURCES)
+-sqlstoragesources =	$(EXTRA_libmysqld_a_SOURCES)
 -storagesources = @condition_dependent_plugin_modules@
 -storageobjects = @condition_dependent_plugin_objects@
 -storagesourceslinks = @condition_dependent_plugin_links@
 -
  # automake misses these
  sql_yacc.cc sql_yacc.h: $(top_srcdir)/sql/sql_yacc.yy
-
+ 
  # The following libraries should be included in libmysqld.a
--INC_LIB=   $(top_builddir)/regex/libregex.a \
--       $(top_builddir)/mysys/libmysys.a \
--       $(top_builddir)/strings/libmystrings.a \
--       $(top_builddir)/dbug/libdbug.a \
--       $(top_builddir)/vio/libvio.a \
-+INC_LIB=   $(top_builddir)/regex/libregex.la \
-+       $(top_builddir)/mysys/libmysys.la \
-+       $(top_builddir)/strings/libmystrings.la \
-+       $(top_builddir)/dbug/libdbug.la \
-+       $(top_builddir)/vio/libvio.la \
+-INC_LIB=	$(top_builddir)/regex/libregex.a \
+-		$(top_builddir)/mysys/libmysys.a \
+-		$(top_builddir)/strings/libmystrings.a \
+-		$(top_builddir)/dbug/libdbug.a \
+-		$(top_builddir)/vio/libvio.a \
++INC_LIB=	$(top_builddir)/regex/libregex.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/vio/libvio.la \
                  @NDB_SCI_LIBS@ \
--       @mysql_plugin_libs@ \
-+       @mysql_embedded_plugin_libs@ \
-        $(yassl_inc_libs)
-
+-		@mysql_plugin_libs@ \
++		@mysql_embedded_plugin_libs@ \
+ 		$(yassl_inc_libs)
+ 
  if HAVE_YASSL
--yassl_inc_libs=    $(top_builddir)/extra/yassl/src/.libs/libyassl.a \
--       $(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.a
-+yassl_inc_libs=    $(top_builddir)/extra/yassl/src/.libs/libyassl.la \
-+       $(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.la
+-yassl_inc_libs=	$(top_builddir)/extra/yassl/src/.libs/libyassl.a \
+-		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.a
++yassl_inc_libs=	$(top_builddir)/extra/yassl/src/.libs/libyassl.la \
++		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.la
  endif
-
+ 
  # Storage engine specific compilation options
 @@ -139,44 +129,6 @@
  ha_myisammrg.o:ha_myisammrg.cc
@@ -401,8 +401,8 @@
 +CLEANFILES = libmysqld.la
  
  link_sources:
-      for f in $(sqlsources); do \
-@@ -208,20 +164,6 @@
+ 	  for f in $(sqlsources); do \
+@@ -208,20 +160,6 @@
  	      @LN_CP_F@ $(top_builddir)/libmysql/$$f $$f; \
  	    fi ; \
  	  done; \
@@ -423,14 +423,14 @@
  	  rm -f client_settings.h; \
  	  @LN_CP_F@ $(top_srcdir)/libmysql/client_settings.h \
                                            client_settings.h; \
-@@ -229,5 +171,5 @@
+@@ -229,7 +167,7 @@
  
  
  clean-local:
 -	rm -f `echo $(sqlsources) $(libmysqlsources) $(sqlstoragesources) $(storagesources) | sed "s;\.lo;.c;g"`; \
 +	rm -f `echo $(sqlsources) $(libmysqlsources) | sed "s;\.lo;.c;g"`; \
  	rm -f client_settings.h
-
+ 
  # Don't update the files from bitkeeper
 === modified file 'libmysqld/examples/Makefile.am'
 --- libmysqld/examples/Makefile.am	2010-07-16 07:15:22 +0000
