@@ -799,45 +799,43 @@
 +++ storage/federated/Makefile.am	2010-09-16 12:49:35 +0000
 @@ -32,7 +32,7 @@
  
- noinst_HEADERS =	ha_federated.h
+ noinst_HEADERS =   ha_federated.h
  
--EXTRA_LTLIBRARIES =	ha_federated.la
-+EXTRA_LTLIBRARIES =	libfederated.la libfederated_embedded.la ha_federated.la
- pkgplugin_LTLIBRARIES =	@plugin_federated_shared_target@
- ha_federated_la_LDFLAGS =	-module -rpath $(pkgplugindir)
- ha_federated_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
+-EXTRA_LTLIBRARIES =    ha_federated.la
++EXTRA_LTLIBRARIES =    libfederated.la libfederated_embedded.la ha_federated.la
+ pkgplugin_LTLIBRARIES =    @plugin_federated_shared_target@
+ ha_federated_la_LDFLAGS =  -module -rpath $(pkgplugindir)
+ ha_federated_la_CXXFLAGS=  $(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
 @@ -40,11 +40,14 @@
- ha_federated_la_SOURCES =	ha_federated.cc $(top_srcdir)/mysys/string.c
+ ha_federated_la_SOURCES =  ha_federated.cc
  
  
--EXTRA_LIBRARIES =	libfederated.a
--noinst_LIBRARIES =	@plugin_federated_static_target@
--libfederated_a_CXXFLAGS =	$(AM_CXXFLAGS)
--libfederated_a_CFLAGS =	$(AM_CFLAGS)
--libfederated_a_SOURCES=	ha_federated.cc
-+noinst_LTLIBRARIES =	@plugin_federated_static_target@ @plugin_federated_embedded_static_target@
-+libfederated_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
-+libfederated_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
-+libfederated_la_SOURCES=	ha_federated.cc
+-EXTRA_LIBRARIES =  libfederated.a
+-noinst_LIBRARIES = @plugin_federated_static_target@
+-libfederated_a_CXXFLAGS =  $(AM_CXXFLAGS)
+-libfederated_a_CFLAGS =    $(AM_CFLAGS)
+-libfederated_a_SOURCES=    ha_federated.cc
++noinst_LTLIBRARIES =   @plugin_federated_static_target@
++libfederated_la_CXXFLAGS = $(AM_CXXFLAGS) @plugin_static_if_no_embedded@
++libfederated_la_CFLAGS =   $(AM_CFLAGS) @plugin_static_if_no_embedded@
++libfederated_la_SOURCES=   ha_federated.cc
 +
-+libfederated_embedded_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_embedded_defs@
-+libfederated_embedded_la_CFLAGS =	$(AM_CFLAGS) @plugin_embedded_defs@
-+libfederated_embedded_la_SOURCES=	ha_federated.cc
++libfederated_embedded_la_CXXFLAGS =    $(AM_CXXFLAGS) @plugin_embedded_defs@
++libfederated_embedded_la_CFLAGS =  $(AM_CFLAGS) @plugin_embedded_defs@
++libfederated_embedded_la_SOURCES=  ha_federated.cc
  
  
- EXTRA_DIST =		CMakeLists.txt plug.in
- # Don't update the files from bitkeeper
+ EXTRA_DIST =       CMakeLists.txt plug.in
 === modified file 'storage/federated/plug.in'
 --- storage/federated/plug.in	2010-06-09 21:29:18 +0000
 +++ storage/federated/plug.in	2010-09-16 12:49:35 +0000
 @@ -1,5 +1,4 @@
  MYSQL_STORAGE_ENGINE(federated,,[Federated Storage Engine],
-         [Connects to tables on remote MySQL servers], [])
+         [Connects to tables on remote MySQL servers], [max,max-no-ndb])
 -MYSQL_PLUGIN_STATIC(federated,    [libfederated.a])
-+MYSQL_PLUGIN_STATIC(federated,    [libfederated.la], [libfederated_embedded.la])
++MYSQL_PLUGIN_STATIC(federated,    [libfederated.a], [libfederated_embedded.la])
  MYSQL_PLUGIN_DYNAMIC(federated,   [ha_federated.la])
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(federated, [ha_federated.cc])
-
 === modified file 'storage/heap/Makefile.am'
 --- storage/heap/Makefile.am	2006-12-31 00:32:21 +0000
 +++ storage/heap/Makefile.am	2010-09-16 12:49:35 +0000
