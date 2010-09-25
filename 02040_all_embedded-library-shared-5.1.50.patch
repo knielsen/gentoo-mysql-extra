@@ -465,14 +465,14 @@
 === modified file 'mysys/Makefile.am'
 --- mysys/Makefile.am	2010-08-27 14:12:44 +0000
 +++ mysys/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -16,10 +16,10 @@
+@@ -18,10 +18,10 @@
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
  			-I$(top_srcdir)/include -I$(srcdir)
 -pkglib_LIBRARIES =	libmysys.a
--LDADD =		libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
+-LDADD =			libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
 +pkglib_LTLIBRARIES =	libmysys.la
-+LDADD =		libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
++LDADD =			libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
  noinst_HEADERS =	mysys_priv.h my_static.h my_handler_errors.h
 -libmysys_a_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
 +libmysys_la_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
