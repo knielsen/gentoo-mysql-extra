@@ -1133,7 +1133,7 @@
          [Transactional Tables using InnoDB], [max,max-no-ndb])
  MYSQL_PLUGIN_DIRECTORY(innobase, [storage/innobase])
 -MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.a])
-+MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.la], [libinnobase_embedded.la])
++MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.la])
  MYSQL_PLUGIN_DYNAMIC(innobase,  [ha_innodb.la])
  MYSQL_PLUGIN_ACTIONS(innobase,  [
    AC_CHECK_LIB(rt, aio_read, [innodb_system_libs="-lrt"])
