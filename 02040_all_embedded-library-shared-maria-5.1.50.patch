@@ -1887,13 +1887,13 @@
 === modified file 'unittest/unit.pl'
 --- unittest/unit.pl	2010-09-25 20:28:51.813336741 +0000
 +++ unittest/unit.pl	2010-09-25 20:29:58.156670013 +0000
-@@ -55,7 +55,7 @@
+@@ -65,7 +65,7 @@
      my @dirs = @_;
      my @files;
      find sub { 
 -        $File::Find::prune = 1 if /^SCCS$/;
 +        $File::Find::prune = 1 if /^(SCCS|\.libs)$/;
-         push(@files, $File::Find::name) if -x _ && /-t\z/;
+         push(@files, $File::Find::name) if -x _ && (/-t\z/ || /-t\.exe\z/);
      }, @dirs;
      return @files;
 === modified file 'unittest/mysys/Makefile.am'
