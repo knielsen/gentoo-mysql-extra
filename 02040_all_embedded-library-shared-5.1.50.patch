@@ -1800,7 +1800,7 @@
 === modified file 'unittest/mysys/Makefile.am'
 --- unittest/mysys/Makefile.am	2010-08-27 14:12:44 +0000
 +++ unittest/mysys/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -17,9 +17,10 @@
+@@ -17,10 +17,12 @@
  AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
  
  LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
