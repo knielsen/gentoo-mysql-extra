@@ -1065,12 +1065,11 @@
  			mi_rnext.c mi_rnext_same.c \
  			mi_search.c mi_page.c mi_key.c mi_locking.c \
  			mi_rrnd.c mi_scan.c mi_cache.c \
-@@ -98,8 +102,24 @@
+@@ -98,8 +102,23 @@
  			mi_keycache.c mi_preload.c \
  			ft_parser.c ft_stopwords.c ft_static.c \
  			ft_update.c ft_boolean_search.c ft_nlq_search.c sort.c \
 -			ha_myisam.cc \
-+			ft_myisam.c \
  			rt_index.c rt_key.c rt_mbr.c rt_split.c sp_key.c
 +libmyisam_common_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
 +libmyisam_s_la_SOURCES =	ha_myisam.cc
@@ -1091,6 +1090,7 @@
  CLEANFILES =		test?.MY? FT?.MY? isam.log mi_test_all rt_test.MY? sp_test.MY?
  
  # Move to automake rules ?
+
 === modified file 'storage/myisam/plug.in'
 --- storage/myisam/plug.in	2008-10-10 15:28:41 +0000
 +++ storage/myisam/plug.in	2010-09-16 12:49:35 +0000
