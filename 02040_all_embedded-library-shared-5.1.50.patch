@@ -1059,7 +1059,7 @@
 +sp_test_DEPENDENCIES=	$(LTLIBRARIES)
 +sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
-+			$(top_builddir)/dbug/libdebug.la \
++			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
 +libmyisam_common_la_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
  			mi_rnext.c mi_rnext_same.c \
