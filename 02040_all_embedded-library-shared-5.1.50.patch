@@ -308,7 +308,7 @@
  SUBDIRS =		. examples
  libmysqld_sources=	libmysqld.c lib_sql.cc emb_qcache.cc
  libmysqlsources =	errmsg.c get_password.c libmysql.c client.c pack.c \
-@@ -79,31 +78,22 @@
+@@ -79,33 +78,28 @@
  	rpl_injector.cc my_user.c partition_info.cc \
  	sql_servers.cc event_parse_data.cc
  
@@ -347,8 +347,14 @@
 +		$(top_builddir)/extra/yassl/taocrypt/src/.libs/libtaocrypt.la
  endif
  
++libmysqld_la_SOURCES= $(libmysqld_sources)
++nodist_libmysqld_la_SOURCES= $(libmysqlsources) $(sqlsources)
++libmysqld_la_LIBADD =  $(INC_LIB)
++
  # Storage engine specific compilation options
-@@ -139,44 +129,6 @@
+ ha_ndbcluster.o:ha_ndbcluster.cc
+ 		$(CXXCOMPILE) @ndbcluster_includes@ $(LM_CFLAGS) -c $<
+@@ -139,44 +133,6 @@
  ha_myisammrg.o:ha_myisammrg.cc
  		$(CXXCOMPILE) $(LM_CFLAGS) -c $<
  
@@ -473,14 +479,13 @@
  			mf_path.c mf_loadpath.c my_file.c \
  			my_open.c my_create.c my_dup.c my_seek.c my_read.c \
  			my_pread.c my_write.c my_getpagesize.c \
-@@ -57,18 +57,19 @@
+@@ -57,18 +57,18 @@
  # mf_keycache is used only in the server, so it is safe to leave the file
  # out of the non-threaded library.
  # In fact, it will currently not compile without thread support.
 -libmysys_a_SOURCES +=   mf_keycache.c
 +libmysys_la_SOURCES +=   thr_alarm.c thr_lock.c thr_mutex.c thr_rwlock.c \
-+			my_pthread.c my_thr_init.c waiting_threads.c \
-+			mf_keycache.c mf_keycaches.c
++			my_pthread.c my_thr_init.c mf_keycache.c
  endif
  
  EXTRA_DIST =		thr_alarm.c thr_lock.c my_pthread.c my_thr_init.c \
@@ -627,7 +632,6 @@
  mysqld_LDADD =		libndb.la \
  			@MYSQLD_EXTRA_LDFLAGS@ \
  			@pstack_libs@ \
- 			@mysql_plugin_libs@ \
 === modified file 'storage/archive/Makefile.am'
 --- storage/archive/Makefile.am	2010-07-09 11:37:51 +0000
 +++ storage/archive/Makefile.am	2010-09-16 12:49:35 +0000
@@ -815,7 +819,7 @@
 -libfederated_a_CXXFLAGS =	$(AM_CXXFLAGS)
 -libfederated_a_CFLAGS =	$(AM_CFLAGS)
 -libfederated_a_SOURCES=	ha_federated.cc
-+noinst_LTLIBRARIES =	@plugin_federated_static_target@
++noinst_LTLIBRARIES =	@plugin_federated_static_target@ @plugin_federated_embedded_static_target@
 +libfederated_la_CXXFLAGS =	$(AM_CXXFLAGS) @plugin_static_if_no_embedded@
 +libfederated_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
 +libfederated_la_SOURCES=	ha_federated.cc
@@ -947,7 +951,7 @@
 === modified file 'storage/myisam/Makefile.am'
 --- storage/myisam/Makefile.am	2009-10-23 16:48:54 +0000
 +++ storage/myisam/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -30,60 +30,64 @@
+@@ -30,60 +30,65 @@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
  pkgdata_DATA =		mi_test_all mi_test_all.res
  
@@ -992,7 +996,7 @@
  noinst_HEADERS =	myisamdef.h rt_index.h rt_key.h rt_mbr.h sp_defs.h \
  			fulltext.h ftdefs.h ft_test1.h ft_eval.h \
  			ha_myisam.h
- mi_test1_DEPENDENCIES=	$(LIBRARIES)
+-mi_test1_DEPENDENCIES=	$(LIBRARIES)
 -mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
 -			$(top_builddir)/mysys/libmysys.a \
 -			$(top_builddir)/dbug/libdbug.a \
@@ -1025,6 +1029,7 @@
 -			$(top_builddir)/dbug/libdbug.a \
 -			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
 -libmyisam_a_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
++mi_test1_DEPENDENCIES=	$(LTLIBRARIES)
 +mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
@@ -1094,7 +1099,7 @@
          [Traditional non-transactional MySQL tables])
  MYSQL_PLUGIN_DIRECTORY(myisam,  [storage/myisam])
 -MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.a])
-+MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.la], [libmyisam_embedded.la])
++MYSQL_PLUGIN_STATIC(myisam,     [libmyisam_s.la], [libmyisam_embedded.la])
  MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
 -
@@ -1487,8 +1492,7 @@
 +		  $(ZLIB_LIBS)
  
  EXTRA_DIST       = CMakeLists.txt 
- noinst_PROGRAMS  = bitmap-t base64-t my_atomic-t lf-t waiting_threads-t
-
+ noinst_PROGRAMS  = bitmap-t base64-t
 === modified file 'unittest/strings/Makefile.am'
 --- unittest/strings/Makefile.am	2010-07-26 05:06:18 +0000
 +++ unittest/strings/Makefile.am	2010-09-16 12:49:35 +0000
