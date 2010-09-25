@@ -1108,7 +1108,7 @@
  
 -EXTRA_LTLIBRARIES=	ha_innodb.la
 -pkgplugin_LTLIBRARIES=	@plugin_innobase_shared_target@
-+EXTRA_LTLIBRARIES =	libnnobase.la ha_innodb.la
++EXTRA_LTLIBRARIES =	libinnobase.la ha_innodb.la
 +pkgplugin_LTLIBRARIES =	@plugin_innobase_shared_target@
  
 -ha_innodb_la_LDFLAGS=	-module -rpath $(pkgplugindir)
