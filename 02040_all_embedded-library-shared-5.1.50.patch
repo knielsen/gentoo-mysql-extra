@@ -947,9 +947,9 @@
 === modified file 'storage/myisam/Makefile.am'
 --- storage/myisam/Makefile.am	2009-10-23 16:48:54 +0000
 +++ storage/myisam/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -30,60 +30,65 @@
+@@ -30,60 +30,64 @@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
- pkgdata_DATA =		
+ pkgdata_DATA =		mi_test_all mi_test_all.res
  
 -pkglib_LIBRARIES =	libmyisam.a
 +pkglib_LTLIBRARIES =	libmyisam.la
@@ -974,17 +974,17 @@
 -			$(top_builddir)/dbug/libdbug.a \
 -			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
 +myisamchk_DEPENDENCIES=	$(LTLIBRARIES)
-+myisamchk_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++myisamchk_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
 +myisamlog_DEPENDENCIES=	$(LTLIBRARIES)
-+myisamlog_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++myisamlog_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
 +myisampack_DEPENDENCIES=$(LTLIBRARIES)
-+myisampack_LDADD=	@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
++myisampack_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
@@ -992,7 +992,7 @@
  noinst_HEADERS =	myisamdef.h rt_index.h rt_key.h rt_mbr.h sp_defs.h \
  			fulltext.h ftdefs.h ft_test1.h ft_eval.h \
  			ha_myisam.h
--mi_test1_DEPENDENCIES=	$(LIBRARIES)
+ mi_test1_DEPENDENCIES=	$(LIBRARIES)
 -mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.a \
 -			$(top_builddir)/mysys/libmysys.a \
 -			$(top_builddir)/dbug/libdbug.a \
@@ -1025,7 +1025,6 @@
 -			$(top_builddir)/dbug/libdbug.a \
 -			$(top_builddir)/strings/libmystrings.a @ZLIB_LIBS@
 -libmyisam_a_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
-+mi_test1_DEPENDENCIES=	$(LTLIBRARIES)
 +mi_test1_LDADD=		@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
 +			$(top_builddir)/dbug/libdbug.la \
@@ -1055,19 +1054,18 @@
 +sp_test_DEPENDENCIES=	$(LTLIBRARIES)
 +sp_test_LDADD =			@CLIENT_EXTRA_LDFLAGS@ libmyisam.la \
 +			$(top_builddir)/mysys/libmysys.la \
-+			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/dbug/libdebug.la \
 +			$(top_builddir)/strings/libmystrings.la @ZLIB_LIBS@
-+
 +libmyisam_common_la_SOURCES =	mi_open.c mi_extra.c mi_info.c mi_rkey.c \
  			mi_rnext.c mi_rnext_same.c \
  			mi_search.c mi_page.c mi_key.c mi_locking.c \
  			mi_rrnd.c mi_scan.c mi_cache.c \
-@@ -98,8 +103,24 @@
+@@ -98,8 +102,24 @@
  			mi_keycache.c mi_preload.c \
  			ft_parser.c ft_stopwords.c ft_static.c \
- 			ft_update.c ft_boolean_search.c ft_nlq_search.c \
--			sort.c ha_myisam.cc ft_myisam.c \
-+			sort.c ft_myisam.c \
+ 			ft_update.c ft_boolean_search.c ft_nlq_search.c sort.c \
+-			ha_myisam.cc \
++			ft_myisam.c \
  			rt_index.c rt_key.c rt_mbr.c rt_split.c sp_key.c
 +libmyisam_common_la_CFLAGS =	$(AM_CFLAGS) @plugin_static_if_no_embedded@
 +libmyisam_s_la_SOURCES =	ha_myisam.cc
@@ -1082,26 +1080,24 @@
 +# But a static library works (as long as those parts that references
 +# problematic symbols are not linked).
 +libmyisam_la_LDFLAGS =	-static
-+libmyisam_la_SOURCES =	
++libmyisam_la_SOURCES = 
 +libmyisam_la_LIBADD =	libmyisam_s.la
 +
  CLEANFILES =		test?.MY? FT?.MY? isam.log mi_test_all rt_test.MY? sp_test.MY?
  
  # Move to automake rules ?
-
 === modified file 'storage/myisam/plug.in'
 --- storage/myisam/plug.in	2008-10-10 15:28:41 +0000
 +++ storage/myisam/plug.in	2010-09-16 12:49:35 +0000
-@@ -1,7 +1,6 @@
- dnl MYSQL_STORAGE_ENGINE(myisam,no, [MyISAM Storage Engine],
- dnl         [Traditional non-transactional MySQL tables])
- dnl MYSQL_PLUGIN_DIRECTORY(myisam,  [storage/myisam])
--dnl MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.a])
-+dnl MYSQL_PLUGIN_STATIC(myisam,     [libmyisam_s.la], [libmyisam_embedded.la])
- dnl MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
--dnl MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
- 
-
+@@ -1,7 +1,5 @@
+ MYSQL_STORAGE_ENGINE(myisam,no, [MyISAM Storage Engine],
+         [Traditional non-transactional MySQL tables])
+ MYSQL_PLUGIN_DIRECTORY(myisam,  [storage/myisam])
+-MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.a])
++MYSQL_PLUGIN_STATIC(myisam,     [libmyisam.la], [libmyisam_embedded.la])
+ MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
+-MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
+-
 === modified file 'storage/myisammrg/Makefile.am'
 --- storage/myisammrg/Makefile.am	2008-04-25 21:45:58 +0000
 +++ storage/myisammrg/Makefile.am	2010-09-16 12:49:35 +0000
