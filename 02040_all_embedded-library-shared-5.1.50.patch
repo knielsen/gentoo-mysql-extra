@@ -951,7 +951,7 @@
 === modified file 'storage/myisam/Makefile.am'
 --- storage/myisam/Makefile.am	2009-10-23 16:48:54 +0000
 +++ storage/myisam/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -30,60 +30,65 @@
+@@ -30,60 +30,64 @@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
  pkgdata_DATA =		mi_test_all mi_test_all.res
  
