@@ -1439,21 +1439,20 @@
  noinst_PROGRAMS = conf_to_src
  CLEANFILES = str_test uctypedump test_decimal
  # Default charset definitions
-@@ -56,9 +56,10 @@
+@@ -56,9 +56,9 @@
  			t_ctype.h my_strchr.c CMakeLists.txt \
- 			CHARSET_INFO.txt strmov_overlapp.c
+ 			CHARSET_INFO.txt
  
 -libmystrings_a_LIBADD=
--conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c bcmp.c
+-conf_to_src_SOURCES = conf_to_src.c xml.c ctype.c
 -conf_to_src_LDADD=
 +libmystrings_la_LIBADD=
-+conf_to_src_SOURCES =	conf_to_src.c
++conf_to_src_SOURCES = conf_to_src.c
 +conf_to_src_LDADD =	libmystrings.la
-+
  #force static linking of conf_to_src - essential when linking against
  #custom installation of libc
  conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
-@@ -69,13 +70,13 @@
+@@ -69,15 +69,15 @@
  
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
  
@@ -1470,7 +1469,8 @@
 -	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LIBRARIES)
 +	$(LINK) $(FLAGS) -DMAIN  ./test_decimal.c $(LDADD) $(pkglib_LTLIBRARIES)
  	$(RM) -f ./test_decimal.c
-
+ 
+ # Don't update the files from bitkeeper
 === modified file 'unittest/mysys/Makefile.am'
 --- unittest/mysys/Makefile.am	2010-08-27 14:12:44 +0000
 +++ unittest/mysys/Makefile.am	2010-09-16 12:49:35 +0000
@@ -1492,25 +1492,26 @@
 === modified file 'unittest/strings/Makefile.am'
 --- unittest/strings/Makefile.am	2010-07-26 05:06:18 +0000
 +++ unittest/strings/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -17,9 +17,10 @@
+@@ -16,10 +16,11 @@
+ AM_CPPFLAGS      = @ZLIB_INCLUDES@ -I$(top_builddir)/include 
  AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
  
- LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
+-LDADD 		= $(top_builddir)/unittest/mytap/libmytap.a \
 -		  $(top_builddir)/mysys/libmysys.a \
 -		  $(top_builddir)/dbug/libdbug.a \
 -		  $(top_builddir)/strings/libmystrings.a
-+		  $(top_builddir)/mysys/libmysys.la \
-+		  $(top_builddir)/dbug/libdbug.la \
-+		  $(top_builddir)/strings/libmystrings.la \
-+		  $(ZLIB_LIBS)
++LDADD		= $(top_builddir)/unittest/mytap/libmytap.a \
++			$(top_builddir)/mysys/libmysys.la \
++			$(top_builddir)/dbug/libdbug.la \
++			$(top_builddir)/strings/libmystrings.la \
++			$(ZLIB_LIBS)
  
- noinst_PROGRAMS  = strings-t
+ noinst_PROGRAMS  = bitmap-t base64-t
  
-
 === modified file 'vio/Makefile.am'
 --- vio/Makefile.am	2010-08-27 14:12:44 +0000
 +++ vio/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -16,10 +16,10 @@
+@@ -16,11 +16,11 @@
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
  			$(openssl_includes)
  LDADD =			@CLIENT_EXTRA_LDFLAGS@ $(openssl_libs) $(yassl_libs)
@@ -1523,4 +1524,4 @@
 +libvio_la_SOURCES =	vio.c viosocket.c viossl.c viosslfactories.c
  
  EXTRA_DIST=		CMakeLists.txt
-
+ 
