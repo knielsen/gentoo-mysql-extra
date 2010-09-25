@@ -1125,6 +1125,18 @@
  			pars/make_bison.sh pars/make_flex.sh \
  			pars/pars0grm.y pars/pars0lex.l
  
+=== modified file 'storage/innodbase/plug.in'
+--- storage/innobase/plug.in	2010-09-25 18:01:14.340003346 +0000
++++ storage/innobase/plug.in	2010-09-25 18:06:15.086670017 +0000
+@@ -1,7 +1,7 @@
+ MYSQL_STORAGE_ENGINE(innobase, innodb, [InnoDB Storage Engine],
+         [Transactional Tables using InnoDB], [max,max-no-ndb])
+ MYSQL_PLUGIN_DIRECTORY(innobase, [storage/innobase])
+-MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.a])
++MYSQL_PLUGIN_STATIC(innobase,   [libinnobase.la], [libinnobase_embedded.la])
+ MYSQL_PLUGIN_DYNAMIC(innobase,  [ha_innodb.la])
+ MYSQL_PLUGIN_ACTIONS(innobase,  [
+   AC_CHECK_LIB(rt, aio_read, [innodb_system_libs="-lrt"])
 === modified file 'storage/innodb_plugin/Makefile.am'
 --- storage/innodb_plugin/Makefile.am	2010-07-09 11:37:51 +0000
 +++ storage/innodb_plugin/Makefile.am	2010-09-16 12:49:35 +0000
