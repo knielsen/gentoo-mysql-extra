@@ -1189,16 +1189,17 @@
 === modified file 'storage/ndb/src/kernel/Makefile.am'
 --- storage/ndb/src/kernel/Makefile.am	2006-12-31 00:32:21 +0000
 +++ storage/ndb/src/kernel/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -53,9 +53,9 @@
+@@ -53,9 +53,10 @@
                $(top_builddir)/storage/ndb/src/mgmapi/libmgmapi.la \
                $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la      \
                $(top_builddir)/storage/ndb/src/common/util/libgeneral.la  \
 -         $(top_builddir)/dbug/libdbug.a \
 -         $(top_builddir)/mysys/libmysys.a \
 -         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
-+         $(top_builddir)/dbug/libdbug.la \
-+         $(top_builddir)/mysys/libmysys.la \
-+         $(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@ \
++		$(ZLIB_LIBS)
  
  windoze-dsp: ndbd.dsp
  
