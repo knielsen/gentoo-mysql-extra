@@ -572,6 +572,46 @@
  	$(CP) $(srcdir)/base64.c ./test_base64.c
  	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
  	$(RM) -f ./test_base64.c
+=== modified file 'netware/BUILD/compile-linux-tools'
+--- netware/BUILD/compile-linux-tools	2010-09-25 16:02:57.650003347 +0000
++++ netware/BUILD/compile-linux-tools	2010-09-25 16:04:17.953336677 +0000
+@@ -34,14 +34,14 @@
+ # Create mysql_version.h which was deleted my previous step
+ ./config.status include/mysql_version.h
+                                                                                                                              
+-(cd dbug; make libdbug.a)
+-(cd strings; make libmystrings.a)
+-(cd mysys; make libmysys.a)
+-(cd storage/heap; make libheap.a)
+-(cd vio; make libvio.a)
+-(cd regex; make libregex.a)
+-(cd storage/myisam; make libmyisam.a)
+-(cd storage/myisammrg; make libmyisammrg.a)
++(cd dbug; make libdbug.la)
++(cd strings; make libmystrings.la)
++(cd mysys; make libmysys.la)
++(cd storage/heap; make libheap.la)
++(cd vio; make libvio.la)
++(cd regex; make libregex.la)
++(cd storage/myisam; make libmyisam.la)
++(cd storage/myisammrg; make libmyisammrg.la)
+ (cd extra; make comp_err)
+ (cd libmysql; make conf_to_src)
+ (cd libmysql_r; make conf_to_src)
+=== modified file 'netware/Makefile.am'
+--- netware/Makefile.am	2010-09-25 16:02:57.646670013 +0000
++++ netware/Makefile.am	2010-09-25 16:03:34.123336683 +0000
+@@ -16,8 +16,8 @@
+ 
+ if HAVE_NETWARE
+ INCLUDES =			-I$(top_builddir)/include -I$(top_srcdir)/include -I..
+-LDADD =				@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.a \
+-				../dbug/libdbug.a ../strings/libmystrings.a
++LDADD =				@CLIENT_EXTRA_LDFLAGS@ ../mysys/libmysys.la \
++				../dbug/libdbug.la ../strings/libmystrings.la
+ bin_PROGRAMS =			mysqld_safe mysql_install_db mysql_test_run libmysql
+ mysqld_safe_SOURCES=		mysqld_safe.c my_manage.c
+ mysql_install_db_SOURCES=	mysql_install_db.c my_manage.c
 === modified file 'regex/Makefile.am'
 --- regex/Makefile.am	2010-08-27 14:12:44 +0000
 +++ regex/Makefile.am	2010-09-16 12:49:35 +0000
@@ -1170,6 +1210,98 @@
  testBitmask.cpp : Bitmask.cpp
  	rm -f testBitmask.cpp
 
+=== modified file 'storage/ndb/config/type_ndbapitest.mk.am'
+--- storage/ndb/config/type_ndbapitest.mk.am	2010-09-25 16:02:57.696670015 +0000
++++ storage/ndb/config/type_ndbapitest.mk.am	2010-09-25 16:07:41.000002672 +0000
+@@ -13,19 +13,20 @@
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 
+-LDADD += $(top_builddir)/storage/ndb/test/src/libNDBT.a \
+-         $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@
++LDADD +=	$(top_builddir)/storage/ndb/test/src/libNDBT.a \
++		$(top_builddir)/storage/ndb/src/libndbclient.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@ \
++		$(ZLIB_LIBS)
+ 
+-INCLUDES += -I$(top_srcdir) \
+-	-I$(top_builddir)/include \
+-	-I$(top_builddir)/storage/ndb/include \
+-	-I$(top_srcdir)/include \
+-	-I$(top_srcdir)/storage/ndb/include \
+-        -I$(top_srcdir)/storage/ndb/include/ndbapi \
+-        -I$(top_srcdir)/storage/ndb/include/util \
+-        -I$(top_srcdir)/storage/ndb/include/portlib \
+-        -I$(top_srcdir)/storage/ndb/test/include \
+-        -I$(top_srcdir)/storage/ndb/include/mgmapi
++INCLUDES +=	-I$(top_srcdir) \
++		-I$(top_builddir)/include \
++		-I$(top_builddir)/storage/ndb/include \
++		-I$(top_srcdir)/include \
++		-I$(top_srcdir)/storage/ndb/include \
++		-I$(top_srcdir)/storage/ndb/include/ndbapi \
++		-I$(top_srcdir)/storage/ndb/include/util \
++		-I$(top_srcdir)/storage/ndb/include/portlib \
++		-I$(top_srcdir)/storage/ndb/test/include \
++		-I$(top_srcdir)/storage/ndb/include/mgmapi
+=== modified file 'storage/ndb/config/type_ndbapitools.mk.am'
+--- storage/ndb/config/type_ndbapitools.mk.am	2010-09-25 16:02:57.696670015 +0000
++++ storage/ndb/config/type_ndbapitools.mk.am	2010-09-25 16:08:01.260003396 +0000
+@@ -13,20 +13,21 @@
+ # along with this program; if not, write to the Free Software
+ # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 
+-LDADD += \
+-         $(top_builddir)/storage/ndb/src/libndbclient.la \
+-         $(top_builddir)/dbug/libdbug.a \
+-         $(top_builddir)/mysys/libmysys.a \
+-         $(top_builddir)/strings/libmystrings.a @NDB_SCI_LIBS@ @ZLIB_LIBS@
++LDADD +=	\
++		$(top_builddir)/storage/ndb/src/libndbclient.la \
++		$(top_builddir)/dbug/libdbug.la \
++		$(top_builddir)/mysys/libmysys.la \
++		$(top_builddir)/strings/libmystrings.la @NDB_SCI_LIBS@ \
++		$(ZLIB_LIBS)
+ 
+-INCLUDES += -I$(srcdir) \
+-	-I$(top_builddir)/include \
+-	-I$(top_builddir)/storage/ndb/include \
+-	-I$(top_srcdir)/include \
+-	-I$(top_srcdir)/storage/ndb/include \
+-        -I$(top_srcdir)/storage/ndb/include/ndbapi \
+-        -I$(top_srcdir)/storage/ndb/include/util \
+-        -I$(top_srcdir)/storage/ndb/include/portlib \
+-        -I$(top_srcdir)/storage/ndb/test/include \
+-        -I$(top_srcdir)/storage/ndb/include/mgmapi \
+-        -I$(top_srcdir)/storage/ndb/include/kernel
++INCLUDES +=	-I$(srcdir) \
++		-I$(top_builddir)/include \
++		-I$(top_builddir)/storage/ndb/include \
++		-I$(top_srcdir)/include \
++		-I$(top_srcdir)/storage/ndb/include \
++		-I$(top_srcdir)/storage/ndb/include/ndbapi \
++		-I$(top_srcdir)/storage/ndb/include/util \
++		-I$(top_srcdir)/storage/ndb/include/portlib \
++		-I$(top_srcdir)/storage/ndb/test/include \
++		-I$(top_srcdir)/storage/ndb/include/mgmapi \
++		-I$(top_srcdir)/storage/ndb/include/kernel
+=== modified file 'storage/ndb/config/win-libraries'
+--- storage/ndb/config/win-libraries	2010-09-25 16:02:57.696670015 +0000
++++ storage/ndb/config/win-libraries	2010-09-25 16:05:27.550003650 +0000
+@@ -21,7 +21,7 @@
+ # the same goes for mysys and strings
+   lib=$i
+   case $i in
+-  *libdbug.a | *libmysys.a | *libmystrings.a) 
++  *libdbug.la | *libmysys.la | *libmystrings.la) 
+   lib=`echo $i | sed s'!dbug\/lib!!' | sed 's!mysys\/lib!!' | sed 's!strings\/libmy!!'`
+   echo "Changing from $i to $lib"
+   ;;
 === modified file 'storage/ndb/src/cw/cpcd/Makefile.am'
 --- storage/ndb/src/cw/cpcd/Makefile.am	2007-02-13 01:38:54 +0000
 +++ storage/ndb/src/cw/cpcd/Makefile.am	2010-09-16 12:49:35 +0000
