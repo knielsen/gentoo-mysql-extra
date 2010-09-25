@@ -1432,6 +1432,7 @@
 +		$(top_builddir)/mysys/libmysys.la \
 +		$(top_builddir)/dbug/libdbug.la \
 +		$(top_builddir)/strings/libmystrings.la
+ 
 === modified file 'storage/ndb/src/mgmclient/Makefile.am'
 --- storage/ndb/src/mgmclient/Makefile.am	2007-08-01 07:24:01 +0000
 +++ storage/ndb/src/mgmclient/Makefile.am	2010-09-16 12:49:35 +0000
