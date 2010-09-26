@@ -1,3 +1,26 @@
+Convert all of the static libraries for the embedded libmysqld to build as
+shared.
+
+This enables amarok's mysql extension to properly build as a shared object,
+without statically including libmysqld or nor forcing libmysqld to be built
+with -fPIC.
+
+Thanks to <pageexec@freemail.hu> for the @plt fixes.
+Thanks to Diego Elio Pettenò <flameeyes@gentoo.org> for all the extensive build
+system help with libtool conversions.
+Thanks to Maciej Mrozowski <reavertm@gentoo.org> for working in the redo of the
+patch for mysql-5.1.
+
+Gentoo-Bug: 238487
+Gentoo-Bug-URL: https://bugs.gentoo.org/show_bug.cgi?id=238487
+MySQL-Bug-URL: http://bugs.mysql.com/bug.php?id=39288
+MySQL-Bug: 39288
+MySQL-Lists-URL: http://lists.mysql.com/internals/35947
+X-Patch-URL: http://bugs.gentoo.org/attachment.cgi?id=188019&action=view
+Signed-off-by: Jorge Manuel B. S. Vicetto <jmbsvicetto@gentoo.org>
+Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
+Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
+
 === modified file 'client/Makefile.am'
 --- client/Makefile.am	2010-08-27 14:12:44 +0000
 +++ client/Makefile.am	2010-09-16 12:49:35 +0000
