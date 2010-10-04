@@ -659,7 +659,7 @@
 @@ GCC4.5 fails on the ABI-check block
 
 @patch 07320_all_mysql_mycompiler_header.patch
-@ver 5.01.50.00 to 5.01.99.99
+@ver 5.01.50.00 to 5.01.50.99
 @pn mysql
 @@ my_compiler.h is not installed, but is required.
 
