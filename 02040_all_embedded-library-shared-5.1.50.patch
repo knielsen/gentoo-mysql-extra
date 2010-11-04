@@ -1001,7 +1001,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  MYSQL_STORAGE_ENGINE(federated,,[Federated Storage Engine],
          [Connects to tables on remote MySQL servers], [max,max-no-ndb])
 -MYSQL_PLUGIN_STATIC(federated,    [libfederated.a])
-+MYSQL_PLUGIN_STATIC(federated,    [libfederated.a], [libfederated_embedded.la])
++MYSQL_PLUGIN_STATIC(federated,    [libfederated.la], [libfederated_embedded.la])
  MYSQL_PLUGIN_DYNAMIC(federated,   [ha_federated.la])
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(federated, [ha_federated.cc])
 === modified file 'storage/heap/Makefile.am'
