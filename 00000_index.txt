@@ -663,6 +663,13 @@
 @pn mysql
 @@ my_compiler.h is not installed, but is required.
 
+@patch 07330_all_mysql_itemfunc_stacksize_bug57386.patch
+@ver 5.01.50.00 to 5.01.99.99
+@pn mysql
+@pn maria
+@pn mysql-cluster
+@@ Bug#57386: Enlarge the stacksize used for trackback.
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community

@@ -1,0 +1,89 @@
+From: Date: October 29 2010 5:08am
+Subject: bzr commit into mysql-5.1-bugteam branch (Dmitry.Shulga:3548) Bug#57386
+List-Archive: http://lists.mysql.com/commits/122257
+X-Bug: 57386
+Message-Id: <201010290309.o9SM9w7v013620@acsinet15.oracle.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============1022272001=="
+
+--===============1022272001==
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+#At file:///Users/shulga/projects/mysql/5.1-bugteam-bug57386/ based on revid:anitha.gopi@stripped
+
+ 3548 Dmitry Shulga	2010-10-29
+      Fixed Bug#57386 - main.execution_constants segfault on MIPS64EL.
+     @ sql/item_func.cc
+        Item_func::fix_fields modified: increased minimal required stack
+        size in call to check_stack_overrun().
+
+    modified:
+      sql/item_func.cc
+=== modified file 'sql/item_func.cc'
+--- a/sql/item_func.cc	2010-10-05 08:11:56 +0000
++++ b/sql/item_func.cc	2010-10-29 03:08:46 +0000
+@@ -157,7 +157,14 @@ Item_func::fix_fields(THD *thd, Item **r
+   used_tables_cache= not_null_tables_cache= 0;
+   const_item_cache=1;
+ 
+-  if (check_stack_overrun(thd, STACK_MIN_SIZE, buff))
++  /*
++    Increase stack limit to STACK_MIN_SIZE * 2 since
++    on some platforms recursive call to fix_fields
++    required more than STACK_MIN_SIZE bytes (e.g. for
++    MIPS, where needs about 22kB for one recursive
++    call to Item_func::fix_fields)
++  */
++  if (check_stack_overrun(thd, STACK_MIN_SIZE * 2, buff))
+     return TRUE;				// Fatal error if flag is set!
+   if (arg_count)
+   {						// Print purify happy
+
+
+--===============1022272001==
+MIME-Version: 1.0
+Content-Type: text/bzr-bundle; charset="us-ascii";
+	name="bzr/dmitry.shulga@stripped"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+# Bazaar merge directive format 2 (Bazaar 0.90)
+# revision_id: dmitry.shulga@stripped\
+#   k5ndh8ifz4f01dvw
+# target_branch: file:///Users/shulga/projects/mysql/5.1-bugteam-\
+#   bug57386/
+# testament_sha1: 4a208317c130fa9ea6aa883ce51a26aa4a2b9943
+# timestamp: 2010-10-29 10:09:01 +0700
+# base_revision_id: anitha.gopi@stripped\
+#   h9gdxjzhjv8zxse9
+# 
+# Begin bundle
+IyBCYXphYXIgcmV2aXNpb24gYnVuZGxlIHY0CiMKQlpoOTFBWSZTWZqHn5kAAc3fgEAQWHf/938v
+TBC////wUASeiaU662zQAANCET1NNTzVHqfpTwkG1M1NqMjIPQj1GgEKZMSPUeRpNPUDahoGgAAA
+ADSTRknpoTT0mgGgMgAAAABzTEwEaYEYRgAAACYRgJJATQp4QaAjQyj0aU9NQepk0NND9UOXsxn2
+0b6/4dY7Lv6rPvXHRkb4UwA3TdGDO2fvmSTwPnkitDGm/1ymZjDgOK2mTwpLFoGX762n2JW5Tl1Q
+GdnfO2aKG1mdcZvgm6wpQZgoJXLigYDgxGOXLJS+fNbcEMF7yPI+3mszadEJPnvU4vkEH85JZ4FL
+RTIVoLCqVT7quhcDiGO1Ml83O8l3SF0yJPll3RRZsHZN0TnswjBOQomkTkGwTBrU1JrDR3pFcgmq
+VOnYjy4xEubAo4BYkukKc6jIKE8VYSeaDAhVDAkigedHAdlXFOLRphFUcwgVmgWqC2YkSuwR52Ff
+TGrMrblZsL1gwnk8xmrkGmHGHB/VU2WIKDu6Q7t++bvoTqpsdqNtCW0L1UsFVnYW+Ky13wEkT1po
+F/AL4fJJkzCr6gGBZ3Y0GaLllQl6M8ZvEVy+OM5Vs8W+VSc4pR5p9LddV6fVCyrCKmxvv7lhWr0+
+U4xGHaTlYeCxu7lKyyenB6yIq7PcQsjEdmgJ5SC3KVxtilmfSJwX4kROuNEoFIuAqNxD5JCkCU8D
+ZmhIr1g/dUfAZ2LrAbRY1/YPzPdVW8eTcoOqZxfGQTob/MaHRUuUY069dNRFcX2VkeMjM/STeVG7
+8KGhfEh3FwU34VnVRh/aOpBPDnRRX+rqt/yW1LF/ByNR9ukB5+T0uQuyTOEWDfGrmYuIA0aqM8Qc
+AYJ0kiOgxMRHUsgkKGo6R7NqDbq8thqdk5JtwPUAwCYgzxJA22EJnIVMvaEphwuT2NYwFEjs8qiI
+G+3DtcUrv1O/StSK99ag+SoPFvPoe5yGxroxSVguK+qlt1tVy5ccMnxQbW4K34/Q8nHsUCWuGYYW
+lh0CVuENAwxhjxxZqqFS7Id2dho3kdE5DI/t1qxSvNyZZ2OmuOm6Z4wpsVA0QV8I7Ml7i3D8fqdx
+8eZvyoVHSNpmbzX059G9BivvHg/KidUlQVmpvgBxXIU8t2apVZabu8XqnvXAGLHnLxX5yE2tT3MY
+ZLE19moGzhPXit4oInE1yNWDviGFnhb592uVFa205BT1sXrioIJmZdXGfyXouAVi4ebwavaHj+C3
+WL1O8Lge5e3hteuZcAy2Ad9gb3lfsIg1SUp8VCNZAi3U8RaN1XlMpQrNasnFzrhmTna9qZOVIpRl
+7uR8hSkzze0k3lbHOiEXJyw5A2Y51a0jc3Zuoh3SEi5MqzqBaFvZAO2Cw+Xw4lWIX7mYHk/AGUK9
+kZU0qhKpXDGTk4F2OdnLTSSRk+3wcTqxcrm3Z4XXqZmGnkaVU8ZJuEWNMHNUQx7U1+O5i/iKGkLz
+RG07Glz5tXY3BXkig7VEO1NnWOXLNO2LtBpE3CSPAz/bEsrJJ/p+MN23MYzC8MArAaTJ2Utnh7sc
+joB332Fqek3IwbV/yfksDFPO0MBeqNjadXRYK9WKjUW9eagnqcxmQPdlRZxaK1mU/Zf+LuSKcKEh
+NQ8/Mg==
+
+
+--===============1022272001==--
