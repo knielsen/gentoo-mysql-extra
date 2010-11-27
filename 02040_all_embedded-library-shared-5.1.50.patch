@@ -22,9 +22,67 @@ Signed-off-by: Robin H. Johnson <robbat2@gentoo.org>
 Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 
 === modified file 'client/Makefile.am'
---- client/Makefile.am	2010-08-27 14:12:44 +0000
-+++ client/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -75,7 +75,8 @@
+---
+ client/Makefile.am                               |   11 -
+ config/ac-macros/plugins.m4                      |  107 ++++++++-----
+ configure.in                                     |    8 -
+ dbug/Makefile.am                                 |    6 
+ extra/Makefile.am                                |    4 
+ libmysqld/Makefile.am                            |  184 ++++++++---------------
+ libmysqld/examples/Makefile.am                   |   10 -
+ mysys/Makefile.am                                |   42 ++---
+ netware/BUILD/compile-linux-tools                |   16 +-
+ netware/Makefile.am                              |    4 
+ regex/Makefile.am                                |    6 
+ server-tools/instance-manager/Makefile.am        |    8 -
+ sql/Makefile.am                                  |   12 -
+ storage/archive/Makefile.am                      |   23 +-
+ storage/archive/plug.in                          |    2 
+ storage/blackhole/Makefile.am                    |   11 -
+ storage/blackhole/plug.in                        |    2 
+ storage/csv/Makefile.am                          |    9 -
+ storage/csv/plug.in                              |    2 
+ storage/example/Makefile.am                      |   11 -
+ storage/federated/Makefile.am                    |   15 +
+ storage/federated/plug.in                        |    3 
+ storage/heap/Makefile.am                         |   37 +++-
+ storage/heap/plug.in                             |    3 
+ storage/innobase/Makefile.am                     |   40 ++---
+ storage/innobase/plug.in                         |    2 
+ storage/innodb_plugin/Makefile.am                |   13 -
+ storage/myisam/Makefile.am                       |  118 ++++++++------
+ storage/myisam/plug.in                           |    4 
+ storage/myisammrg/Makefile.am                    |   20 ++
+ storage/myisammrg/plug.in                        |    3 
+ storage/ndb/config/type_ndbapitest.mk.am         |   31 ++-
+ storage/ndb/config/type_ndbapitools.mk.am        |   33 ++--
+ storage/ndb/config/win-libraries                 |    2 
+ storage/ndb/src/common/util/Makefile.am          |    6 
+ storage/ndb/src/cw/cpcd/Makefile.am              |    6 
+ storage/ndb/src/kernel/Makefile.am               |    7 
+ storage/ndb/src/kernel/blocks/Makefile.am        |   10 -
+ storage/ndb/src/kernel/blocks/backup/Makefile.am |    6 
+ storage/ndb/src/kernel/blocks/dbdict/Makefile.am |   12 -
+ storage/ndb/src/kernel/blocks/dbdih/Makefile.am  |    6 
+ storage/ndb/src/kernel/blocks/dblqh/Makefile.am  |    6 
+ storage/ndb/src/kernel/blocks/dbtup/Makefile.am  |    6 
+ storage/ndb/src/kernel/vm/Makefile.am            |   82 +++++-----
+ storage/ndb/src/mgmclient/Makefile.am            |   65 ++++----
+ storage/ndb/src/mgmsrv/Makefile.am               |   70 ++++----
+ storage/ndb/src/ndbapi/Makefile.am               |   98 ++++++------
+ storage/ndb/test/run-test/Makefile.am            |    6 
+ strings/Makefile.am                              |   16 +-
+ unittest/mysys/Makefile.am                       |   15 +
+ unittest/strings/Makefile.am                     |    9 -
+ unittest/unit.pl                                 |    2 
+ vio/Makefile.am                                  |    4 
+ 53 files changed, 622 insertions(+), 612 deletions(-)
+
+Index: client/Makefile.am
+===================================================================
+--- client/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ client/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -75,7 +75,8 @@ mysqlimport_CFLAGS=		-DTHREAD -UUNDEF_TH
  mysqlimport_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
  				@CLIENT_EXTRA_LDFLAGS@ \
  				$(LIBMYSQLCLIENT_LA) \
@@ -34,7 +92,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  mysqlshow_SOURCES=		mysqlshow.c
  
-@@ -84,15 +85,17 @@
+@@ -84,15 +85,17 @@ mysqlslap_CFLAGS=		-DTHREAD -UMYSQL_CLIE
  mysqlslap_LDADD =		$(CXXLDFLAGS) $(CLIENT_THREAD_LIBS) \
  				@CLIENT_EXTRA_LDFLAGS@ \
  				$(LIBMYSQLCLIENT_LA) \
@@ -55,11 +113,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  				$(CLIENT_THREAD_LIBS)
  
  mysql_upgrade_SOURCES=          mysql_upgrade.c \
-
-=== modified file 'config/ac-macros/plugins.m4'
---- config/ac-macros/plugins.m4	2009-12-22 10:33:20 +0000
-+++ config/ac-macros/plugins.m4	2010-09-16 12:49:35 +0000
-@@ -115,18 +115,32 @@
+Index: config/ac-macros/plugins.m4
+===================================================================
+--- config/ac-macros/plugins.m4.orig	2010-11-27 15:02:45.000000000 +0100
++++ config/ac-macros/plugins.m4	2010-11-27 15:02:49.000000000 +0100
+@@ -115,18 +115,32 @@ dnl ------------------------------------
  dnl Macro: MYSQL_PLUGIN_STATIC
  dnl
  dnl SYNOPSIS
@@ -94,7 +152,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  dnl ---------------------------------------------------------------------------
  dnl Macro: MYSQL_PLUGIN_DYNAMIC
-@@ -254,29 +268,6 @@
+@@ -254,29 +268,6 @@ AC_DEFUN([MYSQL_PLUGIN_ACTIONS],[
  ])
  
  dnl ---------------------------------------------------------------------------
@@ -124,7 +182,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  dnl Macro: MYSQL_CONFIGURE_PLUGINS
  dnl
  dnl SYNOPSIS
-@@ -336,11 +328,25 @@
+@@ -336,11 +327,25 @@ AC_DEFUN([_MYSQL_EMIT_CHECK_PLUGIN],[
    [MYSQL_PLUGIN_DYNAMIC_]AS_TR_CPP([$1]),
    [MYSQL_PLUGIN_MANDATORY_]AS_TR_CPP([$1]),
    [MYSQL_PLUGIN_DISABLED_]AS_TR_CPP([$1]),
@@ -151,7 +209,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  AC_DEFUN([__MYSQL_EMIT_CHECK_PLUGIN],[
   m4_ifdef([$5],[
    AH_TEMPLATE($5, [Include ]$4[ into mysqld])
-@@ -407,6 +413,7 @@
+@@ -407,6 +412,7 @@ AC_DEFUN([__MYSQL_EMIT_CHECK_PLUGIN],[
         ])
         AC_SUBST([plugin_]$2[_shared_target], "$8")
         AC_SUBST([plugin_]$2[_static_target], [""])
@@ -159,7 +217,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
         [with_plugin_]$2=yes
         AC_MSG_RESULT([plugin])
         m4_ifdef([$6],[
-@@ -421,32 +428,47 @@
+@@ -421,32 +427,47 @@ AC_DEFUN([__MYSQL_EMIT_CHECK_PLUGIN],[
        ])
      else
        m4_ifdef([$7],[
@@ -217,7 +275,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
         AC_SUBST([plugin_]$2[_shared_target], [""])
        ],[
         m4_ifdef([$6],[
-@@ -463,12 +485,6 @@
+@@ -463,12 +484,6 @@ dnl Although this is "pretty", it breaks
        mysql_plugin_defs="$mysql_plugin_defs, [builtin_]$2[_plugin]"
        [with_plugin_]$2=yes
        AC_MSG_RESULT([yes])
@@ -230,7 +288,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
      fi
    fi
  
-@@ -516,6 +530,14 @@
+@@ -516,6 +531,14 @@ dnl
   ])
  ])
  
@@ -245,11 +303,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  AC_DEFUN([_MYSQL_EMIT_PLUGIN_ACTIONS],[
   ifelse($#, 0, [], $#, 1, [
    _MYSQL_EMIT_PLUGIN_ACTION([$1])
-
-=== modified file 'configure.in'
---- configure.in	2010-08-27 14:12:44 +0000
-+++ configure.in	2010-09-16 12:49:35 +0000
-@@ -2483,8 +2483,6 @@
+Index: configure.in
+===================================================================
+--- configure.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ configure.in	2010-11-27 19:41:49.000000000 +0100
+@@ -2483,8 +2483,6 @@ MYSQL_STORAGE_ENGINE(partition, partitio
  
  dnl -- ndbcluster requires partition to be enabled
  
@@ -258,7 +316,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  # Only build client code?
  AC_ARG_WITH(server,
      [  --without-server        Only build the client.],
-@@ -2498,6 +2496,8 @@
+@@ -2498,6 +2496,8 @@ AC_ARG_WITH(embedded-server,
      [with_embedded_server=no]
  )
  
@@ -267,7 +325,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  AC_ARG_WITH(query_cache,
      [  --without-query-cache   Do not build query cache.],
      [with_query_cache=$withval],
-@@ -2801,9 +2801,6 @@
+@@ -2801,9 +2801,6 @@ if test "$with_server" != "no" -o "$THRE
  then
    AC_DEFINE([THREAD], [1],
              [Define if you want to have threaded code. This may be undef on client code])
@@ -277,17 +335,18 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  fi
  AM_CONDITIONAL(NEED_THREAD, test "$with_server" != "no" -o "$THREAD_SAFE_CLIENT" != "no")
  
-@@ -2831,6 +2828,7 @@
+@@ -2831,6 +2828,7 @@ AC_SUBST(server_scripts)
  
  AC_SUBST(mysql_plugin_dirs)
  AC_SUBST(mysql_plugin_libs)
 +AC_SUBST(mysql_embedded_plugin_libs)
  AC_SUBST(mysql_plugin_defs)
-
-
-=== modified file 'dbug/Makefile.am'
---- dbug/Makefile.am	2010-08-27 14:12:44 +0000
-+++ dbug/Makefile.am	2010-09-16 12:49:35 +0000
+ 
+ 
+Index: dbug/Makefile.am
+===================================================================
+--- dbug/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ dbug/Makefile.am	2010-11-27 19:42:26.000000000 +0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -295,17 +354,17 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 -LDADD =                 libdbug.a ../mysys/libmysys.a ../strings/libmystrings.a
 -pkglib_LIBRARIES =      libdbug.a
 +LDADD =                 libdbug.la ../mysys/libmysys.la ../strings/libmystrings.la $(ZLIB_LIBS)
-+pkglib_LTLIBRARIES =	libdbug.la
++noinst_LTLIBRARIES =	libdbug.la
  noinst_HEADERS =        dbug_long.h
 -libdbug_a_SOURCES =     dbug.c sanity.c
 +libdbug_la_SOURCES =	dbug.c sanity.c
  EXTRA_DIST =            CMakeLists.txt example1.c example2.c example3.c \
                          user.r monty.doc dbug_add_tags.pl \
                          my_main.c main.c factorial.c dbug_analyze.c \
-
-=== modified file 'extra/Makefile.am'
---- extra/Makefile.am	2010-08-27 14:12:44 +0000
-+++ extra/Makefile.am	2010-09-16 12:49:35 +0000
+Index: extra/Makefile.am
+===================================================================
+--- extra/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ extra/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -15,8 +15,8 @@
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
@@ -317,11 +376,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			$(ZLIB_LIBS)
  BUILT_SOURCES=		$(top_builddir)/include/mysqld_error.h \
                          $(top_builddir)/include/sql_state.h \
-
-=== modified file 'libmysqld/Makefile.am'
---- libmysqld/Makefile.am	2010-08-27 14:12:44 +0000
-+++ libmysqld/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -17,95 +17,90 @@
+Index: libmysqld/Makefile.am
+===================================================================
+--- libmysqld/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ libmysqld/Makefile.am	2010-11-27 20:58:00.000000000 +0100
+@@ -17,95 +17,91 @@
  #
  # This file is public domain and comes with NO WARRANTY of any kind
  
@@ -460,6 +519,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +			$(top_builddir)/strings/libmystrings.la \
 +			$(top_builddir)/dbug/libdbug.la \
 +			$(top_builddir)/vio/libvio.la \
++			@ZLIB_LIBS@ @LIBDL@ \
 +			$(NDB_SCI_LIBS) \
 +			$(mysql_embedded_plugin_libs) \
 +			$(yassl_inc_libs)
@@ -478,7 +538,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  # Storage engine specific compilation options
  ha_ndbcluster.o:ha_ndbcluster.cc
  		$(CXXCOMPILE) @ndbcluster_includes@ $(LM_CFLAGS) -c $<
-@@ -139,44 +134,6 @@
+@@ -139,44 +135,6 @@ ha_myisam.o:ha_myisam.cc
  ha_myisammrg.o:ha_myisammrg.cc
  		$(CXXCOMPILE) $(LM_CFLAGS) -c $<
  
@@ -523,7 +583,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  ## XXX: any time the client interface changes, we'll need to bump
  ## the version info for libmysqld; however, it's possible for the
  ## libmysqld interface to change without affecting the standard
-@@ -187,7 +144,7 @@
+@@ -187,7 +145,7 @@ endif
  
  BUILT_SOURCES = link_sources
  
@@ -532,7 +592,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  link_sources:
  	  for f in $(sqlsources); do \
-@@ -208,20 +165,6 @@
+@@ -208,20 +166,6 @@ link_sources:
  	      @LN_CP_F@ $(top_builddir)/libmysql/$$f $$f; \
  	    fi ; \
  	  done; \
@@ -553,7 +613,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  	  rm -f client_settings.h; \
  	  @LN_CP_F@ $(top_srcdir)/libmysql/client_settings.h \
                                            client_settings.h; \
-@@ -229,7 +172,7 @@
+@@ -229,7 +173,7 @@ link_sources:
  
  
  clean-local:
@@ -562,10 +622,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  	rm -f client_settings.h
  
  # Don't update the files from bitkeeper
-=== modified file 'libmysqld/examples/Makefile.am'
---- libmysqld/examples/Makefile.am	2010-07-16 07:15:22 +0000
-+++ libmysqld/examples/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -37,12 +37,16 @@
+Index: libmysqld/examples/Makefile.am
+===================================================================
+--- libmysqld/examples/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ libmysqld/examples/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -37,12 +37,16 @@ INCLUDES =	-I$(top_builddir)/include -I$
  		-I$(top_srcdir) -I$(top_srcdir)/client -I$(top_srcdir)/regex \
  		$(openssl_includes)
  LIBS =		@LIBS@ @WRAPLIBS@ @CLIENT_LIBS@ $(yassl_libs)
@@ -585,17 +646,17 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  				@MYSQLD_EXTRA_LDFLAGS@
  
  nodist_mysql_SOURCES = mysql.cc readline.cc completion_hash.cc \
-
-=== modified file 'mysys/Makefile.am'
---- mysys/Makefile.am	2010-08-27 14:12:44 +0000
-+++ mysys/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -18,10 +18,10 @@
+Index: mysys/Makefile.am
+===================================================================
+--- mysys/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ mysys/Makefile.am	2010-11-27 19:42:49.000000000 +0100
+@@ -18,10 +18,10 @@ MYSQLSHAREdir =		$(pkgdatadir)
  MYSQLBASEdir=		$(prefix)
  INCLUDES =		@ZLIB_INCLUDES@ -I$(top_builddir)/include \
  			-I$(top_srcdir)/include -I$(srcdir)
 -pkglib_LIBRARIES =	libmysys.a
 -LDADD =			libmysys.a $(top_builddir)/strings/libmystrings.a $(top_builddir)/dbug/libdbug.a
-+pkglib_LTLIBRARIES =	libmysys.la
++noinst_LTLIBRARIES =	libmysys.la
 +LDADD =			libmysys.la $(top_builddir)/strings/libmystrings.la $(top_builddir)/dbug/libdbug.la
  noinst_HEADERS =	mysys_priv.h my_static.h my_handler_errors.h
 -libmysys_a_SOURCES =    my_init.c my_getwd.c mf_getdate.c my_mmap.c \
@@ -603,7 +664,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			mf_path.c mf_loadpath.c my_file.c \
  			my_open.c my_create.c my_dup.c my_seek.c my_read.c \
  			my_pread.c my_write.c my_getpagesize.c \
-@@ -57,18 +57,18 @@
+@@ -57,18 +57,18 @@ if NEED_THREAD
  # mf_keycache is used only in the server, so it is safe to leave the file
  # out of the non-threaded library.
  # In fact, it will currently not compile without thread support.
@@ -628,7 +689,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  DEFS =			-DDEFAULT_BASEDIR=\"$(prefix)\" \
  			-DMYSQL_DATADIR="\"$(MYSQLDATAdir)\"" \
  			-DDEFAULT_CHARSET_HOME="\"$(MYSQLBASEdir)\"" \
-@@ -78,8 +79,6 @@
+@@ -78,8 +78,6 @@ DEFS =			-DDEFAULT_BASEDIR=\"$(prefix)\"
  			-DDEFAULT_SYSCONFDIR="\"$(sysconfdir)\"" \
                          @DEFS@
  
@@ -637,7 +698,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  # I hope this always does the right thing. Otherwise this is only test programs
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
  
-@@ -88,47 +87,47 @@
+@@ -88,47 +86,47 @@ FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(
  # which automaticly removes the object files you use to compile a final program
  #
  
@@ -696,10 +757,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  	$(CP) $(srcdir)/base64.c ./test_base64.c
  	$(LINK) $(FLAGS) -DMAIN  ./test_base64.c $(LDADD) $(LIBS)
  	$(RM) -f ./test_base64.c
-=== modified file 'netware/BUILD/compile-linux-tools'
---- netware/BUILD/compile-linux-tools	2010-09-25 16:02:57.650003347 +0000
-+++ netware/BUILD/compile-linux-tools	2010-09-25 16:04:17.953336677 +0000
-@@ -34,14 +34,14 @@
+Index: netware/BUILD/compile-linux-tools
+===================================================================
+--- netware/BUILD/compile-linux-tools.orig	2010-11-27 15:02:45.000000000 +0100
++++ netware/BUILD/compile-linux-tools	2010-11-27 15:02:49.000000000 +0100
+@@ -34,14 +34,14 @@ make
  # Create mysql_version.h which was deleted my previous step
  ./config.status include/mysql_version.h
                                                                                                                               
@@ -722,9 +784,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  (cd extra; make comp_err)
  (cd libmysql; make conf_to_src)
  (cd libmysql_r; make conf_to_src)
-=== modified file 'netware/Makefile.am'
---- netware/Makefile.am	2010-09-25 16:02:57.646670013 +0000
-+++ netware/Makefile.am	2010-09-25 16:03:34.123336683 +0000
+Index: netware/Makefile.am
+===================================================================
+--- netware/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ netware/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -16,8 +16,8 @@
  
  if HAVE_NETWARE
@@ -736,9 +799,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  bin_PROGRAMS =			mysqld_safe mysql_install_db mysql_test_run libmysql
  mysqld_safe_SOURCES=		mysqld_safe.c my_manage.c
  mysql_install_db_SOURCES=	mysql_install_db.c my_manage.c
-=== modified file 'regex/Makefile.am'
---- regex/Makefile.am	2010-08-27 14:12:44 +0000
-+++ regex/Makefile.am	2010-09-16 12:49:35 +0000
+Index: regex/Makefile.am
+===================================================================
+--- regex/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ regex/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -16,10 +16,10 @@
  # MA 02111-1307, USA
  
@@ -753,11 +817,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  noinst_PROGRAMS =	re
  re_SOURCES =		split.c debug.c main.c
  re_LDFLAGS= @NOINST_LDFLAGS@
-
-=== modified file 'server-tools/instance-manager/Makefile.am'
---- server-tools/instance-manager/Makefile.am	2007-02-18 12:45:28 +0000
-+++ server-tools/instance-manager/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -87,10 +87,10 @@
+Index: server-tools/instance-manager/Makefile.am
+===================================================================
+--- server-tools/instance-manager/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ server-tools/instance-manager/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -87,10 +87,10 @@ mysqlmanager_SOURCES=	command.cc command
  mysqlmanager_LDADD=	@CLIENT_EXTRA_LDFLAGS@ \
  			liboptions.la \
  			libnet.a \
@@ -772,11 +836,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			@openssl_libs@ @yassl_libs@ @ZLIB_LIBS@
  
  EXTRA_DIST =		WindowsService.cpp WindowsService.h IMService.cpp \
-
-=== modified file 'sql/Makefile.am'
---- sql/Makefile.am	2010-08-27 14:12:44 +0000
-+++ sql/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -32,13 +32,13 @@
+Index: sql/Makefile.am
+===================================================================
+--- sql/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ sql/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -32,13 +32,13 @@ bin_PROGRAMS =		mysql_tzinfo_to_sql
  noinst_LTLIBRARIES=	libndb.la \
  			udf_example.la
  
@@ -796,10 +860,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  mysqld_LDADD =		libndb.la \
  			@MYSQLD_EXTRA_LDFLAGS@ \
  			@pstack_libs@ \
-=== modified file 'storage/archive/Makefile.am'
---- storage/archive/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/archive/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -33,7 +33,7 @@
+Index: storage/archive/Makefile.am
+===================================================================
+--- storage/archive/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/archive/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -33,7 +33,7 @@ DEFS =                  @DEFS@
  noinst_HEADERS =	ha_archive.h azlib.h
  noinst_PROGRAMS	=	archive_test archive_reader
  
@@ -808,7 +873,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  pkgplugin_LTLIBRARIES =	@plugin_archive_shared_target@
  ha_archive_la_LDFLAGS =	-module -rpath $(pkgplugindir)
  ha_archive_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-@@ -41,26 +41,25 @@
+@@ -41,26 +41,25 @@ ha_archive_la_CFLAGS =	$(AM_CFLAGS) -DMY
  ha_archive_la_SOURCES =	ha_archive.cc azio.c
  
  
@@ -845,21 +910,21 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			@ZLIB_LIBS@
  archive_reader_LDFLAGS = @NOINST_LDFLAGS@
  
-
-=== modified file 'storage/archive/plug.in'
---- storage/archive/plug.in	2006-05-06 11:43:18 +0000
-+++ storage/archive/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/archive/plug.in
+===================================================================
+--- storage/archive/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/archive/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,4 +1,4 @@
  MYSQL_STORAGE_ENGINE(archive,,  [Archive Storage Engine],
          [Archive Storage Engine], [max,max-no-ndb])
 -MYSQL_PLUGIN_STATIC(archive,    [libarchive.a])
 +MYSQL_PLUGIN_STATIC(archive,    [libarchive.la])
  MYSQL_PLUGIN_DYNAMIC(archive,   [ha_archive.la])
-
-=== modified file 'storage/blackhole/Makefile.am'
---- storage/blackhole/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/blackhole/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -32,7 +32,7 @@
+Index: storage/blackhole/Makefile.am
+===================================================================
+--- storage/blackhole/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/blackhole/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -32,7 +32,7 @@ DEFS =                  @DEFS@
  
  noinst_HEADERS =	ha_blackhole.h
  
@@ -868,7 +933,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  pkgplugin_LTLIBRARIES =	@plugin_blackhole_shared_target@
  ha_blackhole_la_LDFLAGS=-module -rpath $(pkgplugindir)
  ha_blackhole_la_CXXFLAGS=$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-@@ -40,11 +40,10 @@
+@@ -40,11 +40,10 @@ ha_blackhole_la_CFLAGS=	$(AM_CFLAGS) -DM
  ha_blackhole_la_SOURCES=ha_blackhole.cc
  
  
@@ -884,10 +949,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-
-=== modified file 'storage/blackhole/plug.in'
---- storage/blackhole/plug.in	2006-08-19 04:19:19 +0000
-+++ storage/blackhole/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/blackhole/plug.in
+===================================================================
+--- storage/blackhole/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/blackhole/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,6 +1,6 @@
  MYSQL_STORAGE_ENGINE(blackhole,,[Blackhole Storage Engine],
          [Basic Write-only Read-never tables], [max,max-no-ndb])
@@ -896,11 +961,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +MYSQL_PLUGIN_STATIC(blackhole,  [libblackhole.la])
  MYSQL_PLUGIN_DYNAMIC(blackhole, [ha_blackhole.la])
  
-
-=== modified file 'storage/csv/Makefile.am'
---- storage/csv/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/csv/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -29,16 +29,15 @@
+Index: storage/csv/Makefile.am
+===================================================================
+--- storage/csv/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/csv/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -29,16 +29,15 @@ LDADD =
  DEFS =	@DEFS@
  noinst_HEADERS	  =	ha_tina.h transparent_file.h
  
@@ -921,10 +986,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  EXTRA_DIST =		CMakeLists.txt plug.in
  # Don't update the files from bitkeeper
-
-=== modified file 'storage/csv/plug.in'
---- storage/csv/plug.in	2006-08-19 04:19:19 +0000
-+++ storage/csv/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/csv/plug.in
+===================================================================
+--- storage/csv/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/csv/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,5 +1,5 @@
  MYSQL_STORAGE_ENGINE(csv,,      [CSV Storage Engine],
          [Stores tables in text CSV format])
@@ -932,11 +997,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 -MYSQL_PLUGIN_STATIC(csv,        [libcsv.a])
 +MYSQL_PLUGIN_STATIC(csv,        [libcsv.la])
  MYSQL_PLUGIN_MANDATORY(csv)     dnl Used for logging
-
-=== modified file 'storage/example/Makefile.am'
---- storage/example/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/example/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -32,7 +32,7 @@
+Index: storage/example/Makefile.am
+===================================================================
+--- storage/example/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/example/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -32,7 +32,7 @@ DEFS =                  @DEFS@
  
  noinst_HEADERS =	ha_example.h
  
@@ -945,7 +1010,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  pkgplugin_LTLIBRARIES =	@plugin_example_shared_target@
  ha_example_la_LDFLAGS =	-module -rpath $(pkgplugindir)
  ha_example_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-@@ -40,11 +40,10 @@
+@@ -40,11 +40,10 @@ ha_example_la_CFLAGS =	$(AM_CFLAGS) -DMY
  ha_example_la_SOURCES =	ha_example.cc
  
  
@@ -961,11 +1026,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-
-=== modified file 'storage/federated/Makefile.am'
---- storage/federated/Makefile.am	2010-08-27 14:12:44 +0000
-+++ storage/federated/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -32,7 +32,7 @@
+Index: storage/federated/Makefile.am
+===================================================================
+--- storage/federated/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/federated/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -32,7 +32,7 @@ DEFS =                  @DEFS@
  
  noinst_HEADERS =	ha_federated.h
  
@@ -974,7 +1039,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  pkgplugin_LTLIBRARIES =	@plugin_federated_shared_target@
  ha_federated_la_LDFLAGS =	-module -rpath $(pkgplugindir)
  ha_federated_la_CXXFLAGS=	$(AM_CXXFLAGS) -DMYSQL_DYNAMIC_PLUGIN
-@@ -40,11 +40,14 @@
+@@ -40,11 +40,14 @@ ha_federated_la_CFLAGS =	$(AM_CFLAGS) -D
  ha_federated_la_SOURCES =	ha_federated.cc
  
  
@@ -994,9 +1059,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-=== modified file 'storage/federated/plug.in'
---- storage/federated/plug.in	2010-06-09 21:29:18 +0000
-+++ storage/federated/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/federated/plug.in
+===================================================================
+--- storage/federated/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/federated/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,5 +1,4 @@
  MYSQL_STORAGE_ENGINE(federated,,[Federated Storage Engine],
          [Connects to tables on remote MySQL servers], [max,max-no-ndb])
@@ -1004,16 +1070,16 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +MYSQL_PLUGIN_STATIC(federated,    [libfederated.la], [libfederated_embedded.la])
  MYSQL_PLUGIN_DYNAMIC(federated,   [ha_federated.la])
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(federated, [ha_federated.cc])
-=== modified file 'storage/heap/Makefile.am'
---- storage/heap/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/heap/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -26,27 +26,41 @@
+Index: storage/heap/Makefile.am
+===================================================================
+--- storage/heap/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/heap/Makefile.am	2010-11-27 19:44:23.000000000 +0100
+@@ -26,27 +26,40 @@ WRAPLIBS=
  LDADD =
  
  DEFS =                  @DEFS@
 -pkglib_LIBRARIES =	libheap.a
-+pkglib_LTLIBRARIES =	libheap.la
-+noinst_LTLIBRARIES =	libheap_s.la libheap_common.la \
++noinst_LTLIBRARIES =	libheap.la libheap_s.la libheap_common.la \
 +			@plugin_heap_embedded_static_target@
 +EXTRA_LTLIBRARIES =	libheap_embedded.la
 +
@@ -1061,10 +1127,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-
-=== modified file 'storage/heap/plug.in'
---- storage/heap/plug.in	2006-10-18 12:03:37 +0000
-+++ storage/heap/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/heap/plug.in
+===================================================================
+--- storage/heap/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/heap/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,7 +1,6 @@
  MYSQL_STORAGE_ENGINE(heap,no,   [Memory Storage Engine],
          [Volatile memory based tables])
@@ -1074,10 +1140,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  MYSQL_PLUGIN_MANDATORY(heap)    dnl Memory tables
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(heap, [ha_heap.cc])
  
-
-=== modified file 'storage/innodbase/Makefile.am'
---- storage/innobase/Makefile.am	2010-09-25 18:01:14.340003346 +0000
-+++ storage/innobase/Makefile.am	2010-09-25 18:06:15.086670017 +0000
+Index: storage/innobase/Makefile.am
+===================================================================
+--- storage/innobase/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/innobase/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -15,21 +15,20 @@
  
  # Process this file with automake to create Makefile.in
@@ -1108,7 +1174,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			include/btr0cur.h include/btr0cur.ic		\
  			include/btr0pcur.h include/btr0pcur.ic		\
  			include/btr0sea.h include/btr0sea.ic		\
-@@ -122,9 +121,8 @@
+@@ -122,9 +121,8 @@ noinst_HEADERS=		include/btr0btr.h inclu
  			include/ut0list.ic include/ut0wqueue.h		\
  			include/ha_prototypes.h handler/ha_innodb.h
  
@@ -1120,7 +1186,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			btr/btr0sea.c buf/buf0buf.c buf/buf0flu.c	\
  			buf/buf0lru.c buf/buf0rea.c data/data0data.c	\
  			data/data0type.c dict/dict0boot.c		\
-@@ -156,18 +154,18 @@
+@@ -156,18 +154,18 @@ libinnobase_a_SOURCES=	btr/btr0btr.c btr
  			ut/ut0ut.c ut/ut0vec.c ut/ut0wqueue.c		\
  			handler/ha_innodb.cc
  
@@ -1148,9 +1214,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			pars/make_bison.sh pars/make_flex.sh \
  			pars/pars0grm.y pars/pars0lex.l
  
-=== modified file 'storage/innodbase/plug.in'
---- storage/innobase/plug.in	2010-09-25 18:01:14.340003346 +0000
-+++ storage/innobase/plug.in	2010-09-25 18:06:15.086670017 +0000
+Index: storage/innobase/plug.in
+===================================================================
+--- storage/innobase/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/innobase/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,7 +1,7 @@
  MYSQL_STORAGE_ENGINE(innobase, innodb, [InnoDB Storage Engine],
          [Transactional Tables using InnoDB], [max,max-no-ndb])
@@ -1160,10 +1227,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  MYSQL_PLUGIN_DYNAMIC(innobase,  [ha_innodb.la])
  MYSQL_PLUGIN_ACTIONS(innobase,  [
    AC_CHECK_LIB(rt, aio_read, [innodb_system_libs="-lrt"])
-=== modified file 'storage/innodb_plugin/Makefile.am'
---- storage/innodb_plugin/Makefile.am	2010-07-09 11:37:51 +0000
-+++ storage/innodb_plugin/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -228,9 +228,8 @@
+Index: storage/innodb_plugin/Makefile.am
+===================================================================
+--- storage/innodb_plugin/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/innodb_plugin/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -228,9 +228,8 @@ noinst_HEADERS=		\
  			include/ut0wqueue.h	\
  			mem/mem0dbg.c
  
@@ -1175,7 +1243,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			btr/btr0btr.c			\
  			btr/btr0cur.c			\
  			btr/btr0pcur.c			\
-@@ -325,16 +324,16 @@
+@@ -325,16 +324,16 @@ libinnobase_a_SOURCES=	\
  			ut/ut0vec.c			\
  			ut/ut0wqueue.c
  
@@ -1196,17 +1264,16 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  EXTRA_DIST=		CMakeLists.txt plug.in \
  			pars/make_bison.sh pars/make_flex.sh \
-
-=== modified file 'storage/myisam/Makefile.am'
---- storage/myisam/Makefile.am	2009-10-23 16:48:54 +0000
-+++ storage/myisam/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -30,60 +30,64 @@
+Index: storage/myisam/Makefile.am
+===================================================================
+--- storage/myisam/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/myisam/Makefile.am	2010-11-27 19:44:01.000000000 +0100
+@@ -30,60 +30,63 @@ DEFS =                  @DEFS@
  EXTRA_DIST =		mi_test_all.sh mi_test_all.res ft_stem.c CMakeLists.txt plug.in
  pkgdata_DATA =		mi_test_all mi_test_all.res
  
 -pkglib_LIBRARIES =	libmyisam.a
-+pkglib_LTLIBRARIES =	libmyisam.la
-+noinst_LTLIBRARIES =	libmyisam_common.la libmyisam_s.la \
++noinst_LTLIBRARIES =	libmyisam.la libmyisam_common.la libmyisam_s.la \
 +			@plugin_myisam_embedded_static_target@
 +EXTRA_LTLIBRARIES =	libmyisam_embedded.la
 +
@@ -1314,7 +1381,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  			mi_rnext.c mi_rnext_same.c \
  			mi_search.c mi_page.c mi_key.c mi_locking.c \
  			mi_rrnd.c mi_scan.c mi_cache.c \
-@@ -98,8 +102,23 @@
+@@ -98,8 +101,23 @@ libmyisam_a_SOURCES =	mi_open.c mi_extra
  			mi_keycache.c mi_preload.c \
  			ft_parser.c ft_stopwords.c ft_static.c \
  			ft_update.c ft_boolean_search.c ft_nlq_search.c sort.c \
@@ -1339,10 +1406,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  CLEANFILES =		test?.MY? FT?.MY? isam.log mi_test_all rt_test.MY? sp_test.MY?
  
  # Move to automake rules ?
-
-=== modified file 'storage/myisam/plug.in'
---- storage/myisam/plug.in	2008-10-10 15:28:41 +0000
-+++ storage/myisam/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/myisam/plug.in
+===================================================================
+--- storage/myisam/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/myisam/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,7 +1,5 @@
  MYSQL_STORAGE_ENGINE(myisam,no, [MyISAM Storage Engine],
          [Traditional non-transactional MySQL tables])
@@ -1352,16 +1419,16 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  MYSQL_PLUGIN_MANDATORY(myisam)  dnl Default
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisam, [ha_myisam.cc])
 -
-=== modified file 'storage/myisammrg/Makefile.am'
---- storage/myisammrg/Makefile.am	2008-04-25 21:45:58 +0000
-+++ storage/myisammrg/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -26,16 +26,29 @@
+Index: storage/myisammrg/Makefile.am
+===================================================================
+--- storage/myisammrg/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/myisammrg/Makefile.am	2010-11-27 19:43:39.000000000 +0100
+@@ -26,16 +26,28 @@ WRAPLIBS=
  LDADD =
  
  DEFS =                  @DEFS@
 -pkglib_LIBRARIES =	libmyisammrg.a
-+pkglib_LTLIBRARIES =	libmyisammrg.la
-+noinst_LTLIBRARIES =	libmyisammrg_s.la libmyisammrg_common.la \
++noinst_LTLIBRARIES =	libmyisammrg.la libmyisammrg_s.la libmyisammrg_common.la \
 +			@plugin_myisammrg_embedded_static_target@
 +EXTRA_LTLIBRARIES =	libmyisammrg_embedded.la
  noinst_HEADERS =	myrg_def.h ha_myisammrg.h
@@ -1389,10 +1456,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  EXTRA_DIST =		CMakeLists.txt plug.in
-
-=== modified file 'storage/myisammrg/plug.in'
---- storage/myisammrg/plug.in	2006-10-18 12:03:37 +0000
-+++ storage/myisammrg/plug.in	2010-09-16 12:49:35 +0000
+Index: storage/myisammrg/plug.in
+===================================================================
+--- storage/myisammrg/plug.in.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/myisammrg/plug.in	2010-11-27 15:02:49.000000000 +0100
 @@ -1,6 +1,5 @@
  MYSQL_STORAGE_ENGINE(myisammrg,no,[MyISAM MERGE Engine],
          [Merge multiple MySQL tables into one])
@@ -1401,11 +1468,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +MYSQL_PLUGIN_STATIC(myisammrg,  [libmyisammrg_s.la], [libmyisammrg_embedded.la])
  MYSQL_PLUGIN_MANDATORY(myisammrg)
 -MYSQL_PLUGIN_DEPENDS_ON_MYSQL_INTERNALS(myisammrg, [ha_myisammrg.cc])
-
-=== modified file 'storage/ndb/src/common/util/Makefile.am'
---- storage/ndb/src/common/util/Makefile.am	2010-04-01 11:19:15 +0000
-+++ storage/ndb/src/common/util/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -31,9 +31,9 @@
+Index: storage/ndb/src/common/util/Makefile.am
+===================================================================
+--- storage/ndb/src/common/util/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/common/util/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -31,9 +31,9 @@ EXTRA_PROGRAMS = testBitmask
  testBitmask_SOURCES =  testBitmask.cpp
  testBitmask_LDFLAGS = @ndb_bin_am_ldflags@ \
    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -1418,10 +1485,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  testBitmask.cpp : Bitmask.cpp
  	rm -f testBitmask.cpp
-
-=== modified file 'storage/ndb/config/type_ndbapitest.mk.am'
---- storage/ndb/config/type_ndbapitest.mk.am	2010-09-25 16:02:57.696670015 +0000
-+++ storage/ndb/config/type_ndbapitest.mk.am	2010-09-25 16:07:41.000002672 +0000
+Index: storage/ndb/config/type_ndbapitest.mk.am
+===================================================================
+--- storage/ndb/config/type_ndbapitest.mk.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/config/type_ndbapitest.mk.am	2010-11-27 15:02:49.000000000 +0100
 @@ -13,19 +13,20 @@
  # along with this program; if not, write to the Free Software
  # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -1458,9 +1525,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		-I$(top_srcdir)/storage/ndb/include/portlib \
 +		-I$(top_srcdir)/storage/ndb/test/include \
 +		-I$(top_srcdir)/storage/ndb/include/mgmapi
-=== modified file 'storage/ndb/config/type_ndbapitools.mk.am'
---- storage/ndb/config/type_ndbapitools.mk.am	2010-09-25 16:02:57.696670015 +0000
-+++ storage/ndb/config/type_ndbapitools.mk.am	2010-09-25 16:08:01.260003396 +0000
+Index: storage/ndb/config/type_ndbapitools.mk.am
+===================================================================
+--- storage/ndb/config/type_ndbapitools.mk.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/config/type_ndbapitools.mk.am	2010-11-27 15:02:49.000000000 +0100
 @@ -13,20 +13,21 @@
  # along with this program; if not, write to the Free Software
  # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -1499,10 +1567,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		-I$(top_srcdir)/storage/ndb/test/include \
 +		-I$(top_srcdir)/storage/ndb/include/mgmapi \
 +		-I$(top_srcdir)/storage/ndb/include/kernel
-=== modified file 'storage/ndb/config/win-libraries'
---- storage/ndb/config/win-libraries	2010-09-25 16:02:57.696670015 +0000
-+++ storage/ndb/config/win-libraries	2010-09-25 16:05:27.550003650 +0000
-@@ -21,7 +21,7 @@
+Index: storage/ndb/config/win-libraries
+===================================================================
+--- storage/ndb/config/win-libraries.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/config/win-libraries	2010-11-27 15:02:49.000000000 +0100
+@@ -21,7 +21,7 @@ do
  # the same goes for mysys and strings
    lib=$i
    case $i in
@@ -1511,10 +1580,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
    lib=`echo $i | sed s'!dbug\/lib!!' | sed 's!mysys\/lib!!' | sed 's!strings\/libmy!!'`
    echo "Changing from $i to $lib"
    ;;
-=== modified file 'storage/ndb/src/cw/cpcd/Makefile.am'
---- storage/ndb/src/cw/cpcd/Makefile.am	2007-02-13 01:38:54 +0000
-+++ storage/ndb/src/cw/cpcd/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -19,9 +19,9 @@
+Index: storage/ndb/src/cw/cpcd/Makefile.am
+===================================================================
+--- storage/ndb/src/cw/cpcd/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/cw/cpcd/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -19,9 +19,9 @@ ndb_cpcd_SOURCES = main.cpp CPCD.cpp Pro
  
  LDADD_LOC = \
              $(top_builddir)/storage/ndb/src/libndbclient.la      \
@@ -1527,10 +1597,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_util.mk.am
-=== modified file 'storage/ndb/src/kernel/Makefile.am'
---- storage/ndb/src/kernel/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -53,9 +53,10 @@
+Index: storage/ndb/src/kernel/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -53,9 +53,10 @@ LDADD +=  \
                $(top_builddir)/storage/ndb/src/mgmapi/libmgmapi.la \
                $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la      \
                $(top_builddir)/storage/ndb/src/common/util/libgeneral.la  \
@@ -1544,10 +1615,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  windoze-dsp: ndbd.dsp
  
-=== modified file 'storage/ndb/src/kernel/blocks/Makefile.am'
---- storage/ndb/src/kernel/blocks/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/blocks/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -18,7 +18,7 @@
+Index: storage/ndb/src/kernel/blocks/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -18,7 +18,7 @@ SUBDIRS = \
  	dbdih		\
  	dblqh		\
  	dbtup		\
@@ -1556,7 +1628,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  noinst_LIBRARIES = libblocks.a
  
-@@ -56,10 +56,10 @@
+@@ -56,10 +56,10 @@ libblocks_a_SOURCES = tsman.cpp lgman.cp
  EXTRA_PROGRAMS = ndb_print_file
  ndb_print_file_SOURCES = print_file.cpp diskpage.cpp dbtup/tuppage.cpp
  ndb_print_file_LDFLAGS = @ndb_bin_am_ldflags@ \
@@ -1571,10 +1643,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
-=== modified file 'storage/ndb/src/kernel/blocks/backup/Makefile.am'
---- storage/ndb/src/kernel/blocks/backup/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -17,9 +17,9 @@
+Index: storage/ndb/src/kernel/blocks/backup/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/backup/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/backup/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -17,9 +17,9 @@ ndbtools_PROGRAMS = ndb_print_backup_fil
  ndb_print_backup_file_SOURCES = read.cpp
  ndb_print_backup_file_LDFLAGS = @ndb_bin_am_ldflags@ \
    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -1587,11 +1660,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_kernel.mk.am
-
-=== modified file 'storage/ndb/src/kernel/blocks/dbdict/Makefile.am'
---- storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -19,17 +19,17 @@
+Index: storage/ndb/src/kernel/blocks/dbdict/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/dbdict/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/dbdict/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -19,17 +19,17 @@ include $(top_srcdir)/storage/ndb/config
  LDADD +=  \
           $(top_builddir)/storage/ndb/src/common/util/libgeneral.la \
           $(top_builddir)/storage/ndb/src/common/portlib/libportlib.la \
@@ -1615,11 +1688,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-
-=== modified file 'storage/ndb/src/kernel/blocks/dbdih/Makefile.am'
---- storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -17,9 +17,9 @@
+Index: storage/ndb/src/kernel/blocks/dbdih/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/dbdih/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/dbdih/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -17,9 +17,9 @@ ndbtools_PROGRAMS = ndb_print_sys_file
  ndb_print_sys_file_SOURCES = printSysfile.cpp
  ndb_print_sys_file_LDFLAGS = @ndb_bin_am_ldflags@ \
    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -1632,11 +1705,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
-
-=== modified file 'storage/ndb/src/kernel/blocks/dblqh/Makefile.am'
---- storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2007-05-29 21:39:57 +0000
-+++ storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -23,9 +23,9 @@
+Index: storage/ndb/src/kernel/blocks/dblqh/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/dblqh/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/dblqh/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -23,9 +23,9 @@ include $(top_srcdir)/storage/ndb/config
  
  ndbd_redo_log_reader_LDFLAGS = @ndb_bin_am_ldflags@ \
    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -1649,11 +1722,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-
-=== modified file 'storage/ndb/src/kernel/blocks/dbtup/Makefile.am'
---- storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -20,9 +20,9 @@
+Index: storage/ndb/src/kernel/blocks/dbtup/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/blocks/dbtup/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/blocks/dbtup/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -20,9 +20,9 @@ EXTRA_PROGRAMS = test_varpage
  test_varpage_SOURCES = test_varpage.cpp tuppage.cpp
  test_varpage_LDFLAGS = @ndb_bin_am_ldflags@ \
    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -1666,10 +1739,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-
-=== modified file 'storage/ndb/src/kernel/vm/Makefile.am'
---- storage/ndb/src/kernel/vm/Makefile.am	2006-12-31 00:32:21 +0000
-+++ storage/ndb/src/kernel/vm/Makefile.am	2010-09-16 12:49:35 +0000
+Index: storage/ndb/src/kernel/vm/Makefile.am
+===================================================================
+--- storage/ndb/src/kernel/vm/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/kernel/vm/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -21,22 +21,22 @@
  noinst_LIBRARIES = libkernel.a
  
@@ -1709,7 +1782,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  INCLUDES_LOC = -I$(top_srcdir)/storage/ndb/src/mgmapi
  
-@@ -49,40 +49,40 @@
+@@ -49,40 +49,40 @@ include $(top_srcdir)/storage/ndb/config
  windoze-dsp: libkernel.dsp
  
  libkernel.dsp: Makefile \
@@ -1775,10 +1848,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		$(top_builddir)/dbug/libdbug.la \
 +		$(top_builddir)/strings/libmystrings.la
  
-=== modified file 'storage/ndb/src/mgmclient/Makefile.am'
---- storage/ndb/src/mgmclient/Makefile.am	2007-08-01 07:24:01 +0000
-+++ storage/ndb/src/mgmclient/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -18,12 +18,11 @@
+Index: storage/ndb/src/mgmclient/Makefile.am
+===================================================================
+--- storage/ndb/src/mgmclient/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/mgmclient/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -18,12 +18,11 @@ ndbtools_PROGRAMS = ndb_mgm
  
  libndbmgmclient_la_SOURCES = CommandInterpreter.cpp
  libndbmgmclient_la_LIBADD = ../mgmapi/libmgmapi.la \
@@ -1796,7 +1870,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  ndb_mgm_SOURCES = main.cpp
  
-@@ -34,13 +33,13 @@
+@@ -34,13 +33,13 @@ INCLUDES += -I$(top_srcdir)/storage/ndb/
              -I$(top_srcdir)/storage/ndb/src/common/mgmcommon
  
  LDADD_LOC = $(noinst_LTLIBRARIES) \
@@ -1817,7 +1891,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  ndb_mgm_LDFLAGS = @ndb_bin_am_ldflags@
  
-@@ -50,25 +49,25 @@
+@@ -50,25 +49,25 @@ ndb_mgm_LDFLAGS = @ndb_bin_am_ldflags@
  windoze-dsp: ndb_mgm.dsp libndbmgmclient.dsp
  
  ndb_mgm.dsp: Makefile \
@@ -1863,10 +1937,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		@$(top_srcdir)/storage/ndb/config/win-includes $@ $(INCLUDES)
 +		@$(top_srcdir)/storage/ndb/config/win-sources $@ $(libndbmgmclient_la_SOURCES)
 +		@$(top_srcdir)/storage/ndb/config/win-libraries $@ LIB
-=== modified file 'storage/ndb/src/mgmsrv/Makefile.am'
---- storage/ndb/src/mgmsrv/Makefile.am	2009-07-31 19:28:15 +0000
-+++ storage/ndb/src/mgmsrv/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -22,35 +22,35 @@
+Index: storage/ndb/src/mgmsrv/Makefile.am
+===================================================================
+--- storage/ndb/src/mgmsrv/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/mgmsrv/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -22,35 +22,35 @@ MYSQLCLUSTERdir=        .
  ndbbin_PROGRAMS = ndb_mgmd
  
  ndb_mgmd_SOURCES = \
@@ -1927,7 +2002,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  include $(top_srcdir)/storage/ndb/config/common.mk.am
  include $(top_srcdir)/storage/ndb/config/type_ndbapi.mk.am
-@@ -63,13 +63,13 @@
+@@ -63,13 +63,13 @@ ndb_mgmd_LDFLAGS = @ndb_bin_am_ldflags@
  windoze-dsp: ndb_mgmd.dsp
  
  ndb_mgmd.dsp: Makefile \
@@ -1951,10 +2026,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		@$(top_srcdir)/storage/ndb/config/win-includes $@ $(INCLUDES)
 +		@$(top_srcdir)/storage/ndb/config/win-sources $@ $(ndb_mgmd_SOURCES)
 +		@$(top_srcdir)/storage/ndb/config/win-libraries $@ LINK $(LDADD)
-=== modified file 'storage/ndb/src/ndbapi/Makefile.am'
---- storage/ndb/src/ndbapi/Makefile.am	2007-04-11 13:51:09 +0000
-+++ storage/ndb/src/ndbapi/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -22,41 +22,42 @@
+Index: storage/ndb/src/ndbapi/Makefile.am
+===================================================================
+--- storage/ndb/src/ndbapi/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/src/ndbapi/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -22,41 +22,42 @@ ndberror_check_SOURCES = ndberror_check.
  noinst_LTLIBRARIES = libndbapi.la
  
  libndbapi_la_SOURCES = \
@@ -2032,7 +2108,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  INCLUDES_LOC = -I$(top_srcdir)/storage/ndb/src/mgmapi
  
-@@ -67,9 +68,10 @@
+@@ -67,9 +68,10 @@ include $(top_srcdir)/storage/ndb/config
  include $(top_srcdir)/storage/ndb/config/type_ndbapi.mk.am
  
  ndberror_check_LDFLAGS = \
@@ -2046,7 +2122,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-@@ -77,13 +79,13 @@
+@@ -77,13 +79,13 @@ ndberror_check_LDFLAGS = \
  windoze-dsp: libndbapi.dsp
  
  libndbapi.dsp: Makefile \
@@ -2070,10 +2146,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
 +		@$(top_srcdir)/storage/ndb/config/win-includes $@ $(INCLUDES)
 +		@$(top_srcdir)/storage/ndb/config/win-sources $@ $(libndbapi_la_SOURCES)
 +		@$(top_srcdir)/storage/ndb/config/win-libraries $@ LIB $(LDADD)
-=== modified file 'storage/ndb/test/run-test/Makefile.am'
---- storage/ndb/test/run-test/Makefile.am	2009-10-13 18:21:42 +0000
-+++ storage/ndb/test/run-test/Makefile.am	2010-09-16 12:49:35 +0000
-@@ -34,9 +34,9 @@
+Index: storage/ndb/test/run-test/Makefile.am
+===================================================================
+--- storage/ndb/test/run-test/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ storage/ndb/test/run-test/Makefile.am	2010-11-27 15:02:49.000000000 +0100
+@@ -34,9 +34,9 @@ atrt_SOURCES = main.cpp setup.cpp files.
  INCLUDES_LOC = -I$(top_srcdir)/storage/ndb/test/include
  LDADD_LOC = $(top_builddir)/storage/ndb/test/src/libNDBT.a \
  	    $(top_builddir)/storage/ndb/src/libndbclient.la \
@@ -2086,20 +2163,20 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  atrt_CXXFLAGS = -I$(top_srcdir)/ndb/src/mgmapi \
                        -I$(top_srcdir)/ndb/src/mgmsrv \
-
-=== modified file 'strings/Makefile.am'
---- strings/Makefile.am	2010-08-27 14:12:44 +0000
-+++ strings/Makefile.am	2010-09-16 12:49:35 +0000
+Index: strings/Makefile.am
+===================================================================
+--- strings/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ strings/Makefile.am	2010-11-27 19:42:38.000000000 +0100
 @@ -16,7 +16,7 @@
  # This file is public domain and comes with NO WARRANTY of any kind
  
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include
 -pkglib_LIBRARIES =	libmystrings.a
-+pkglib_LTLIBRARIES =	libmystrings.la
++noinst_LTLIBRARIES =	libmystrings.la
  
  # Exact one of ASSEMBLER_X
  if ASSEMBLER_x86
-@@ -37,7 +37,7 @@
+@@ -37,7 +37,7 @@ CSRCS		= strxmov.c bmove_upp.c strappend
  endif
  endif
  
@@ -2108,7 +2185,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  noinst_PROGRAMS = conf_to_src
  CLEANFILES = str_test uctypedump test_decimal
  # Default charset definitions
-@@ -56,9 +56,9 @@
+@@ -56,9 +56,9 @@ EXTRA_DIST =		ctype-big5.c ctype-cp932.c
  			t_ctype.h my_strchr.c CMakeLists.txt \
  			CHARSET_INFO.txt
  
@@ -2121,7 +2198,7 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  #force static linking of conf_to_src - essential when linking against
  #custom installation of libc
  conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
-@@ -69,15 +69,15 @@
+@@ -69,15 +69,15 @@ conf_to_src_LDFLAGS= @NOINST_LDFLAGS@
  
  FLAGS=$(DEFS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) @NOINST_LDFLAGS@
  
@@ -2140,10 +2217,11 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  	$(RM) -f ./test_decimal.c
  
  # Don't update the files from bitkeeper
-=== modified file 'unittest/unit.pl'
---- unittest/unit.pl	2010-08-27 14:12:44 +0000
-+++ unittest/unit.pl	2010-09-16 12:49:35 +0000
-@@ -55,7 +55,7 @@
+Index: unittest/unit.pl
+===================================================================
+--- unittest/unit.pl.orig	2010-11-27 15:02:45.000000000 +0100
++++ unittest/unit.pl	2010-11-27 15:02:49.000000000 +0100
+@@ -55,7 +55,7 @@ sub _find_test_files (@) {
      my @dirs = @_;
      my @files;
      find sub { 
@@ -2152,9 +2230,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
          push(@files, $File::Find::name) if -x _ && /-t\z/;
      }, @dirs;
      return @files;
-=== modified file 'unittest/mysys/Makefile.am'
---- unittest/mysys/Makefile.am	2010-08-27 14:12:44 +0000
-+++ unittest/mysys/Makefile.am	2010-09-16 12:49:35 +0000
+Index: unittest/mysys/Makefile.am
+===================================================================
+--- unittest/mysys/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ unittest/mysys/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -13,15 +13,16 @@
  # along with this program; if not, write to the Free Software
  # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -2179,9 +2258,10 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  # Don't update the files from bitkeeper
  %::SCCS/s.%
-=== modified file 'unittest/strings/Makefile.am'
---- unittest/strings/Makefile.am	2010-07-26 05:06:18 +0000
-+++ unittest/strings/Makefile.am	2010-09-16 12:49:35 +0000
+Index: unittest/strings/Makefile.am
+===================================================================
+--- unittest/strings/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ unittest/strings/Makefile.am	2010-11-27 15:02:49.000000000 +0100
 @@ -16,10 +16,11 @@
  AM_CPPFLAGS      = @ZLIB_INCLUDES@ -I$(top_builddir)/include 
  AM_CPPFLAGS     += -I$(top_srcdir)/include -I$(top_srcdir)/unittest/mytap
@@ -2198,15 +2278,16 @@ Signed-off-by: Kristian Nielsen <knielsen@knielsen-hq.org>
  
  noinst_PROGRAMS  = strings-t
  
-=== modified file 'vio/Makefile.am'
---- vio/Makefile.am	2010-08-27 14:12:44 +0000
-+++ vio/Makefile.am	2010-09-16 12:49:35 +0000
+Index: vio/Makefile.am
+===================================================================
+--- vio/Makefile.am.orig	2010-11-27 15:02:45.000000000 +0100
++++ vio/Makefile.am	2010-11-27 19:43:02.000000000 +0100
 @@ -16,11 +16,11 @@
  INCLUDES =		-I$(top_builddir)/include -I$(top_srcdir)/include \
  			$(openssl_includes)
  LDADD =			@CLIENT_EXTRA_LDFLAGS@ $(openssl_libs) $(yassl_libs)
 -pkglib_LIBRARIES =	libvio.a
-+pkglib_LTLIBRARIES =	libvio.la
++noinst_LTLIBRARIES =	libvio.la
  
  noinst_HEADERS =	vio_priv.h
  
