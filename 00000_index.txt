@@ -670,6 +670,17 @@
 @pn mysql-cluster
 @@ Bug#57386: Enlarge the stacksize used for trackback.
 
+@patch 07340_all_mysql_hardened_x86_strings.patch
+@ver 5.01.51.00 to 5.01.99.99
+@pn mysql
+@pn mysql-cluster
+@@ Gentoo Bug #344031: Fix new TEXTRELs
+
+@patch 07340_all_mariadb_hardened_x86_strings.patch
+@ver 5.01.51.00 to 5.01.99.99
+@pn mariadb
+@@ Gentoo Bug #344031: Fix new TEXTRELs
+
 @patch 10010_all_show_patches-percona-5.0.75-b12.patch
 @ver 5.00.75.00 to 5.00.76.99
 @pn mysql-community
